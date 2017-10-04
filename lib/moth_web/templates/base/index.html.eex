@@ -1,0 +1,8 @@
+<div class="jumbotron">
+  <div>
+    <button class="primary">Host a new game</button>
+  </div>
+  <div>
+    List of games
+  </div>
+</div>
