@@ -8,6 +8,7 @@ defmodule Moth.GameServer do
   end
 
   def init(%{id: id, interval: interval}) do
+    Registry.register(Moth.Games, id, self())
     {:ok, board} = HousieBoard.start_link()
     timer = Process.send_after(self(), :update, 1_000)
     {:ok, %GameServer{id: id, timer: timer, board: board, interval: interval}}
@@ -47,6 +48,7 @@ defmodule Moth.GameServer do
 
     case HousieBoard.has_finished?(board) do
       true -> 
+        Process.exit(self(), :kill)
         {:noreply, state}
       _  ->
         timer = Process.send_after(self(), :update, 1_000)

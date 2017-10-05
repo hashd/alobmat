@@ -12,8 +12,11 @@ defmodule MothWeb.API.GameController do
   use MothWeb, :controller
   alias Moth.{GameServer, Games}
 
-  def new(conn, %{"id" => id, "interval" => interval} = _params) do
+  def new(conn, %{"id" => id, "interval" => interval} = _params) when is_binary interval do
     json conn, create_new_game(id, interval |> String.to_integer)
+  end
+  def new(conn, %{"id" => id, "interval" => interval} = _params) when is_integer interval do
+    json conn, create_new_game(id, interval)
   end
   def new(conn, %{"id" => id} = _params) do
     json conn, create_new_game(id, 45)
@@ -25,7 +28,7 @@ defmodule MothWeb.API.GameController do
 
   defp create_new_game(id, interval) do
     case Moth.Housie.start(id, interval) do
-      {:ok, _gs}        -> %{status: :ok, game_id: id, interval: interval}
+      {:ok, _gs}       -> %{status: :ok, game_id: id, interval: interval}
       {:error, reason} -> %{status: :error, reason: reason}
     end
   end
