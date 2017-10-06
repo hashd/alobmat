@@ -20,7 +20,12 @@ defmodule Moth.Mixfile do
   def application do
     [
       mod: {Moth.Application, []},
-      extra_applications: [:logger, :runtime_tools]
+      extra_applications: [
+        :logger, 
+        :runtime_tools,
+        :ueberauth,
+        :ueberauth_google
+      ]
     ]
   end
 
@@ -42,7 +47,11 @@ defmodule Moth.Mixfile do
       {:gettext, "~> 0.11"},
       {:cowboy, "~> 1.0"},
       {:mix_test_watch, "~> 0.3.3", runtime: false},
-      {:fs, github: "synrc/fs", manager: :rebar, override: true}
+      {:fs, github: "synrc/fs", manager: :rebar, override: true},
+      {:ueberauth, "~> 0.4"},
+      {:ueberauth_google, "~> 0.2"},
+      {:ja_serializer, "~> 0.12"},
+      {:guardian, "~> 0.14.2"}
     ]
   end
 

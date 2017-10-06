@@ -18,6 +18,12 @@ defmodule MothWeb.Router do
 
     get  "/games/:id", GameController, :show
     post "/games/:id", GameController, :new
+
+    scope "/auth" do
+      get "/:provider", AuthController, :request
+      get "/:provider", AuthController, :callback
+      delete "/logout", AuthController, :log_out
+    end
   end
 
   scope "/", MothWeb do
