@@ -9,6 +9,7 @@ defmodule MothWeb.Router do
     plug :fetch_flash
     plug :protect_from_forgery
     plug :put_secure_browser_headers
+    plug MothWeb.Plug.SetUser
   end
 
   pipeline :api do
@@ -25,9 +26,9 @@ defmodule MothWeb.Router do
   scope "/auth", MothWeb do
     pipe_through :browser
 
+    get "/logout", AuthController, :log_out
     get "/:provider", AuthController, :request
     get "/:provider/callback", AuthController, :callback
-    delete "/logout", AuthController, :log_out
   end
 
   scope "/", MothWeb do

@@ -2,6 +2,7 @@ defmodule MothWeb.BaseController do
   use MothWeb, :controller
 
   def index(conn, _params) do
+    IO.inspect get_session(conn, :email)
     render conn, "index.html"
   end
 

@@ -14,7 +14,7 @@
   <body>
     <div class="container">
       <header class="header">
-        <h2 class="text-center">Welcome to Tambola by Funtagious!</h2>
+        <h2 class="text-center">Welcome to Tambola by Funtagious!<%= if @conn.assigns.user do ", #{@conn.assigns.user.name}" end %></h2>
       </header>
 
       <p class="alert alert-info" role="alert"><%= get_flash(@conn, :info) %></p>
