@@ -1,6 +1,8 @@
 defmodule MothWeb.Router do
   use MothWeb, :router
 
+  require Ueberauth
+
   pipeline :browser do
     plug :accepts, ["html"]
     plug :fetch_session
@@ -18,12 +20,14 @@ defmodule MothWeb.Router do
 
     get  "/games/:id", GameController, :show
     post "/games/:id", GameController, :new
+  end
 
-    scope "/auth" do
-      get "/:provider", AuthController, :request
-      get "/:provider", AuthController, :callback
-      delete "/logout", AuthController, :log_out
-    end
+  scope "/auth", MothWeb do
+    pipe_through :browser
+
+    get "/:provider", AuthController, :request
+    get "/:provider/callback", AuthController, :callback
+    delete "/logout", AuthController, :log_out
   end
 
   scope "/", MothWeb do
