@@ -1,6 +1,8 @@
 defmodule MothWeb.GameController do
   use MothWeb, :controller
 
+  alias Moth.Accounts
+
   def index(conn, %{"id" => id} = _params) do
     conn
     |> assign(:game_id, id)
@@ -27,7 +29,10 @@ defmodule MothWeb.API.GameController do
   end
 
   defp create_new_game(name, interval, user) do
-    case Moth.Housie.start_game(%{name: name, interval: interval, owner: user}) do
+    game = %Moth.Housie.Game{name: name, details: %{interval: interval, bulletin: ""}, owner: user, prizes: [], moderators: []}
+
+    Ecto.build_assoc(game, :owner)
+    case Moth.Housie.start_game(game) do
       {:ok, game}      -> %{status: :ok, game_id: game.id, interval: interval}
       {:error, reason} -> %{status: :error, reason: reason}
     end

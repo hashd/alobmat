@@ -4,7 +4,6 @@ defmodule Moth.Housie.Game do
   alias Moth.Housie.{Game, Prize}
   alias Moth.Accounts.User
 
-  @primary_key {:id, :binary_id, autogenerate: true}
   schema "games" do
     field         :name,        :string
     belongs_to    :owner,       User
@@ -22,7 +21,13 @@ defmodule Moth.Housie.Game do
   @doc false
   def changeset(%Game{} = game, attrs) do
     game
-    |> cast(attrs, [])
+    |> cast(attrs, [:name])
+    |> cast_embed(:details, with: &details_changeset/2)
     |> validate_required([])
+  end
+
+  def details_changeset(details, attrs) do
+    details
+    |> cast(attrs, [:interval, :bulletin])
   end
 end

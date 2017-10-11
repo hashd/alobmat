@@ -37,7 +37,7 @@ defmodule Moth.Accounts do
       ** (Ecto.NoResultsError)
 
   """
-  def get_user!(id), do: User |> Repo.get!(id) |> preload(:credential)
+  def get_user!(id), do: User |> Repo.get!(id) |> Repo.preload(:credential)
 
   @doc """
   Creates a user.
