@@ -13,16 +13,17 @@
 
   <body>
     <div class="container">
-      <header class="header">
-        <h2 class="text-center">Welcome to Tambola by Funtagious!<%= if @conn.assigns.user do ", #{@conn.assigns.user.name}" end %></h2>
-      </header>
-
+      <ul class="right user-menu">
+        <%= if @conn.assigns.user do %>
+          <li class="user"><%= @conn.assigns.user.name %></li>
+        <% else %>
+          <%= link to: auth_path(@conn, :request, "google") do %><li class="login">Login with Google</li><% end %>
+        <% end %>
+      </ul>
       <p class="alert alert-info" role="alert"><%= get_flash(@conn, :info) %></p>
       <p class="alert alert-danger" role="alert"><%= get_flash(@conn, :error) %></p>
 
       <main role="main">
-        <div id="messages"></div>
-        <input id="chat-input" type="text"></input>
         <%= render @view_module, @view_template, assigns %>
       </main>
 

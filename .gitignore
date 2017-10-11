@@ -29,5 +29,7 @@ npm-debug.log
 # OAUTH Details
 *_oauth.json
 
+**/.DS_Store
+
 # ENV Configuration
 dev_env.sh

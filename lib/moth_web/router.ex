@@ -19,8 +19,8 @@ defmodule MothWeb.Router do
   scope "/api", MothWeb.API do
     pipe_through :api
 
-    get  "/games/:id", GameController, :show
-    post "/games/:id", GameController, :new
+    get  "/games/:id",  GameController, :show
+    post "/games/",     GameController, :new
   end
 
   scope "/auth", MothWeb do

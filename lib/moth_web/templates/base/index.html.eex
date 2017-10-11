@@ -1,3 +1,6 @@
+<header class="header">
+  <h2 class="text-center">Welcome to Tambola by Funtagious!</h2>
+</header>
 <div class="jumbotron">
   <div>
     <button class="primary">Host a new game</button>

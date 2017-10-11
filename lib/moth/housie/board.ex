@@ -1,14 +1,14 @@
-defmodule Moth.HousieBoard do
+defmodule Moth.Housie.Board do
   defstruct(
     bag: 1..90, 
     picks: [], 
     count: 0
   )
 
-  alias Moth.HousieBoard
+  alias Moth.Housie.Board
 
   def start_link do
-    Agent.start_link(fn -> %HousieBoard{} end)
+    Agent.start_link(fn -> %Board{} end)
   end
 
   def bag(board), do: Agent.get(board, fn s -> s.bag end)

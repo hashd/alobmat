@@ -13,9 +13,8 @@ defmodule MothWeb.AuthController do
 
   def log_out(conn, _params) do
     conn
-    |> put_status(200)
     |> configure_session(drop: true)
-    |> redirect(to: "/")
+    |> redirect(to: base_path(conn, :index))
   end
 
   # def callback(%{assigns: %{ueberauth_failure: _fails}} = conn, _params) do
@@ -29,7 +28,7 @@ defmodule MothWeb.AuthController do
       {:ok, user}  -> 
         conn
         |> put_session(:user_id, user.id)
-        |> put_flash(:info, "Welcome!")
+        |> put_flash(:info, "Welcome back!")
         |> redirect(to: base_path(conn, :index))
       {:error, reason} ->
         conn

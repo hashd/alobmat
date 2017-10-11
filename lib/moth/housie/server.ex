@@ -1,6 +1,6 @@
-defmodule Moth.GameServer do
+defmodule Moth.Housie.Server do
   use GenServer
-  alias Moth.{HousieBoard, GameServer}
+  alias Moth.Housie.{Board, Server}
   defstruct id: :none, time_left: 0, interval: 45, board: nil, timer: :none
 
   def start_link(id, interval \\ 45) do
@@ -8,10 +8,9 @@ defmodule Moth.GameServer do
   end
 
   def init(%{id: id, interval: interval}) do
-    Registry.register(Moth.Games, id, self())
-    {:ok, board} = HousieBoard.start_link()
+    {:ok, board} = Board.start_link()
     timer = Process.send_after(self(), :update, 1_000)
-    {:ok, %GameServer{id: id, timer: timer, board: board, interval: interval}}
+    {:ok, %Server{id: id, timer: timer, board: board, interval: interval}}
   end
 
   # Client Functions
@@ -29,7 +28,7 @@ defmodule Moth.GameServer do
 
   # Server Functions
   def handle_call(:state, _from, %{board: board} = state) do
-    {:reply, HousieBoard.state(board), state}
+    {:reply, Board.state(board), state}
   end
 
   def handle_call(:halt, _from, %{timer: timer} = state) do
@@ -43,10 +42,10 @@ defmodule Moth.GameServer do
   end
 
   def handle_info(:update, %{id: id, timer: timer, board: board, time_left: 0, interval: interval} = state) do
-    pick = HousieBoard.pick(board)
+    pick = Board.pick(board)
     MothWeb.Endpoint.broadcast! "game:#{id}", "new_pick", %{pick: pick}
 
-    case HousieBoard.has_finished?(board) do
+    case Board.has_finished?(board) do
       true -> 
         Process.exit(self(), :kill)
         {:noreply, state}

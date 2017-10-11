@@ -1,1 +1,5 @@
 /* This file is for your main application css. */
+body {
+  /*background-image: url('../images/background.jpg');*/
+  background-size: cover;
+}
