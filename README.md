@@ -1,7 +1,5 @@
 # Alobmat
 
-## About
-
 This is an open source realtime game server to host games of tambola. An average machine can host upto 100 thousands of games in under 16GB of RAM at the moment with over a million concurrent users connected across the number of games.
 
 ## Prerequisites
