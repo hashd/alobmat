@@ -18,12 +18,24 @@ defmodule MothWeb.Router do
     plug MothWeb.Plug.SetUser
   end
 
+  pipeline :authenticated_api do
+    plug MothWeb.Plug.CheckAPIAuth
+  end
+
+  scope "/api", MothWeb.API do
+    pipe_through :api
+    pipe_through :authenticated_api
+
+    get   "/users",       UserController, :index
+    get   "/auth/token",  AuthController, :token
+    post  "/games",       GameController, :new
+  end
+
   scope "/api", MothWeb.API do
     pipe_through :api
 
-    get   "/auth/token",  AuthController, :token
+    get   "/games",       GameController, :index
     get   "/games/:id",   GameController, :show
-    post  "/games/",      GameController, :new
   end
 
   scope "/auth", MothWeb do

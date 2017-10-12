@@ -29,7 +29,6 @@ config :ueberauth, Ueberauth,
     google: { Ueberauth.Strategy.Google, [
       default_scope: "email profile",
       hd: "*",
-      approval_prompt: "force",
       access_type: "offline"
     ]}
   ]

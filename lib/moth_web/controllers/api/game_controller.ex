@@ -3,6 +3,10 @@ defmodule MothWeb.API.GameController do
   use MothWeb, :controller
   alias Moth.{Housie, Housie.Server, Games}
 
+  def index(conn, _params) do
+    json conn, %{games: Housie.list_games()}
+  end
+
   def new(conn, %{"name" => name, "interval" => interval} = params) when is_binary interval do
     json conn, create_new_game(name, interval |> String.to_integer, conn.assigns.user, params["bulletin"])
   end

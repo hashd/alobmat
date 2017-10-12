@@ -4,6 +4,7 @@ defmodule Moth.Housie.Game do
   alias Moth.Housie.{Game, Prize}
   alias Moth.Accounts.User
 
+  @derive {Poison.Encoder, only: [:id, :name, :details]}
   schema "games" do
     field         :name,        :string
     belongs_to    :owner,       User
@@ -11,8 +12,8 @@ defmodule Moth.Housie.Game do
     many_to_many  :moderators,  User,         join_through: :game_moderators
     
     embeds_one    :details,     GameDetail do
-      field :interval, :integer, default: 45
-      field :bulletin, :string
+      field :interval, :integer,  default: 45
+      field :bulletin, :string,   default: ""
     end
 
     timestamps()

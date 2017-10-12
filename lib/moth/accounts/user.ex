@@ -3,7 +3,7 @@ defmodule Moth.Accounts.User do
   import Ecto.Changeset
   alias Moth.Accounts.{User, Credential}
 
-
+  @derive {Poison.Encoder, only: [:id, :name, :avatar_url, :google_id]}
   schema "users" do
     field :avatar_url, :string
     field :google_id, :string
