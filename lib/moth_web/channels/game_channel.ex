@@ -5,28 +5,40 @@ defmodule MothWeb.GameChannel do
   @max_age 24 * 60 * 60
 
   def join("game:" <> id, %{"token" => token}, socket) do
-    socket = assign(socket, :game_id, id)
-    game = Housie.get_game!(id)
+    socket  = assign(socket, :game_id, id)
+    game    = Housie.get_game!(id)
+    state   = Housie.game_state(String.to_integer id)
 
     case Phoenix.Token.verify(socket, "tambola sockets", token, max_age: @max_age) do
       {:ok, user_id} ->
         socket = assign(socket, :user, Accounts.get_user!(user_id))
         send(self(), :after_join)
-        {:ok, %{game: game}, socket}
+        {:ok, %{game: game, state: state}, socket}
       {:error, _reason} ->
         {:error, %{status: :error, reason: "Invalid token, try logging in again"}}
     end
   end
   def join("game:" <> id, _params, socket) do
-    socket = assign(socket, :game_id, id)
-    game = Housie.get_game!(id)
+    socket  = assign(socket, :game_id, id)
+    game    = Housie.get_game!(id)
+    state   = Housie.game_state(String.to_integer id)
 
-    {:ok, %{game: game}, assign(socket, :user, nil)}
+    {:ok, %{game: game, state: state}, assign(socket, :user, nil)}
   end
 
   def handle_in("message", %{"text" => text}, socket) do
     broadcast! socket, "message", %{text: text, user: socket.assigns.user}
     {:noreply, socket}
+  end
+
+  def handle_in("notification", %{"type" => "pause"} = params, socket) do
+    if socket.assigns.user do
+      broadcast! socket, "pause", %{}
+      broadcast! socket, "notification", Map.put(params, :user, socket.assigns.user)
+      {:noreply, socket}
+    else
+      {:noreply, socket}
+    end
   end
 
 #  def handle_out("message", payload, socket) do

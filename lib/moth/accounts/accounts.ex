@@ -39,6 +39,10 @@ defmodule Moth.Accounts do
   """
   def get_user!(id), do: User |> Repo.get!(id) |> Repo.preload(:credential)
 
+  def get_users(ids) do
+    Repo.all(from u in User, where: u.id in ^ids)
+  end
+
   @doc """
   Creates a user.
 

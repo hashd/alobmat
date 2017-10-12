@@ -14,7 +14,7 @@ defmodule Moth.Housie.Board do
   def bag(board), do: Agent.get(board, fn s -> s.bag end)
   def picks(board), do: Agent.get(board, fn s -> s.picks end)
   def count(board), do: Agent.get(board, fn s -> s.count end)
-  def state(board), do: Agent.get(board, fn s -> %{ picks: s.picks, running: s.count != 90 && s.count != 0 } end)
+  def state(board), do: Agent.get(board, fn s -> %{ picks: s.picks, running: s.count != 90 } end)
   def has_finished?(board), do: count(board) == 90
 
   def pick(board) do

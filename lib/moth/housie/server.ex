@@ -55,7 +55,7 @@ defmodule Moth.Housie.Server do
 
   def handle_info(:update, %{id: id, timer: timer, board: board, time_left: 0, interval: interval} = state) do
     pick = Board.pick(board)
-    MothWeb.Endpoint.broadcast! "game:#{id}", "new_pick", %{pick: pick}
+    MothWeb.Endpoint.broadcast! "game:#{id}", "pick", %{pick: pick}
 
     case Board.has_finished?(board) do
       true -> 
@@ -67,7 +67,7 @@ defmodule Moth.Housie.Server do
     end
   end
   def handle_info(:update, %{id: id, time_left: time_left} = state) do
-    MothWeb.Endpoint.broadcast! "game:#{id}", "time_to_pick", %{remaining: time_left}
+    MothWeb.Endpoint.broadcast! "game:#{id}", "timer", %{remaining: time_left}
     
     timer = Process.send_after(self(), :update, 1_000)
     {:noreply, state |> Map.put(:timer, timer) |> Map.put(:time_left, time_left - 1)}

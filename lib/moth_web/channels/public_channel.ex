@@ -2,7 +2,7 @@ defmodule MothWeb.PublicChannel do
   use MothWeb, :channel
 
   def join("public:lobby", _payload, socket) do
-    {:ok, socket}
+    {:ok, %{active_games: Moth.Housie.list_running_games()}, socket}
   end
 
   # Channels can be used in a request/response fashion

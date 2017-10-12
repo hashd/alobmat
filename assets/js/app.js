@@ -32,15 +32,15 @@ lobby.on("new_game", ({id: game_id, name}) => {
   console.log(`Game ${game_id} was started with the name: ${name}`)
   let channel = socket.channel(`game:${game_id}`, {token: window.userToken})
 
-  channel.on("new_pick", payload => {
+  channel.on("pick", payload => {
     console.log(`${game_id} => Pick: ${payload.pick}`)
   })
 
-  channel.on("time_to_pick", payload => {
+  channel.on("timer", payload => {
     console.log(`${game_id} => Left: ${payload.remaining}`)
   })
 
-  channel.on("user_join", payload => {
+  channel.on("join", payload => {
     console.log("User Join Event: ", payload)
   })
 
@@ -54,5 +54,5 @@ lobby.on("end_game", ({id: game_id}) => {
 })
 
 lobby.join()
-  .receive("ok", resp => { console.log("Lobby joined")})
+  .receive("ok", resp => { console.log("Lobby joined, currently running: ", resp)})
   .receive("error", resp => { console.log("Failed to join lobby")})

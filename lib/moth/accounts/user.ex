@@ -2,6 +2,7 @@ defmodule Moth.Accounts.User do
   use Ecto.Schema
   import Ecto.Changeset
   alias Moth.Accounts.{User, Credential}
+  alias Moth.Housie.Game
 
   @derive {Poison.Encoder, only: [:id, :name, :avatar_url, :google_id]}
   schema "users" do

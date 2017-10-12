@@ -24,11 +24,11 @@ defmodule Moth.Housie do
 
   """
   def list_games do
-    Repo.all(Game)
+    Repo.all(Game) |> Repo.preload(:owner) |> Repo.preload(:moderators)
   end
 
   def list_running_games do
-    Repo.all(from g in Game, where: g.status == "running")
+    Repo.all(from g in Game, where: g.status == "running") |> Repo.preload(:owner) |> Repo.preload(:moderators)
   end
 
   @doc """
@@ -45,7 +45,7 @@ defmodule Moth.Housie do
       ** (Ecto.NoResultsError)
 
   """
-  def get_game!(id), do: Repo.get!(Game, id)
+  def get_game!(id), do: Repo.get!(Game, id) |> Repo.preload(:owner) |> Repo.preload(:moderators)
 
   @doc """
   Creates a game.
@@ -110,6 +110,13 @@ defmodule Moth.Housie do
   """
   def change_game(%Game{} = game) do
     Game.changeset(game, %{})
+  end
+
+  def game_state(id) do
+    case Registry.lookup(Moth.Games, id) do
+      [{pid, _value}] -> Server.state(pid)
+      _               -> %{}
+    end
   end
 
   alias Moth.Housie.Prize

@@ -7,8 +7,6 @@ defmodule Moth.Housie.GameModerator do
   schema "game_moderators" do
     field :game_id, :id
     field :user_id, :id
-
-    timestamps()
   end
 
   @doc false
