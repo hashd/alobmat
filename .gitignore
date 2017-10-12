@@ -33,3 +33,8 @@ npm-debug.log
 
 # ENV Configuration
 dev_env.sh
+
+# Editor/IDE specific
+.idea
+.vscode
+moth.iml

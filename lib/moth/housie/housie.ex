@@ -27,6 +27,10 @@ defmodule Moth.Housie do
     Repo.all(Game)
   end
 
+  def list_running_games do
+    Repo.all(from g in Game, where: g.status == "running")
+  end
+
   @doc """
   Gets a single game.
 

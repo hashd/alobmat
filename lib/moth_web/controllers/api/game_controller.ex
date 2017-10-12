@@ -4,7 +4,7 @@ defmodule MothWeb.API.GameController do
   alias Moth.{Housie, Housie.Server, Games}
 
   def index(conn, _params) do
-    json conn, %{games: Housie.list_games()}
+    json conn, %{games: Housie.list_running_games()}
   end
 
   def new(conn, %{"name" => name, "interval" => interval} = params) when is_binary interval do

@@ -23,6 +23,6 @@ defmodule MothWeb.Plug.SetUser do
 
     conn
     |> assign(:user, user)
-    |> assign(:user_token, token)
+    |> assign(:token, token)
   end
 end

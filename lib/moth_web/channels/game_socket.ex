@@ -3,6 +3,7 @@ defmodule MothWeb.GameSocket do
 
   ## Channels
   channel "game:*", MothWeb.GameChannel
+  channel "public:*", MothWeb.PublicChannel
 
   ## Transports
   transport :websocket, Phoenix.Transports.WebSocket

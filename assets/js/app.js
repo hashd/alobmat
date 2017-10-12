@@ -20,25 +20,35 @@ import "phoenix_html"
 
 import socket from "./socket"
 
-console.log("Loaded")
+console.log(window.userToken)
 
 // Now that you are connected, you can join channels with a topic:
 let chatInput         = document.querySelector("#chat-input")
 let messagesContainer = document.querySelector("#messages")
-let channel           = socket.channel(`game:game1`, {})
+let channel           = socket.channel(`game:game1`, {token: window.userToken})
+let lobby             = socket.channel(`public:lobby`, {})
 
-channel.on("new_pick", payload => {
-  let messageItem = document.createElement("li");
-  messageItem.innerText = `Pick: ${payload.pick}`
-  messagesContainer.appendChild(messageItem)
+lobby.on("new_game", ({id: game_id, name}) => {
+  console.log(`Game ${game_id} was started with the name: ${name}`)
+  let channel = socket.channel(`game:${game_id}`, {token: window.userToken})
+
+  channel.on("new_pick", payload => {
+    console.log(`${game_id} => Pick: ${payload.pick}`)
+  })
+
+  channel.on("time_to_pick", payload => {
+    console.log(`${game_id} => Left: ${payload.remaining}`)
+  })
+
+  channel.join()
+    .receive("ok", resp => { console.log("Joined successfully", resp) })
+    .receive("error", resp => { console.log("Unable to join", resp) })
 })
 
-channel.on("time_to_pick", payload => {
-  let messageItem = document.createElement("li");
-  messageItem.innerText = `Left: ${payload.remaining}`
-  messagesContainer.appendChild(messageItem)
+lobby.on("end_game", ({id: game_id}) => {
+  console.log(`Game ${game_id} has terminated.`)
 })
 
-channel.join()
-  .receive("ok", resp => { console.log("Joined successfully", resp) })
-  .receive("error", resp => { console.log("Unable to join", resp) })
+lobby.join()
+  .receive("ok", resp => { console.log("Lobby joined")})
+  .receive("error", resp => { console.log("Failed to join lobby")})
