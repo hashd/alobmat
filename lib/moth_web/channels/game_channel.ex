@@ -29,14 +29,14 @@ defmodule MothWeb.GameChannel do
     {:noreply, socket}
   end
 
-  def handle_out("message", payload, socket) do
-    push socket, "message", payload
-    {:noreply, socket}
-  end
+#  def handle_out("message", payload, socket) do
+#    push socket, "message", payload
+#    {:noreply, socket}
+#  end
 
   def handle_info(:after_join, %{assigns: %{user: user}} = socket) do
     push socket, "presence_state", Players.list(socket)
-    {:ok, e} = Players.track(socket, user.id, %{
+    {:ok, _} = Players.track(socket, user.id, %{
       online_at: inspect(System.system_time(:seconds))
     })
     {:noreply, socket}
