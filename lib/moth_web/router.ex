@@ -14,13 +14,16 @@ defmodule MothWeb.Router do
 
   pipeline :api do
     plug :accepts, ["json"]
+    plug :fetch_session
+    plug MothWeb.Plug.SetUser
   end
 
   scope "/api", MothWeb.API do
     pipe_through :api
 
-    get  "/games/:id",  GameController, :show
-    post "/games/",     GameController, :new
+    get   "/auth/token", AuthController, :token
+    get   "/games/:id",  GameController, :show
+    post  "/games/",     GameController, :new
   end
 
   scope "/auth", MothWeb do

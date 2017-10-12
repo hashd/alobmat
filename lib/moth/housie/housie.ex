@@ -9,10 +9,8 @@ defmodule Moth.Housie do
   alias Moth.Housie.{Game, Server}
 
   def start_game(%{details: %{interval: interval}} = data) do
-    IO.inspect data
-    game = create_game(data)
-    {:ok, pid} = Server.start_link(game.id, interval)
-    Registry.register(Moth.Games, game.id, pid)
+    {:ok, game} = create_game(data)
+    Server.start_link(game.id, game.name, interval)
     {:ok, game}
   end
 

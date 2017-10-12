@@ -13,6 +13,8 @@ defmodule Moth.Application do
       supervisor(Moth.Repo, []),
       # Start the endpoint when the application starts
       supervisor(MothWeb.Endpoint, []),
+      # Start Phoenix presence module for players
+      supervisor(MothWeb.Players, []),
       # Start your own worker by calling: Moth.Worker.start_link(arg1, arg2, arg3)
       # worker(Moth.Worker, [arg1, arg2, arg3]),
     ]

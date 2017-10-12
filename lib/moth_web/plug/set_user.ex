@@ -12,9 +12,17 @@ defmodule MothWeb.Plug.SetUser do
     user_id = get_session(conn, :user_id)
     cond do
       user = user_id && Repo.get(User, user_id) ->
-        assign(conn, :user, user)
+        put_current_user(conn, user)
       true ->
         assign(conn, :user, nil)
     end
+  end
+
+  def put_current_user(conn, user) do
+    token = Phoenix.Token.sign(conn, "tambola sockets", user.id)
+
+    conn
+    |> assign(:user, user)
+    |> assign(:user_token, token)
   end
 end
