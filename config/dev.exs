@@ -14,6 +14,9 @@ config :moth, MothWeb.Endpoint,
   watchers: [node: ["node_modules/brunch/bin/brunch", "watch", "--stdin",
                     cd: Path.expand("../assets", __DIR__)]]
 
+config :moth, MothWeb.Auth,
+  allowed_hds: ["imaginea.com", "pramati.com", "spotcues.com", "wavemaker.com", "revemarketing.com", "thumbsignin.com"]
+
 # ## SSL Support
 #
 # In order to use HTTPS in development, a self-signed

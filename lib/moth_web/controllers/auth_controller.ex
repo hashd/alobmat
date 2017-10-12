@@ -1,5 +1,7 @@
 defmodule MothWeb.AuthController do
+  require Logger
   use MothWeb, :controller
+  @hosted_domains       Application.get_env(:moth, MothWeb.Auth)[:allowed_hds]
 
   plug Ueberauth
 
@@ -24,16 +26,24 @@ defmodule MothWeb.AuthController do
   #   |> json(%{status: :error, reason: 'Not authorized or necessary permissions not granted.'})
   # end
   def callback(%{assigns: %{ueberauth_auth: auth}} = conn, %{"provider" => "google"} = _params) do
-    case create_or_update_user(auth, "google") do
-      {:ok, user}  -> 
-        conn
-        |> put_session(:user_id, user.id)
-        |> put_flash(:info, "Welcome back!")
-        |> redirect(to: base_path(conn, :index))
-      {:error, reason} ->
-        conn
-        |> put_flash(:error, reason)
-        |> redirect(to: base_path(conn, :index))
+    domain = auth.info.email |> String.split("@") |> List.last
+    
+    if Enum.any?(@hosted_domains, fn s -> s == domain end) do
+      case create_or_update_user(auth, "google") do
+        {:ok, user}  -> 
+          conn
+          |> put_session(:user_id, user.id)
+          |> put_flash(:info, "Welcome back!")
+          |> redirect(to: base_path(conn, :index))
+        {:error, reason} ->
+          conn
+          |> put_flash(:error, reason)
+          |> redirect(to: base_path(conn, :index))
+      end
+    else
+      conn
+      |> put_flash(:error, "Unsupported hosted domain for Google auth")
+      |> redirect(to: base_path(conn, :index))
     end
   end
   def callback(%{assigns: %{ueberauth_auth: _a}} = conn, %{"provider" => provider} = _params) do

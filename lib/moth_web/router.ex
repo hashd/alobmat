@@ -21,23 +21,22 @@ defmodule MothWeb.Router do
   scope "/api", MothWeb.API do
     pipe_through :api
 
-    get   "/auth/token", AuthController, :token
-    get   "/games/:id",  GameController, :show
-    post  "/games/",     GameController, :new
+    get   "/auth/token",  AuthController, :token
+    get   "/games/:id",   GameController, :show
+    post  "/games/",      GameController, :new
   end
 
   scope "/auth", MothWeb do
     pipe_through :browser
 
-    get "/logout", AuthController, :log_out
-    get "/:provider", AuthController, :request
-    get "/:provider/callback", AuthController, :callback
+    get   "/logout",      AuthController, :log_out
+    get   "/:provider",   AuthController, :request
+    get   "/:provider/callback", AuthController, :callback
   end
 
   scope "/", MothWeb do
-    pipe_through :browser # Use the default browser stack
+    pipe_through :browser
 
-    get "/", BaseController, :index
-    get "/games/:id", GameController, :index
+    get "/",              BaseController, :index
   end
 end
