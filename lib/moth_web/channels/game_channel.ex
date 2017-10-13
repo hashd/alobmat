@@ -26,8 +26,15 @@ defmodule MothWeb.GameChannel do
     {:ok, %{game: game, state: state}, assign(socket, :user, nil)}
   end
 
-  def handle_in("message", %{"text" => text}, socket) do
-    broadcast! socket, "message", %{text: text, user: socket.assigns.user}
+  def handle_in("message", %{"text" => text}, %{assigns: %{user: user}} = socket) do
+    case user do
+      nil   -> {:noreply, socket}
+      _     ->
+        broadcast! socket, "message", %{text: text, user: user}
+        {:noreply, socket}
+    end
+  end
+  def handle_in("message", _params, socket) do
     {:noreply, socket}
   end
 

@@ -1,6 +1,6 @@
 defmodule Moth.Housie.Server do
   use GenServer
-  alias Moth.Housie
+  alias Moth.{Housie}
   alias Moth.Housie.{Board, Server}
   defstruct id: :none, time_left: 0, interval: 45, board: nil, timer: :none
 
@@ -10,7 +10,7 @@ defmodule Moth.Housie.Server do
 
   def init(%{id: id, name: name, interval: interval} = params) do
     Registry.register(Moth.Games, id, name)
-    MothWeb.Endpoint.broadcast! "public:lobby", "new_game", params
+    MothWeb.Endpoint.broadcast! "public:lobby", "new_game", Housie.get_game!(id)
 
     {:ok, board} = Board.start_link()
     timer = Process.send_after(self(), :update, 1_000)

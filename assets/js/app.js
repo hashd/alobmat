@@ -26,7 +26,6 @@ console.log(window.userToken)
 // Now that you are connected, you can join channels with a topic:
 let chatInput         = document.querySelector("#chat-input")
 let messagesContainer = document.querySelector("#messages")
-let channel           = socket.channel(`game:game1`, {token: window.userToken})
 let lobby             = socket.channel(`public:lobby`, {})
 
 lobby.on("new_game", ({id: game_id, name}) => {
