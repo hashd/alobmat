@@ -48,7 +48,10 @@ defmodule Moth.Housie.Server do
   def handle_info(:end, state) do
     # TODO: Persist data and end server
     # Process.exit(self(), :kill)
-    Housie.update_game(Housie.get_game!(state.id), %{status: "ended"})
+    game = Housie.get_game!(state.id)
+    Housie.update_game(game, %{status: "ended", moderators: game.moderators |> Enum.map(fn m -> m.id end)})
+
+    IO.inspect "Hopefully game was updated"
     MothWeb.Endpoint.broadcast! "public:lobby", "end_game", %{id: state.id}
     {:noreply, state}
   end

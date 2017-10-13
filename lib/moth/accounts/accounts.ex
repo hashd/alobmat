@@ -19,8 +19,8 @@ defmodule Moth.Accounts do
   """
   def list_users do
     User
-    |> Repo.all
     |> preload(:credential)
+    |> Repo.all
   end
 
   @doc """
