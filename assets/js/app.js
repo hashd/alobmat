@@ -19,6 +19,7 @@ import "phoenix_html"
 // paths "./socket" or full ones "web/static/js/socket".
 
 import socket from "./socket"
+import lorem from 'lorem-ipsum-simple'
 
 console.log(window.userToken)
 
@@ -42,6 +43,12 @@ lobby.on("new_game", ({id: game_id, name}) => {
 
   channel.on("join", payload => {
     console.log("User Join Event: ", payload)
+  })
+
+  setInterval(() => channel.push("message", {text: lorem(parseInt(Math.random() * 30))}), 10000);
+
+  channel.on("message", payload => {
+    console.log("New message", payload);
   })
 
   channel.join()

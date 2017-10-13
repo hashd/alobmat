@@ -5,10 +5,10 @@ defmodule Moth.Housie.Prize do
 
 
   schema "prizes" do
-    field :name, :string
-    field :reward, :string
-    field :game_id, :id
-    field :winner_user_id, :id
+    field       :name,              :string
+    field       :reward,            :string
+    belongs_to  :game_id,           :id
+    has_one     :winner_user_id,    :id
 
     timestamps()
   end
