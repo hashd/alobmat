@@ -21,16 +21,33 @@ defmodule MothWeb.API.GameController do
     show(conn, %{"id" => String.to_integer(id)})
   end
   def show(conn, %{"id" => id}) when is_integer id do 
-    case Registry.lookup(Games, id) do
-      []                  -> json conn, %{error: :error, reason: "No game found for id: #{id}"}
-      [{ p, _n} | []]     -> 
-        Logger.log :info, "Trying to prepare state of the server"
-        json conn, Server.state(p)
-      [{_p, _n} | _r] = l -> 
-        Logger.log :info, "Multiple games found with #{id}: #{[l]}"
-        json conn, l
+    json conn, invoke_action(id, fn p -> Server.state(p) end)
+  end
+
+  def pause(conn, %{"id" => id}) when is_binary id do
+    pause(conn, %{"id" => String.to_integer(id)})
+  end
+  def pause(conn, %{"id" => id}) when is_integer id do
+    case has_authority?(conn.assigns.user, id) do
+      true  ->
+        json conn, invoke_action(id, fn p -> Server.pause(p) end)
+      _     ->
+        json conn, %{error: :error, reason: "User is not authorized"}
     end
   end
+
+  def resume(conn, %{"id" => id}) when is_binary id do
+    resume(conn, %{"id" => String.to_integer(id)})
+  end
+  def resume(conn, %{"id" => id}) when is_integer id do
+    case has_authority?(conn.assigns.user, id) do
+      true  ->
+        json conn, invoke_action(id, fn p -> Server.resume(p) end)
+      _     ->
+        json conn, %{error: :error, reason: "User is not authorized"}
+    end
+  end
+
 
   defp create_new_game(name, interval, user, bulletin, moderators) do
     game = %{name: name, details: %{interval: interval, bulletin: bulletin}, owner_id: user.id, prizes: [], moderators: moderators}
@@ -38,6 +55,23 @@ defmodule MothWeb.API.GameController do
     case Housie.start_game(game) do
       {:ok, g}          -> %{status: :ok, game: Map.put(game, :id, g.id)}
       {:error, reason}  -> %{status: :error, reason: reason}
+    end
+  end
+
+  defp has_authority?(user, game_id) do
+    game_id
+    |> Housie.get_game_admins!()
+    |> Enum.any?(fn u -> u.id == user.id end)
+  end
+
+  defp invoke_action(game_id, func) do
+    case Registry.lookup(Games, game_id) do
+      []                  -> %{error: :error, reason: "No game found for id: #{game_id}"}
+      [{ p, _n} | []]     ->
+        func.(p)
+      [{p, _n} | _r] = l ->
+        Logger.log :info, "Multiple games found with #{game_id}: #{[l]}"
+        func.(p)
     end
   end
 end

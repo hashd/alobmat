@@ -9,7 +9,7 @@ defmodule Moth.Housie do
   alias Moth.Housie.{Game, Server}
 
   def start_game(%{details: %{interval: interval}} = data) do
-    {:ok, game} = create_game(data)
+    {:ok, game} = create_game(data |> Map.put(:started_at, DateTime.utc_now))
     Server.start_link(game.id, game.name, interval)
     {:ok, game}
   end
@@ -46,6 +46,11 @@ defmodule Moth.Housie do
 
   """
   def get_game!(id), do: Repo.get!(Game, id) |> Repo.preload(:owner) |> Repo.preload(:moderators)
+
+  def get_game_admins!(id) do
+    game = get_game!(id)
+    [game.owner | game.moderators]
+  end
 
   @doc """
   Creates a game.

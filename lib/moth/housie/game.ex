@@ -4,14 +4,16 @@ defmodule Moth.Housie.Game do
   alias Moth.Housie.{Game, Prize}
   alias Moth.{Accounts, Accounts.User}
 
-  @derive {Poison.Encoder, only: [:id, :name, :status, :details, :owner, :moderators]}
+  @derive {Poison.Encoder, only: [:id, :name, :status, :details, :owner, :moderators, :started_at, :finished_at]}
   schema "games" do
     field         :name,        :string
-    field         :status,      :string,      default: "running"
+    field         :status,      :string,          default: "running"
     belongs_to    :owner,       User
     has_many      :prizes,      Prize
-    many_to_many  :moderators,  User,         join_through: "game_moderators", on_replace: :mark_as_invalid
-    
+    many_to_many  :moderators,  User,             join_through: "game_moderators", on_replace: :mark_as_invalid
+    field         :started_at,  :utc_datetime
+    field         :finished_at, :utc_datetime
+
     embeds_one    :details,     GameDetail do
       field :interval, :integer,  default: 45
       field :bulletin, :string,   default: ""
@@ -23,7 +25,7 @@ defmodule Moth.Housie.Game do
   @doc false
   def changeset(%Game{} = game, attrs) do
     game
-    |> cast(attrs, [:name, :status, :owner_id])
+    |> cast(attrs, [:name, :status, :owner_id, :started_at, :finished_at])
     |> cast_embed(:details, with: &details_changeset/2)
     |> put_assoc(:moderators, parse_moderators(attrs))
     |> validate_required([:name])

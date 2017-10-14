@@ -2,13 +2,13 @@ defmodule Moth.Housie.Server do
   use GenServer
   alias Moth.{Housie}
   alias Moth.Housie.{Board, Server}
-  defstruct id: :none, time_left: 0, interval: 45, board: nil, timer: :none
+  defstruct id: :none, time_left: 0, interval: 45, board: nil, timer: :none, status: :running
 
   def start_link(id, name, interval \\ 45) do
     GenServer.start_link __MODULE__, %{id: id, name: name, interval: interval}
   end
 
-  def init(%{id: id, name: name, interval: interval} = params) do
+  def init(%{id: id, name: name, interval: interval} = _params) do
     Registry.register(Moth.Games, id, name)
     MothWeb.Endpoint.broadcast! "public:lobby", "new_game", Housie.get_game!(id)
 
@@ -18,8 +18,8 @@ defmodule Moth.Housie.Server do
   end
 
   # Client Functions
-  def halt(name) do
-    GenServer.call(name, :halt)
+  def pause(name) do
+    GenServer.call(name, :pause)
   end
 
   def resume(name) do
@@ -32,31 +32,27 @@ defmodule Moth.Housie.Server do
 
   # Server Functions
   def handle_call(:state, _from, %{board: board} = state) do
-    {:reply, Board.state(board), state}
+    {:reply, server_state(state), state}
   end
 
-  def handle_call(:halt, _from, %{timer: timer} = state) do
+  def handle_call(:pause, _from, %{board: board, timer: timer} = state) do
     Process.cancel_timer(timer)
-    {:reply, :ok, state}
+    state = Map.put(state, :status, :paused)
+    {:reply, server_state(state), state}
   end
 
-  def handle_call(:resume, _from, state) do
+  def handle_call(:resume, _from, %{board: board} = state) do
     timer = Process.send_after(self(), :update, 1_000)
-    {:reply, :ok, Map.put(state, :timer, timer)}
+    state = state |> Map.put(:status, :running) |> Map.put(:timer, timer)
+    {:reply, server_state(state), state}
   end
 
   def handle_info(:end, state) do
-    # TODO: Persist data and end server
-    # Process.exit(self(), :kill)
-    game = Housie.get_game!(state.id)
-    Housie.update_game(game, %{status: "ended", moderators: game.moderators |> Enum.map(fn m -> m.id end)})
-
-    IO.inspect "Hopefully game was updated"
-    MothWeb.Endpoint.broadcast! "public:lobby", "end_game", %{id: state.id}
-    {:noreply, state}
+    {:stop, :shutdown, state |> Map.put(:status, :finished)}
   end
 
   def handle_info(:update, %{id: id, timer: timer, board: board, time_left: 0, interval: interval} = state) do
+    # Timer is 0, pick a number, broadcast and then choose the next action plan
     pick = Board.pick(board)
     MothWeb.Endpoint.broadcast! "game:#{id}", "pick", %{pick: pick}
 
@@ -70,6 +66,7 @@ defmodule Moth.Housie.Server do
     end
   end
   def handle_info(:update, %{id: id, time_left: time_left} = state) do
+    # Timer is !0, so reduce timer by 1 and broadcast timer to everyone on channel
     MothWeb.Endpoint.broadcast! "game:#{id}", "timer", %{remaining: time_left}
     
     timer = Process.send_after(self(), :update, 1_000)
@@ -78,5 +75,25 @@ defmodule Moth.Housie.Server do
 
   def handle_info(_, state) do
     {:noreply, state}
+  end
+
+  def terminate(:shutdown, state) do
+    # Update game status to ended
+    game = Housie.get_game!(state.id)
+    Housie.update_game(game, %{
+      status: "ended",
+      finished_at: DateTime.utc_now,
+      moderators: game.moderators |> Enum.map(fn m -> m.id end)
+    })
+
+    # Notify public lobby that this game has ended
+    MothWeb.Endpoint.broadcast! "public:lobby", "end_game", %{id: state.id}
+    :normal
+  end
+
+  defp server_state(%{board: board} = state) do
+    state
+    |> Map.put(:board, Board.state(board))
+    |> Map.delete(:timer)
   end
 end

@@ -26,9 +26,11 @@ defmodule MothWeb.Router do
     pipe_through :api
     pipe_through :authenticated_api
 
-    get   "/users",       UserController, :index
-    get   "/auth/token",  AuthController, :token
-    post  "/games",       GameController, :new
+    get   "/users",             UserController, :index
+    get   "/auth/token",        AuthController, :token
+    post  "/games",             GameController, :new
+    post  "/games/:id/pause",   GameController, :pause
+    post  "/games/:id/resume",  GameController, :resume
   end
 
   scope "/api", MothWeb.API do
