@@ -1,8 +1,12 @@
 defmodule Moth.Housie.Server do
+  require Logger
   use GenServer
   alias Moth.{Housie}
   alias Moth.Housie.{Board, Server}
   defstruct id: :none, time_left: 0, interval: 45, board: nil, timer: :none, status: :running
+
+  # Shutdown server a day after the game finishes
+  @process_timeout 24 * 60 * 60 * 1000
 
   def start_link(id, name, interval \\ 45) do
     GenServer.start_link __MODULE__, %{id: id, name: name, interval: interval}
@@ -48,7 +52,21 @@ defmodule Moth.Housie.Server do
   end
 
   def handle_info(:end, state) do
-    {:stop, :shutdown, state |> Map.put(:status, :finished)}
+    {:stop, :shutdown, state}
+  end
+
+  def handle_info(:done, state) do
+    # Update game status to ended
+    game = Housie.get_game!(state.id)
+    Housie.update_game(game, %{
+      status: "ended",
+      finished_at: DateTime.utc_now,
+      moderators: game.moderators |> Enum.map(fn m -> m.id end)
+    })
+
+    # Notify public lobby that this game has ended
+    MothWeb.Endpoint.broadcast! "public:lobby", "end_game", %{id: state.id}
+    {:noreply, state |> Map.put(:status, :finished)}
   end
 
   def handle_info(:update, %{id: id, timer: timer, board: board, time_left: 0, interval: interval} = state) do
@@ -57,8 +75,9 @@ defmodule Moth.Housie.Server do
     MothWeb.Endpoint.broadcast! "game:#{id}", "pick", %{pick: pick}
 
     case Board.has_finished?(board) do
-      true -> 
-        Process.send(self(), :end, [:noconnect])
+      true ->
+        Process.send(self(), :done, [:noconnect])
+        Process.send_after(self(), :end, @process_timeout)
         {:noreply, state}
       _  ->
         timer = Process.send_after(self(), :update, 1_000)
@@ -77,17 +96,8 @@ defmodule Moth.Housie.Server do
     {:noreply, state}
   end
 
-  def terminate(:shutdown, state) do
-    # Update game status to ended
-    game = Housie.get_game!(state.id)
-    Housie.update_game(game, %{
-      status: "ended",
-      finished_at: DateTime.utc_now,
-      moderators: game.moderators |> Enum.map(fn m -> m.id end)
-    })
-
-    # Notify public lobby that this game has ended
-    MothWeb.Endpoint.broadcast! "public:lobby", "end_game", %{id: state.id}
+  def terminate(reason, _state) do
+    Logger.log :info, "Shutdown was invoked."
     :normal
   end
 

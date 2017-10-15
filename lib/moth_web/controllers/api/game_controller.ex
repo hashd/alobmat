@@ -7,11 +7,12 @@ defmodule MothWeb.API.GameController do
     games = Housie.list_running_games()
       |> Enum.map(fn g -> Map.put(g, :prizes, []) end)
       |> Enum.map(fn g -> Map.put(g, :moderators, []) end)
-      |> Enum.map(fn g ->
-        Map.put(g, :online, Enum.count(MothWeb.Players.list("game:#{g.id}")))
-      end)
 
-    json conn, %{games: games}
+    presence = Enum.reduce(games, %{}, fn g, acc ->
+      Map.put(acc, g.id, Enum.count(MothWeb.Players.list("game:#{g.id}")))
+    end)
+
+    json conn, %{games: games, presence: presence}
   end
 
   def new(conn, %{"interval" => interval} = params) when is_binary interval do

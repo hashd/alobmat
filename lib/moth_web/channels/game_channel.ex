@@ -5,13 +5,15 @@ defmodule MothWeb.GameChannel do
   @max_age 24 * 60 * 60
 
   def join("game:" <> id, %{"token" => token}, socket) do
-    socket  = assign(socket, :game_id, id)
     game    = Housie.get_game!(id)
     state   = Housie.game_state(id)
 
     case Phoenix.Token.verify(socket, "tambola sockets", token, max_age: @max_age) do
       {:ok, user_id} ->
-        socket = assign(socket, :user, Accounts.get_user!(user_id))
+        socket = socket
+          |> assign(:game_id, id)
+          |> assign(:user, Accounts.get_user!(user_id))
+
         send(self(), :after_join)
         {:ok, %{game: game, state: state}, socket}
       {:error, _reason} ->
@@ -54,7 +56,7 @@ defmodule MothWeb.GameChannel do
 #  end
 
   def handle_info(:after_join, %{assigns: %{user: user}} = socket) do
-    push socket, "presence_state", Players.list(socket)
+    push socket, "presence", Players.list(socket)
     {:ok, _} = Players.track(socket, user.id, %{
       online_at: inspect(System.system_time(:seconds))
     })
