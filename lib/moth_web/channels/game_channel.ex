@@ -7,7 +7,7 @@ defmodule MothWeb.GameChannel do
   def join("game:" <> id, %{"token" => token}, socket) do
     socket  = assign(socket, :game_id, id)
     game    = Housie.get_game!(id)
-    state   = Housie.game_state(String.to_integer id)
+    state   = Housie.game_state(id)
 
     case Phoenix.Token.verify(socket, "tambola sockets", token, max_age: @max_age) do
       {:ok, user_id} ->
@@ -21,7 +21,7 @@ defmodule MothWeb.GameChannel do
   def join("game:" <> id, _params, socket) do
     socket  = assign(socket, :game_id, id)
     game    = Housie.get_game!(id)
-    state   = Housie.game_state(String.to_integer id)
+    state   = Housie.game_state(id)
 
     {:ok, %{game: game, state: state}, assign(socket, :user, nil)}
   end

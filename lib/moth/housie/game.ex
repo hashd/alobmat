@@ -4,6 +4,7 @@ defmodule Moth.Housie.Game do
   alias Moth.Housie.{Game, Prize}
   alias Moth.{Accounts, Accounts.User}
 
+  @primary_key {:id, :string, autogenerate: false}
   @derive {Poison.Encoder, only: [:id, :name, :status, :details, :owner, :moderators, :started_at, :finished_at]}
   schema "games" do
     field         :name,        :string
@@ -25,7 +26,7 @@ defmodule Moth.Housie.Game do
   @doc false
   def changeset(%Game{} = game, attrs) do
     game
-    |> cast(attrs, [:name, :status, :owner_id, :started_at, :finished_at])
+    |> cast(attrs, [:id, :name, :status, :owner_id, :started_at, :finished_at])
     |> cast_embed(:details, with: &details_changeset/2)
     |> put_assoc(:moderators, parse_moderators(attrs))
     |> validate_required([:name])

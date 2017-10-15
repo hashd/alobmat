@@ -50,7 +50,8 @@ defmodule Moth.Mixfile do
       {:ueberauth, "~> 0.4"},
       {:ueberauth_google, "~> 0.6"},
       {:ja_serializer, "~> 0.12"},
-      {:guardian, "~> 1.0-beta"}
+      {:guardian, "~> 1.0-beta"},
+      {:hashids, "~> 2.0"}
     ]
   end
 

@@ -36,6 +36,7 @@ defmodule MothWeb.Router do
   scope "/api", MothWeb.API do
     pipe_through :api
 
+    get   "/me",          AuthController, :about_user
     get   "/games",       GameController, :index
     get   "/games/:id",   GameController, :show
   end

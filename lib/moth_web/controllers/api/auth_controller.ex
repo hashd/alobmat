@@ -9,4 +9,8 @@ defmodule MothWeb.API.AuthController do
   def token(conn, _params) do
     json conn, %{status: :error, reason: "Not authorized"}
   end
+
+  def about_user(conn, _params) do
+    json conn, conn.assigns.user || %{status: :error, reason: "No User Authenticated."}
+  end
 end

@@ -5,7 +5,7 @@ defmodule Moth.Housie.GameModerator do
 
 
   schema "game_moderators" do
-    field :game_id, :id
+    field :game_id, :string
     field :user_id, :id
   end
 

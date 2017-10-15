@@ -1,14 +1,14 @@
 defmodule Moth.Housie.Prize do
   use Ecto.Schema
   import Ecto.Changeset
-  alias Moth.Housie.Prize
-
+  alias Moth.Housie.{Prize, Game}
+  alias Moth.Accounts.User
 
   schema "prizes" do
     field       :name,              :string
     field       :reward,            :string
-    belongs_to  :game_id,           :id
-    has_one     :winner_user_id,    :id
+    belongs_to  :game,              Game
+    belongs_to  :winner,            User
 
     timestamps()
   end

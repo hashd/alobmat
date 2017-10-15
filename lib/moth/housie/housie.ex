@@ -9,7 +9,11 @@ defmodule Moth.Housie do
   alias Moth.Housie.{Game, Server}
 
   def start_game(%{details: %{interval: interval}} = data) do
-    {:ok, game} = create_game(data |> Map.put(:started_at, DateTime.utc_now))
+    {:ok, game} = data
+      |> Map.put(:id, Moth.Token.suid)
+      |> Map.put(:started_at, DateTime.utc_now)
+      |> create_game
+
     Server.start_link(game.id, game.name, interval)
     {:ok, game}
   end

@@ -18,17 +18,11 @@ defmodule MothWeb.API.GameController do
   end
 
   def show(conn, %{"id" => id}) when is_binary id do
-    show(conn, %{"id" => String.to_integer(id)})
-  end
-  def show(conn, %{"id" => id}) when is_integer id do 
     json conn, invoke_action(id, fn p -> Server.state(p) end)
   end
 
   def pause(conn, %{"id" => id}) when is_binary id do
-    pause(conn, %{"id" => String.to_integer(id)})
-  end
-  def pause(conn, %{"id" => id}) when is_integer id do
-    case has_authority?(conn.assigns.user, id) do
+    case is_admin?(conn.assigns.user, id) do
       true  ->
         json conn, invoke_action(id, fn p -> Server.pause(p) end)
       _     ->
@@ -37,10 +31,7 @@ defmodule MothWeb.API.GameController do
   end
 
   def resume(conn, %{"id" => id}) when is_binary id do
-    resume(conn, %{"id" => String.to_integer(id)})
-  end
-  def resume(conn, %{"id" => id}) when is_integer id do
-    case has_authority?(conn.assigns.user, id) do
+    case is_admin?(conn.assigns.user, id) do
       true  ->
         json conn, invoke_action(id, fn p -> Server.resume(p) end)
       _     ->
@@ -48,6 +39,8 @@ defmodule MothWeb.API.GameController do
     end
   end
 
+
+  #-----------------PRIVATE FUNCTIONS--------------------------------
 
   defp create_new_game(name, interval, user, bulletin, moderators) do
     game = %{name: name, details: %{interval: interval, bulletin: bulletin}, owner_id: user.id, prizes: [], moderators: moderators}
@@ -58,7 +51,7 @@ defmodule MothWeb.API.GameController do
     end
   end
 
-  defp has_authority?(user, game_id) do
+  defp is_admin?(user, game_id) do
     game_id
     |> Housie.get_game_admins!()
     |> Enum.any?(fn u -> u.id == user.id end)

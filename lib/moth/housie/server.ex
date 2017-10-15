@@ -31,17 +31,17 @@ defmodule Moth.Housie.Server do
   end
 
   # Server Functions
-  def handle_call(:state, _from, %{board: board} = state) do
+  def handle_call(:state, _from, state) do
     {:reply, server_state(state), state}
   end
 
-  def handle_call(:pause, _from, %{board: board, timer: timer} = state) do
+  def handle_call(:pause, _from, %{timer: timer} = state) do
     Process.cancel_timer(timer)
     state = Map.put(state, :status, :paused)
     {:reply, server_state(state), state}
   end
 
-  def handle_call(:resume, _from, %{board: board} = state) do
+  def handle_call(:resume, _from, state) do
     timer = Process.send_after(self(), :update, 1_000)
     state = state |> Map.put(:status, :running) |> Map.put(:timer, timer)
     {:reply, server_state(state), state}
