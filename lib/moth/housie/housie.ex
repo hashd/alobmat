@@ -28,11 +28,13 @@ defmodule Moth.Housie do
 
   """
   def list_games do
-    Repo.all(Game) |> Repo.preload(:owner) |> Repo.preload(:moderators)
+    Repo.all(Game)
+    |> Repo.preload([:owner, :moderators, prizes: [:winner]])
   end
 
   def list_running_games do
-    Repo.all(from g in Game, where: g.status == "running") |> Repo.preload(:owner) |> Repo.preload(:moderators)
+    Repo.all(from g in Game, where: g.status == "running")
+    |> Repo.preload([:owner, :moderators, prizes: [:winner]])
   end
 
   @doc """
@@ -49,7 +51,10 @@ defmodule Moth.Housie do
       ** (Ecto.NoResultsError)
 
   """
-  def get_game!(id), do: Repo.get!(Game, id) |> Repo.preload(:owner) |> Repo.preload(:moderators)
+  def get_game!(id) do
+    Repo.get!(Game, id)
+    |> Repo.preload([:owner, :moderators, prizes: [:winner]])
+  end
 
   def get_game_admins!(id) do
     game = get_game!(id)

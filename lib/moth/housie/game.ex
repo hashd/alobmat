@@ -4,8 +4,10 @@ defmodule Moth.Housie.Game do
   alias Moth.Housie.{Game, Prize}
   alias Moth.{Accounts, Accounts.User}
 
+  @serialized_fields [:id, :name, :status, :details, :owner, :moderators, :prizes, :started_at, :finished_at]
+
   @primary_key {:id, :string, autogenerate: false}
-  @derive {Poison.Encoder, only: [:id, :name, :status, :details, :owner, :moderators, :started_at, :finished_at]}
+  @derive {Poison.Encoder, only: @serialized_fields}
   schema "games" do
     field         :name,        :string
     field         :status,      :string,          default: "running"
@@ -18,6 +20,7 @@ defmodule Moth.Housie.Game do
     embeds_one    :details,     GameDetail do
       field :interval, :integer,  default: 45
       field :bulletin, :string,   default: ""
+      field :about,    :string,   default: ""
     end
 
     timestamps()
@@ -34,7 +37,7 @@ defmodule Moth.Housie.Game do
 
   defp details_changeset(details, attrs) do
     details
-    |> cast(attrs, [:interval, :bulletin])
+    |> cast(attrs, [:interval, :bulletin, :about])
   end
 
   defp parse_moderators(attrs)  do

@@ -4,21 +4,32 @@ defmodule MothWeb.API.GameController do
   alias Moth.{Housie, Housie.Server, Games}
 
   def index(conn, _params) do
-    json conn, %{games: Housie.list_running_games()}
+    games = Housie.list_running_games()
+      |> Enum.map(fn g -> Map.put(g, :prizes, []) end)
+      |> Enum.map(fn g -> Map.put(g, :moderators, []) end)
+      |> Enum.map(fn g ->
+        Map.put(g, :online, Enum.count(MothWeb.Players.list("game:#{g.id}")))
+      end)
+
+    json conn, %{games: games}
   end
 
-  def new(conn, %{"name" => name, "interval" => interval} = params) when is_binary interval do
-    json conn, create_new_game(name, interval |> String.to_integer, conn.assigns.user, params["bulletin"], params["moderators"])
+  def new(conn, %{"interval" => interval} = params) when is_binary interval do
+    new(conn, params |> Map.put("interval", String.to_integer(interval)))
   end
-  def new(conn, %{"name" => name, "interval" => interval} = params) when is_integer interval do
-    json conn, create_new_game(name, interval, conn.assigns.user, params["bulletin"], params["moderators"])
+  def new(conn, %{"name" => _n, "interval" => interval} = params) when is_integer interval do
+    json conn, create_new_game(params, conn.assigns.user)
   end
-  def new(conn, %{"name" => name} = params) do
-    json conn, create_new_game(name, 45, conn.assigns.user, params["bulletin"], params["moderators"])
+  def new(conn, params) do
+    new(conn, params |> Map.put("interval", 45))
   end
 
   def show(conn, %{"id" => id}) when is_binary id do
-    json conn, invoke_action(id, fn p -> Server.state(p) end)
+    game = Housie.get_game!(id)
+    case Registry.lookup(Games, id) do
+      []              -> json conn, game
+      [{p, _v} | _r]  -> json conn, Map.put(game, :server, Server.state(p))
+    end
   end
 
   def pause(conn, %{"id" => id}) when is_binary id do
@@ -39,14 +50,43 @@ defmodule MothWeb.API.GameController do
     end
   end
 
+  def award(conn, %{"game_id" => game_id, "prize_id" => prize_id, "user_id" => user_id}) do
+    case is_admin?(conn.assigns.user, game_id) do
+      true  ->
+        case Housie.update_prize(Housie.get_prize!(prize_id), %{winner_user_id: user_id}) do
+          {:ok, prize} ->
+            prize = Moth.Repo.preload(prize, :winner)
+            MothWeb.Endpoint.broadcast! "game:#{game_id}", "prize_awarded", prize
+            json conn, prize
+          {:error, reason} ->
+            json conn, %{status: :error, reason: reason}
+        end
+      _     -> json conn, %{status: :error, reason: "User is not authorized"}
+    end
+  end
+
 
   #-----------------PRIVATE FUNCTIONS--------------------------------
-
-  defp create_new_game(name, interval, user, bulletin, moderators) do
-    game = %{name: name, details: %{interval: interval, bulletin: bulletin}, owner_id: user.id, prizes: [], moderators: moderators}
+  defp create_new_game(%{
+    "name" => name,
+    "interval" => interval,
+    "about" => about,
+    "bulletin" => bulletin,
+    "moderators" => moderators,
+    "prizes" => prizes
+  } = _p, user) do
+    prizes = prizes || []
+    game = %{name: name, details: %{interval: interval, bulletin: bulletin, about: about}, owner_id: user.id, prizes: [], moderators: moderators}
 
     case Housie.start_game(game) do
-      {:ok, g}          -> %{status: :ok, game: Map.put(game, :id, g.id)}
+      {:ok, g}          ->
+        prizes
+        |> Enum.map(fn prize ->
+          Ecto.build_assoc(g, :prizes, %{name: prize["name"], reward: prize["reward"]})
+        end)
+        |> Enum.each(fn prize -> Moth.Repo.insert!(prize) end)
+
+        %{status: :ok, game: Map.put(game, :id, g.id)}
       {:error, reason}  -> %{status: :error, reason: reason}
     end
   end

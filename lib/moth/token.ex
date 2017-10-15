@@ -1,6 +1,6 @@
 defmodule Moth.Token do
   @salt "___salt_cant_be_hardcoded_but___"
-  @coder Hashids.new(salt: @salt, min_len: 5)
+  @coder Hashids.new(salt: @salt, min_len: 8)
   @suid_options [:positive]
 
   def encode(token_ids) do

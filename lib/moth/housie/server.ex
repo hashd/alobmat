@@ -14,7 +14,7 @@ defmodule Moth.Housie.Server do
 
     {:ok, board} = Board.start_link()
     timer = Process.send_after(self(), :update, 1_000)
-    {:ok, %Server{id: id, timer: timer, board: board, interval: interval}}
+    {:ok, %Server{id: id, timer: timer, board: board, interval: interval, time_left: interval - 1}}
   end
 
   # Client Functions
