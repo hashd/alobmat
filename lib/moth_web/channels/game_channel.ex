@@ -7,15 +7,17 @@ defmodule MothWeb.GameChannel do
   def join("game:" <> id, %{"token" => token}, socket) do
     game    = Housie.get_game!(id)
     state   = Housie.game_state(id)
+    admins  = [game.owner | game.moderators]
 
     case Phoenix.Token.verify(socket, "tambola sockets", token, max_age: @max_age) do
       {:ok, user_id} ->
+        is_admin = admins |> Enum.any?(fn admin -> admin.id == user_id end)
         socket = socket
           |> assign(:game_id, id)
           |> assign(:user, Accounts.get_user!(user_id))
 
         send(self(), :after_join)
-        {:ok, %{game: game, state: state}, socket}
+        {:ok, %{game: game, state: state, is_admin: is_admin, user: socket.assigns.user}, socket}
       {:error, _reason} ->
         {:error, %{status: :error, reason: "Invalid token, try logging in again"}}
     end
@@ -25,7 +27,7 @@ defmodule MothWeb.GameChannel do
     game    = Housie.get_game!(id)
     state   = Housie.game_state(id)
 
-    {:ok, %{game: game, state: state}, assign(socket, :user, nil)}
+    {:ok, %{game: game, state: state, is_admin: false}, assign(socket, :user, nil)}
   end
 
   def handle_in("message", %{"text" => text}, %{assigns: %{user: user}} = socket) do
@@ -58,7 +60,9 @@ defmodule MothWeb.GameChannel do
   def handle_info(:after_join, %{assigns: %{user: user}} = socket) do
     push socket, "presence", Players.list(socket)
     {:ok, _} = Players.track(socket, user.id, %{
-      online_at: inspect(System.system_time(:seconds))
+      online_at: inspect(System.system_time(:seconds)),
+      name: user.name,
+      avatar_url: user.avatar_url
     })
     {:noreply, socket}
   end

@@ -36,7 +36,14 @@ defmodule MothWeb.API.GameController do
   def pause(conn, %{"id" => id}) when is_binary id do
     case is_admin?(conn.assigns.user, id) do
       true  ->
-        json conn, invoke_action(id, fn p -> Server.pause(p) end)
+        json conn, invoke_action(id, fn p ->
+          if Server.is_running?(p) do
+            MothWeb.Endpoint.broadcast! "game:#{id}", "pause", %{user: conn.assigns.user}
+            Server.pause(p)
+          else
+            %{status: :error, reason: "Game is not currently running"}
+          end
+        end)
       _     ->
         json conn, %{error: :error, reason: "User is not authorized"}
     end
@@ -45,7 +52,14 @@ defmodule MothWeb.API.GameController do
   def resume(conn, %{"id" => id}) when is_binary id do
     case is_admin?(conn.assigns.user, id) do
       true  ->
-        json conn, invoke_action(id, fn p -> Server.resume(p) end)
+        json conn, invoke_action(id, fn p ->
+          if Server.is_paused?(p) do
+            MothWeb.Endpoint.broadcast! "game:#{id}", "resume", %{user: conn.assigns.user}
+            Server.resume(p)
+          else
+            %{status: :error, reason: "Game is not currently paused"}
+          end
+        end)
       _     ->
         json conn, %{error: :error, reason: "User is not authorized"}
     end
@@ -57,7 +71,7 @@ defmodule MothWeb.API.GameController do
         case Housie.update_prize(Housie.get_prize!(prize_id), %{winner_user_id: user_id}) do
           {:ok, prize} ->
             prize = Moth.Repo.preload(prize, :winner)
-            MothWeb.Endpoint.broadcast! "game:#{game_id}", "prize_awarded", prize
+            MothWeb.Endpoint.broadcast! "game:#{game_id}", "prize_awarded", %{prize: prize, awardee: conn.assigns.user}
             json conn, prize
           {:error, reason} ->
             json conn, %{status: :error, reason: reason}

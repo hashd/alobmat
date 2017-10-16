@@ -34,7 +34,31 @@ defmodule Moth.Housie.Server do
     GenServer.call(name, :state)
   end
 
+  def is_paused?(name) do
+    GenServer.call(name, :is_paused?)
+  end
+
+  def is_running?(name) do
+    GenServer.call(name, :is_running?)
+  end
+
+  def has_finished?(name) do
+    GenServer.call(name, :has_finished?)
+  end
+
   # Server Functions
+  def handle_call(:is_paused?, _from, state) do
+    {:reply, state.status == :paused, state}
+  end
+
+  def handle_call(:is_running?, _from, state) do
+    {:reply, state.status == :running, state}
+  end
+
+  def handle_call(:has_finished?, _from, state) do
+    {:reply, state.status == :finished, state}
+  end
+
   def handle_call(:state, _from, state) do
     {:reply, server_state(state), state}
   end
