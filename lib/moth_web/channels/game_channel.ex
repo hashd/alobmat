@@ -14,6 +14,7 @@ defmodule MothWeb.GameChannel do
         is_admin = admins |> Enum.any?(fn admin -> admin.id == user_id end)
         socket = socket
           |> assign(:game_id, id)
+          |> assign(:game, game)
           |> assign(:user, Accounts.get_user!(user_id))
 
         send(self(), :after_join)
@@ -57,8 +58,9 @@ defmodule MothWeb.GameChannel do
 #    {:noreply, socket}
 #  end
 
-  def handle_info(:after_join, %{assigns: %{user: user}} = socket) do
+  def handle_info(:after_join, %{assigns: %{user: user, game: game}} = socket) do
     push socket, "presence", Players.list(socket)
+    push socket, "message", %{text: "Welcome, #{user.name}", user: game.owner}
     {:ok, _} = Players.track(socket, user.id, %{
       online_at: inspect(System.system_time(:seconds)),
       name: user.name,

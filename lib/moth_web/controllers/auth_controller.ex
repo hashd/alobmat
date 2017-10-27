@@ -27,6 +27,7 @@ defmodule MothWeb.AuthController do
   # end
   def callback(%{assigns: %{ueberauth_auth: auth}} = conn, %{"provider" => "google"} = _params) do
     domain = auth.info.email |> String.split("@") |> List.last
+    redirect_url = Map.get(conn.cookies, "ui_redirect_url") || nil
     
     if Enum.any?(@hosted_domains, fn s -> s == domain end) do
       case create_or_update_user(auth, "google") do
@@ -34,11 +35,11 @@ defmodule MothWeb.AuthController do
           conn
           |> put_session(:user_id, user.id)
           |> put_flash(:info, "Welcome back!")
-          |> redirect(to: base_path(conn, :index))
+          |> redirect(external: redirect_url || base_path(conn, :index))
         {:error, reason} ->
           conn
           |> put_flash(:error, reason)
-          |> redirect(to: base_path(conn, :index))
+          |> redirect(external: redirect_url || base_path(conn, :index))
       end
     else
       conn
