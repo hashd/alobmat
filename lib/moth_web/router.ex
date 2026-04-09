@@ -36,6 +36,7 @@ defmodule MothWeb.Router do
     get "/auth/:provider", AuthController, :request
     get "/auth/:provider/callback", AuthController, :callback
     delete "/auth/logout", AuthController, :logout
+    get "/auth/magic/verify", AuthController, :verify_magic_link
   end
 
   # Authenticated web routes
