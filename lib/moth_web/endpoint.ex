@@ -4,12 +4,17 @@ defmodule MothWeb.Endpoint do
   @session_options [
     store: :cookie,
     key: "_moth_key",
-    signing_salt: "1I015LP/",
+    signing_salt: "tambola_session",
     same_site: "Lax"
   ]
 
   socket "/live", Phoenix.LiveView.Socket,
-    websocket: [connect_info: [session: @session_options]]
+    websocket: [connect_info: [session: @session_options]],
+    longpoll: false
+
+  socket "/api/socket", MothWeb.GameSocket,
+    websocket: true,
+    longpoll: false
 
   plug Plug.Static,
     at: "/",
@@ -22,10 +27,6 @@ defmodule MothWeb.Endpoint do
     plug Phoenix.LiveReloader
     plug Phoenix.CodeReloader
   end
-
-  plug Phoenix.LiveDashboard.RequestLogger,
-    param_key: "request_logger",
-    cookie_key: "request_logger"
 
   plug Plug.RequestId
   plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]
