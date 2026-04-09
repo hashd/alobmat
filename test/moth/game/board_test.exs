@@ -73,7 +73,7 @@ defmodule Moth.Game.BoardTest do
 
   describe "property: pick exhausts 1..90" do
     property "picking all 90 numbers yields exactly 1..90" do
-      check all seed <- integer() do
+      check all(seed <- integer()) do
         board = Board.new(seed)
 
         {_board, all_picks} =

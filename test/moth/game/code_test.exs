@@ -27,7 +27,7 @@ defmodule Moth.Game.CodeTest do
 
   describe "property: codes always match format" do
     property "all generated codes match WORD-NN" do
-      check all _ <- constant(:ok), max_runs: 100 do
+      check all(_ <- constant(:ok), max_runs: 100) do
         code = Code.generate()
         assert Regex.match?(~r/^[A-Z]+-\d{2}$/, code)
       end

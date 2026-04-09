@@ -15,7 +15,10 @@ defmodule MothWeb.HomeLive do
         <div class="space-y-4 text-center">
           <p class="text-gray-700">Welcome, <%= @current_user.name %></p>
           <div class="flex gap-4">
-            <.link navigate={~p"/game/new"} class="rounded-lg bg-indigo-600 px-6 py-3 text-white font-semibold hover:bg-indigo-500">
+            <.link
+              navigate={~p"/game/new"}
+              class="rounded-lg bg-indigo-600 px-6 py-3 text-white font-semibold hover:bg-indigo-500"
+            >
               Create Game
             </.link>
           </div>
@@ -26,10 +29,16 @@ defmodule MothWeb.HomeLive do
         </div>
       <% else %>
         <div class="space-y-4 w-full max-w-xs">
-          <.link navigate={~p"/auth/magic"} class="block w-full rounded-lg bg-indigo-600 px-6 py-3 text-center text-white font-semibold hover:bg-indigo-500">
+          <.link
+            navigate={~p"/auth/magic"}
+            class="block w-full rounded-lg bg-indigo-600 px-6 py-3 text-center text-white font-semibold hover:bg-indigo-500"
+          >
             Sign in with Email
           </.link>
-          <.link href={~p"/auth/google"} class="block w-full rounded-lg border border-gray-300 px-6 py-3 text-center text-gray-700 font-semibold hover:bg-gray-50">
+          <.link
+            href={~p"/auth/google"}
+            class="block w-full rounded-lg border border-gray-300 px-6 py-3 text-center text-gray-700 font-semibold hover:bg-gray-50"
+          >
             Sign in with Google
           </.link>
         </div>
@@ -37,8 +46,19 @@ defmodule MothWeb.HomeLive do
 
       <div class="mt-8">
         <form phx-submit="join_game" class="flex gap-2">
-          <input type="text" name="code" placeholder="Enter game code" class="rounded-lg border-gray-300 px-4 py-2 uppercase" required />
-          <button type="submit" class="rounded-lg bg-green-600 px-4 py-2 text-white font-semibold hover:bg-green-500">Join</button>
+          <input
+            type="text"
+            name="code"
+            placeholder="Enter game code"
+            class="rounded-lg border-gray-300 px-4 py-2 uppercase"
+            required
+          />
+          <button
+            type="submit"
+            class="rounded-lg bg-green-600 px-4 py-2 text-white font-semibold hover:bg-green-500"
+          >
+            Join
+          </button>
         </form>
       </div>
     </div>

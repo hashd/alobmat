@@ -73,7 +73,13 @@ defmodule Moth.Game.PrizeTest do
 
   describe "all_prizes/0" do
     test "returns all 5 prize types" do
-      assert Prize.all_prizes() == [:early_five, :top_line, :middle_line, :bottom_line, :full_house]
+      assert Prize.all_prizes() == [
+               :early_five,
+               :top_line,
+               :middle_line,
+               :bottom_line,
+               :full_house
+             ]
     end
   end
 end

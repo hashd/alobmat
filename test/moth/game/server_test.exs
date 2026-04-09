@@ -1,11 +1,15 @@
 defmodule Moth.Game.ServerTest do
   use Moth.DataCase, async: false
 
-  alias Moth.Game.{Server, Board, Ticket}
+  alias Moth.Game.Server
 
   import Moth.AuthFixtures
 
-  @default_settings %{interval: 10, bogey_limit: 3, enabled_prizes: [:early_five, :top_line, :middle_line, :bottom_line, :full_house]}
+  @default_settings %{
+    interval: 10,
+    bogey_limit: 3,
+    enabled_prizes: [:early_five, :top_line, :middle_line, :bottom_line, :full_house]
+  }
 
   defp start_server(opts \\ []) do
     host = user_fixture()
@@ -145,7 +149,9 @@ defmodule Moth.Game.ServerTest do
     end
 
     test "disqualified player cannot claim" do
-      %{pid: pid, host: host} = start_server(settings: Map.put(@default_settings, :bogey_limit, 1))
+      %{pid: pid, host: host} =
+        start_server(settings: Map.put(@default_settings, :bogey_limit, 1))
+
       player = user_fixture()
       Server.join(pid, player.id)
       Server.start_game(pid, host.id)

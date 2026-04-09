@@ -6,22 +6,37 @@ defmodule Moth.Game.ServerRecoveryTest do
 
   import Moth.AuthFixtures
 
-  @default_settings %{interval: 10, bogey_limit: 3, enabled_prizes: [:early_five, :top_line, :middle_line, :bottom_line, :full_house]}
+  @default_settings %{
+    interval: 10,
+    bogey_limit: 3,
+    enabled_prizes: [:early_five, :top_line, :middle_line, :bottom_line, :full_house]
+  }
 
   test "snapshot persists board state to DB" do
     host = user_fixture()
     player = user_fixture()
     code = "SNAP-#{System.unique_integer([:positive])}"
 
-    {:ok, record} = Repo.insert(%Record{
-      code: code, name: "Snapshot Test", host_id: host.id,
-      status: :lobby, settings: @default_settings
-    })
+    {:ok, record} =
+      Repo.insert(%Record{
+        code: code,
+        name: "Snapshot Test",
+        host_id: host.id,
+        status: :lobby,
+        settings: @default_settings
+      })
 
-    {:ok, pid} = start_supervised({Server, %{
-      code: code, name: "Snapshot Test", host_id: host.id,
-      settings: @default_settings, game_record_id: record.id
-    }})
+    {:ok, pid} =
+      start_supervised(
+        {Server,
+         %{
+           code: code,
+           name: "Snapshot Test",
+           host_id: host.id,
+           settings: @default_settings,
+           game_record_id: record.id
+         }}
+      )
 
     Server.join(pid, player.id)
     Server.start_game(pid, host.id)
@@ -35,15 +50,26 @@ defmodule Moth.Game.ServerRecoveryTest do
     player = user_fixture()
     code = "JOIN-#{System.unique_integer([:positive])}"
 
-    {:ok, record} = Repo.insert(%Record{
-      code: code, name: "Join Test", host_id: host.id,
-      status: :lobby, settings: @default_settings
-    })
+    {:ok, record} =
+      Repo.insert(%Record{
+        code: code,
+        name: "Join Test",
+        host_id: host.id,
+        status: :lobby,
+        settings: @default_settings
+      })
 
-    {:ok, pid} = start_supervised({Server, %{
-      code: code, name: "Join Test", host_id: host.id,
-      settings: @default_settings, game_record_id: record.id
-    }})
+    {:ok, pid} =
+      start_supervised(
+        {Server,
+         %{
+           code: code,
+           name: "Join Test",
+           host_id: host.id,
+           settings: @default_settings,
+           game_record_id: record.id
+         }}
+      )
 
     Server.join(pid, player.id)
     Server.start_game(pid, host.id)

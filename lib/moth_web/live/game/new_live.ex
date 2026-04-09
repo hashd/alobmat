@@ -4,7 +4,8 @@ defmodule MothWeb.Game.NewLive do
   alias Moth.Game
 
   def mount(_params, _session, socket) do
-    {:ok, assign(socket, form: to_form(%{"name" => "", "interval" => "30", "bogey_limit" => "3"}))}
+    {:ok,
+     assign(socket, form: to_form(%{"name" => "", "interval" => "30", "bogey_limit" => "3"}))}
   end
 
   def render(assigns) do
@@ -15,20 +16,41 @@ defmodule MothWeb.Game.NewLive do
       <.form for={@form} phx-submit="create" class="space-y-4">
         <div>
           <label class="block text-sm font-medium text-gray-700">Game Name</label>
-          <input type="text" name="name" value={@form["name"].value} required
-            class="mt-1 w-full rounded-lg border-gray-300" placeholder="Friday Housie" />
+          <input
+            type="text"
+            name="name"
+            value={@form["name"].value}
+            required
+            class="mt-1 w-full rounded-lg border-gray-300"
+            placeholder="Friday Housie"
+          />
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700">Pick Interval (seconds)</label>
-          <input type="number" name="interval" value={@form["interval"].value} min="10" max="120"
-            class="mt-1 w-full rounded-lg border-gray-300" />
+          <input
+            type="number"
+            name="interval"
+            value={@form["interval"].value}
+            min="10"
+            max="120"
+            class="mt-1 w-full rounded-lg border-gray-300"
+          />
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700">Bogey Limit</label>
-          <input type="number" name="bogey_limit" value={@form["bogey_limit"].value} min="1" max="10"
-            class="mt-1 w-full rounded-lg border-gray-300" />
+          <input
+            type="number"
+            name="bogey_limit"
+            value={@form["bogey_limit"].value}
+            min="1"
+            max="10"
+            class="mt-1 w-full rounded-lg border-gray-300"
+          />
         </div>
-        <button type="submit" class="w-full rounded-lg bg-indigo-600 px-6 py-3 text-white font-semibold hover:bg-indigo-500">
+        <button
+          type="submit"
+          class="w-full rounded-lg bg-indigo-600 px-6 py-3 text-white font-semibold hover:bg-indigo-500"
+        >
           Create Game
         </button>
       </.form>
@@ -43,7 +65,10 @@ defmodule MothWeb.Game.NewLive do
       enabled_prizes: [:early_five, :top_line, :middle_line, :bottom_line, :full_house]
     }
 
-    case Game.create_game(socket.assigns.current_user.id, %{name: params["name"], settings: settings}) do
+    case Game.create_game(socket.assigns.current_user.id, %{
+           name: params["name"],
+           settings: settings
+         }) do
       {:ok, code} ->
         {:noreply, push_navigate(socket, to: ~p"/game/#{code}/host")}
 

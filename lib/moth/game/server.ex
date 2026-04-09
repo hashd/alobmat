@@ -10,8 +10,14 @@ defmodule Moth.Game.Server do
   alias Moth.Game.{Board, Ticket, Prize}
 
   defstruct [
-    :id, :code, :host_id, :timer_ref, :next_pick_at,
-    :host_disconnect_ref, :started_at, :finished_at,
+    :id,
+    :code,
+    :host_id,
+    :timer_ref,
+    :next_pick_at,
+    :host_disconnect_ref,
+    :started_at,
+    :finished_at,
     status: :lobby,
     board: nil,
     tickets: %{},
@@ -41,7 +47,13 @@ defmodule Moth.Game.Server do
   # Server callbacks
 
   @impl true
-  def init(%{code: code, name: name, host_id: host_id, settings: settings, game_record_id: record_id}) do
+  def init(%{
+        code: code,
+        name: name,
+        host_id: host_id,
+        settings: settings,
+        game_record_id: record_id
+      }) do
     Registry.register(Moth.Game.Registry, code, %{
       name: name,
       started_at: System.monotonic_time(:millisecond)
@@ -116,12 +128,13 @@ defmodule Moth.Game.Server do
     next_pick_at = DateTime.add(now, interval)
     timer_ref = schedule_pick(interval)
 
-    state = %{state |
-      status: :running,
-      tickets: tickets,
-      started_at: now,
-      timer_ref: timer_ref,
-      next_pick_at: next_pick_at
+    state = %{
+      state
+      | status: :running,
+        tickets: tickets,
+        started_at: now,
+        timer_ref: timer_ref,
+        next_pick_at: next_pick_at
     }
 
     if state.id do
@@ -157,11 +170,12 @@ defmodule Moth.Game.Server do
     next_pick_at = DateTime.add(DateTime.utc_now(), interval)
     timer_ref = schedule_pick(interval)
 
-    state = %{state |
-      status: :running,
-      timer_ref: timer_ref,
-      next_pick_at: next_pick_at,
-      host_disconnect_ref: cancel_and_nil(state.host_disconnect_ref)
+    state = %{
+      state
+      | status: :running,
+        timer_ref: timer_ref,
+        next_pick_at: next_pick_at,
+        host_disconnect_ref: cancel_and_nil(state.host_disconnect_ref)
     }
 
     broadcast(state.code, :status, %{status: :running, by: host_id})
@@ -215,7 +229,9 @@ defmodule Moth.Game.Server do
 
             if state.id do
               Moth.Repo.update_all(
-                from(p in Moth.Game.Player, where: p.game_id == ^state.id and p.user_id == ^user_id),
+                from(p in Moth.Game.Player,
+                  where: p.game_id == ^state.id and p.user_id == ^user_id
+                ),
                 push: [prizes_won: to_string(prize_type)]
               )
             end
@@ -227,7 +243,13 @@ defmodule Moth.Game.Server do
             new_bogeys = user_bogeys + 1
             remaining = bogey_limit - new_bogeys
             state = %{state | bogeys: Map.put(state.bogeys, user_id, new_bogeys)}
-            broadcast(state.code, :bogey, %{user_id: user_id, prize: prize_type, remaining: remaining})
+
+            broadcast(state.code, :bogey, %{
+              user_id: user_id,
+              prize: prize_type,
+              remaining: remaining
+            })
+
             {:reply, {:error, :bogey, remaining}, state}
         end
     end
@@ -270,11 +292,7 @@ defmodule Moth.Game.Server do
         next_pick_at = DateTime.add(DateTime.utc_now(), interval)
         timer_ref = schedule_pick(interval)
 
-        state = %{state |
-          board: board,
-          timer_ref: timer_ref,
-          next_pick_at: next_pick_at
-        }
+        state = %{state | board: board, timer_ref: timer_ref, next_pick_at: next_pick_at}
 
         broadcast(state.code, :pick, %{
           number: number,
@@ -293,11 +311,7 @@ defmodule Moth.Game.Server do
   def handle_info(:host_disconnect_timeout, %{status: :running} = state) do
     cancel_timer(state.timer_ref)
 
-    state = %{state |
-      status: :paused,
-      timer_ref: nil,
-      host_disconnect_ref: nil
-    }
+    state = %{state | status: :paused, timer_ref: nil, host_disconnect_ref: nil}
 
     broadcast(state.code, :status, %{status: :paused, by: :system, reason: :host_disconnected})
     {:noreply, state}
@@ -315,11 +329,7 @@ defmodule Moth.Game.Server do
     cancel_timer(state.timer_ref)
     now = DateTime.utc_now() |> DateTime.truncate(:second)
 
-    state = %{state |
-      status: :finished,
-      timer_ref: nil,
-      finished_at: now
-    }
+    state = %{state | status: :finished, timer_ref: nil, finished_at: now}
 
     broadcast(state.code, :status, %{status: :finished})
     snapshot(state)
@@ -334,6 +344,7 @@ defmodule Moth.Game.Server do
   defp cancel_timer(ref), do: Process.cancel_timer(ref)
 
   defp cancel_and_nil(nil), do: nil
+
   defp cancel_and_nil(ref) do
     Process.cancel_timer(ref)
     nil
@@ -344,11 +355,17 @@ defmodule Moth.Game.Server do
   end
 
   defp snapshot(%{id: nil}), do: :ok
+
   defp snapshot(%{id: id, board: board, status: status}) do
     Moth.Repo.update_all(
       from(g in Moth.Game.Record, where: g.id == ^id),
-      set: [snapshot: Board.to_map(board), status: to_string(status), updated_at: DateTime.utc_now()]
+      set: [
+        snapshot: Board.to_map(board),
+        status: to_string(status),
+        updated_at: DateTime.utc_now()
+      ]
     )
+
     :ok
   end
 
@@ -361,7 +378,10 @@ defmodule Moth.Game.Server do
       other -> other
     end)
     |> Map.update(:tickets, %{}, fn tickets ->
-      Map.new(tickets, fn {k, %Ticket{} = t} -> {k, Ticket.to_map(t)}; {k, v} -> {k, v} end)
+      Map.new(tickets, fn
+        {k, %Ticket{} = t} -> {k, Ticket.to_map(t)}
+        {k, v} -> {k, v}
+      end)
     end)
   end
 end

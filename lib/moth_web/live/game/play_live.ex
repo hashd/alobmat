@@ -73,7 +73,13 @@ defmodule MothWeb.Game.PlayLive do
 
       <div class="mt-4">
         <form phx-submit="chat" class="flex gap-2">
-          <input type="text" name="text" placeholder="Chat..." class="flex-1 rounded-lg border-gray-300 text-sm" autocomplete="off" />
+          <input
+            type="text"
+            name="text"
+            placeholder="Chat..."
+            class="flex-1 rounded-lg border-gray-300 text-sm"
+            autocomplete="off"
+          />
           <button type="submit" class="rounded-lg bg-gray-200 px-3 py-2 text-sm">Send</button>
         </form>
         <div class="mt-2 space-y-1 max-h-32 overflow-y-auto">
@@ -127,6 +133,7 @@ defmodule MothWeb.Game.PlayLive do
 
   def handle_info({:prize_claimed, payload}, socket) do
     event = "Prize #{payload.prize} won by player #{payload.winner_id}!"
+
     {:noreply,
      socket
      |> update(:prizes, fn prizes -> Map.put(prizes, payload.prize, payload.winner_id) end)

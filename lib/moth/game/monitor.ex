@@ -47,6 +47,7 @@ defmodule Moth.Game.Monitor do
     Enum.each(games, fn {code, pid, meta} ->
       try do
         state = GenServer.call(pid, :state, 5_000)
+
         cond do
           state.status == :lobby and stale?(meta, now, @lobby_timeout) ->
             Logger.info("Reaping stale lobby game: #{code}")

@@ -5,7 +5,8 @@ defmodule Moth.Game.Record do
 
   alias Moth.Game.StatusEnum
 
-  @derive {Jason.Encoder, only: [:id, :code, :name, :host_id, :status, :settings, :started_at, :finished_at]}
+  @derive {Jason.Encoder,
+           only: [:id, :code, :name, :host_id, :status, :settings, :started_at, :finished_at]}
   schema "games" do
     field :code, :string
     field :name, :string
@@ -23,7 +24,16 @@ defmodule Moth.Game.Record do
 
   def changeset(record, attrs) do
     record
-    |> cast(attrs, [:code, :name, :host_id, :status, :settings, :started_at, :finished_at, :snapshot])
+    |> cast(attrs, [
+      :code,
+      :name,
+      :host_id,
+      :status,
+      :settings,
+      :started_at,
+      :finished_at,
+      :snapshot
+    ])
     |> validate_required([:code, :name, :host_id])
     |> unique_constraint(:code)
   end

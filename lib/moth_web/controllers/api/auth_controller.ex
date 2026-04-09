@@ -19,7 +19,9 @@ defmodule MothWeb.API.AuthController do
         json(conn, %{token: api_token, user: user})
 
       :error ->
-        conn |> put_status(401) |> json(%{error: %{code: "invalid_token", message: "Invalid or expired token"}})
+        conn
+        |> put_status(401)
+        |> json(%{error: %{code: "invalid_token", message: "Invalid or expired token"}})
     end
   end
 

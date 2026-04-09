@@ -16,14 +16,26 @@ defmodule MothWeb.MagicLinkLive do
       <%= if @sent do %>
         <div class="text-center space-y-4 max-w-sm">
           <p class="text-gray-700">We sent a sign-in link to <strong><%= @email %></strong></p>
-          <p class="text-sm text-gray-500">Check your inbox (and spam folder). The link expires in 15 minutes.</p>
-          <button phx-click="resend" class="text-sm text-indigo-600 hover:text-indigo-500">Resend link</button>
+          <p class="text-sm text-gray-500">
+            Check your inbox (and spam folder). The link expires in 15 minutes.
+          </p>
+          <button phx-click="resend" class="text-sm text-indigo-600 hover:text-indigo-500">
+            Resend link
+          </button>
         </div>
       <% else %>
         <form phx-submit="send_link" class="w-full max-w-xs space-y-4">
-          <input type="email" name="email" placeholder="you@example.com"
-            class="w-full rounded-lg border-gray-300 px-4 py-3" required />
-          <button type="submit" class="w-full rounded-lg bg-indigo-600 px-6 py-3 text-white font-semibold hover:bg-indigo-500">
+          <input
+            type="email"
+            name="email"
+            placeholder="you@example.com"
+            class="w-full rounded-lg border-gray-300 px-4 py-3"
+            required
+          />
+          <button
+            type="submit"
+            class="w-full rounded-lg bg-indigo-600 px-6 py-3 text-white font-semibold hover:bg-indigo-500"
+          >
             Send sign-in link
           </button>
         </form>

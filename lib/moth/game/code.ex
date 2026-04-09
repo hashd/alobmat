@@ -47,7 +47,10 @@ defmodule Moth.Game.Code do
   end
 
   defp generate_with_retries(_excluded, 0) do
-    :crypto.strong_rand_bytes(6) |> Base.url_encode64(padding: false) |> String.upcase() |> String.slice(0, 8)
+    :crypto.strong_rand_bytes(6)
+    |> Base.url_encode64(padding: false)
+    |> String.upcase()
+    |> String.slice(0, 8)
   end
 
   defp generate_with_retries(excluded, retries) do

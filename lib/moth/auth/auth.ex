@@ -128,7 +128,11 @@ defmodule Moth.Auth do
     case Repo.get_by(UserIdentity, user_id: user.id, provider: to_string(provider)) do
       nil ->
         %UserIdentity{}
-        |> UserIdentity.changeset(%{user_id: user.id, provider: to_string(provider), provider_uid: to_string(uid)})
+        |> UserIdentity.changeset(%{
+          user_id: user.id,
+          provider: to_string(provider),
+          provider_uid: to_string(uid)
+        })
         |> Repo.insert()
 
       identity ->
@@ -146,6 +150,10 @@ defmodule Moth.Auth do
   ## Helpers
 
   defp email_to_name(email) do
-    email |> String.split("@") |> List.first() |> String.replace(~r/[._]/, " ") |> String.capitalize()
+    email
+    |> String.split("@")
+    |> List.first()
+    |> String.replace(~r/[._]/, " ")
+    |> String.capitalize()
   end
 end

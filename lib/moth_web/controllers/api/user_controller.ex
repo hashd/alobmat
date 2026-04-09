@@ -12,8 +12,13 @@ defmodule MothWeb.API.UserController do
     attrs = Map.take(params, ["name", "avatar_url"])
 
     case Auth.update_user(user, attrs) do
-      {:ok, user} -> json(conn, %{user: user})
-      {:error, changeset} -> conn |> put_status(422) |> json(%{error: %{code: "validation_error", details: changeset_errors(changeset)}})
+      {:ok, user} ->
+        json(conn, %{user: user})
+
+      {:error, changeset} ->
+        conn
+        |> put_status(422)
+        |> json(%{error: %{code: "validation_error", details: changeset_errors(changeset)}})
     end
   end
 

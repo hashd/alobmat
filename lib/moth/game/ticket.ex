@@ -89,9 +89,10 @@ defmodule Moth.Game.Ticket do
         Enum.take_random(0..2 |> Enum.to_list(), count)
       end)
 
-    row_totals = Enum.reduce(row_assignments, [0, 0, 0], fn rows, acc ->
-      Enum.reduce(rows, acc, fn row, a -> List.update_at(a, row, &(&1 + 1)) end)
-    end)
+    row_totals =
+      Enum.reduce(row_assignments, [0, 0, 0], fn rows, acc ->
+        Enum.reduce(rows, acc, fn row, a -> List.update_at(a, row, &(&1 + 1)) end)
+      end)
 
     if row_totals == [5, 5, 5] do
       build_rows(col_numbers, row_assignments)
@@ -106,6 +107,7 @@ defmodule Moth.Game.Ticket do
         rows_for_col = Enum.at(row_assignments, col)
         numbers_for_col = Enum.at(col_numbers, col)
         row_index = Enum.find_index(Enum.sort(rows_for_col), &(&1 == row))
+
         if row_index do
           Enum.at(numbers_for_col, row_index)
         else

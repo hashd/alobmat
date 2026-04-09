@@ -24,7 +24,8 @@ config :phoenix, :json_library, Jason
 config :esbuild,
   version: "0.17.11",
   default: [
-    args: ~w(js/app.js --bundle --target=es2017 --outdir=../priv/static/assets --external:/fonts/* --external:/images/*),
+    args:
+      ~w(js/app.js --bundle --target=es2017 --outdir=../priv/static/assets --external:/fonts/* --external:/images/*),
     cd: Path.expand("../assets", __DIR__),
     env: %{"NODE_PATH" => Path.expand("../deps", __DIR__)}
   ]
@@ -43,9 +44,11 @@ config :tailwind,
 config :ueberauth, Ueberauth,
   base_path: "/auth",
   providers: [
-    google: {Ueberauth.Strategy.Google, [
-      default_scope: "email profile"
-    ]}
+    google:
+      {Ueberauth.Strategy.Google,
+       [
+         default_scope: "email profile"
+       ]}
   ]
 
 import_config "#{config_env()}.exs"

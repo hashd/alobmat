@@ -36,8 +36,7 @@ defmodule MothWeb.Plugs.RateLimit do
         {:user, conn.assigns[:current_user] && conn.assigns[:current_user].id}
 
       :user_ip ->
-        {:user_ip, conn.assigns[:current_user] && conn.assigns[:current_user].id,
-         conn.remote_ip}
+        {:user_ip, conn.assigns[:current_user] && conn.assigns[:current_user].id, conn.remote_ip}
     end
   end
 

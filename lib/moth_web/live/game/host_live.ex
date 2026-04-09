@@ -9,7 +9,8 @@ defmodule MothWeb.Game.HostLive do
     case Game.game_state(code) do
       {:ok, state} ->
         if state.host_id != socket.assigns.current_user.id do
-          {:ok, socket |> put_flash(:error, "You are not the host.") |> redirect(to: ~p"/game/#{code}")}
+          {:ok,
+           socket |> put_flash(:error, "You are not the host.") |> redirect(to: ~p"/game/#{code}")}
         else
           if connected?(socket) do
             Phoenix.PubSub.subscribe(Moth.PubSub, "game:#{code}")
@@ -44,23 +45,35 @@ defmodule MothWeb.Game.HostLive do
 
       <div class="flex gap-3">
         <%= if @status == :lobby do %>
-          <button phx-click="start" class="rounded-lg bg-green-600 px-6 py-3 text-white font-semibold hover:bg-green-500">
+          <button
+            phx-click="start"
+            class="rounded-lg bg-green-600 px-6 py-3 text-white font-semibold hover:bg-green-500"
+          >
             Start Game
           </button>
         <% end %>
         <%= if @status == :running do %>
-          <button phx-click="pause" class="rounded-lg bg-yellow-600 px-6 py-3 text-white font-semibold hover:bg-yellow-500">
+          <button
+            phx-click="pause"
+            class="rounded-lg bg-yellow-600 px-6 py-3 text-white font-semibold hover:bg-yellow-500"
+          >
             Pause
           </button>
         <% end %>
         <%= if @status == :paused do %>
-          <button phx-click="resume" class="rounded-lg bg-green-600 px-6 py-3 text-white font-semibold hover:bg-green-500">
+          <button
+            phx-click="resume"
+            class="rounded-lg bg-green-600 px-6 py-3 text-white font-semibold hover:bg-green-500"
+          >
             Resume
           </button>
         <% end %>
         <%= if @status in [:running, :paused] do %>
-          <button phx-click="end_game" class="rounded-lg bg-red-600 px-6 py-3 text-white font-semibold hover:bg-red-500"
-            data-confirm="End the game? This cannot be undone.">
+          <button
+            phx-click="end_game"
+            class="rounded-lg bg-red-600 px-6 py-3 text-white font-semibold hover:bg-red-500"
+            data-confirm="End the game? This cannot be undone."
+          >
             End Game
           </button>
         <% end %>
@@ -120,7 +133,8 @@ defmodule MothWeb.Game.HostLive do
   end
 
   def handle_info({:prize_claimed, payload}, socket) do
-    {:noreply, update(socket, :prizes, fn prizes -> Map.put(prizes, payload.prize, payload.winner_id) end)}
+    {:noreply,
+     update(socket, :prizes, fn prizes -> Map.put(prizes, payload.prize, payload.winner_id) end)}
   end
 
   def handle_info({:player_joined, _}, socket) do
