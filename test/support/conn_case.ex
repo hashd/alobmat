@@ -27,6 +27,8 @@ defmodule MothWeb.ConnCase do
         statics: MothWeb.static_paths()
 
       @endpoint MothWeb.Endpoint
+
+      use MothWeb, :verified_routes
     end
   end
 
