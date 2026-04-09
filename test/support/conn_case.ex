@@ -18,21 +18,19 @@ defmodule MothWeb.ConnCase do
   using do
     quote do
       # Import conveniences for testing with connections
-      use Phoenix.ConnTest
-      import MothWeb.Router.Helpers
+      import Plug.Conn
+      import Phoenix.ConnTest
+      import MothWeb.ConnCase
 
       # The default endpoint for testing
       @endpoint MothWeb.Endpoint
+
+      use MothWeb, :verified_routes
     end
   end
-
 
   setup tags do
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(Moth.Repo)
-    unless tags[:async] do
-      Ecto.Adapters.SQL.Sandbox.mode(Moth.Repo, {:shared, self()})
-    end
+    Moth.DataCase.setup_sandbox(tags)
     {:ok, conn: Phoenix.ConnTest.build_conn()}
   end
-
 end

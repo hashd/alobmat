@@ -2,10 +2,9 @@ defmodule MothWeb.Plug.CheckAuth do
   import Plug.Conn
   import Phoenix.Controller
 
-  alias MothWeb.Router.Helpers
+  use MothWeb, :verified_routes
 
   def init(_params) do
-
   end
 
   def call(conn, _params) do
@@ -14,7 +13,7 @@ defmodule MothWeb.Plug.CheckAuth do
     else
       conn
       |> put_status(401)
-      |> redirect(to: Helpers.base_path(conn, :index))
+      |> redirect(to: ~p"/")
       |> halt()
     end
   end

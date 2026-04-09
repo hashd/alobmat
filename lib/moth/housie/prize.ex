@@ -1,10 +1,10 @@
 defmodule Moth.Housie.Prize do
   use Ecto.Schema
   import Ecto.Changeset
-  alias Moth.Housie.{Prize, Game}
+  alias Moth.Housie.Game
   alias Moth.Accounts.User
 
-  @derive {Poison.Encoder, only: [:id, :name, :reward, :winner]}
+  @derive {Jason.Encoder, only: [:id, :name, :reward, :winner]}
   schema "prizes" do
     field       :name,              :string
     field       :reward,            :string
@@ -15,7 +15,7 @@ defmodule Moth.Housie.Prize do
   end
 
   @doc false
-  def changeset(%Prize{} = prize, attrs) do
+  def changeset(prize, attrs) do
     prize
     |> cast(attrs, [:name, :reward, :winner_user_id])
     |> validate_required([:name, :reward])

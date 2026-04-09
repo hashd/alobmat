@@ -1,7 +1,7 @@
 defmodule Moth.Accounts.Credential do
   use Ecto.Schema
   import Ecto.Changeset
-  alias Moth.Accounts.{Credential, User}
+  alias Moth.Accounts.User
 
   schema "credentials" do
     field :email, :string
@@ -13,7 +13,7 @@ defmodule Moth.Accounts.Credential do
   end
 
   @doc false
-  def changeset(%Credential{} = credential, attrs) do
+  def changeset(credential, attrs) do
     credential
     |> cast(attrs, [:email, :token, :provider])
     |> validate_required([:email, :token, :provider])

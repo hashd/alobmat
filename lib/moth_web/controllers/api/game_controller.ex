@@ -1,7 +1,8 @@
 defmodule MothWeb.API.GameController do
   require Logger
   use MothWeb, :controller
-  alias Moth.{Housie, Housie.Server, Games}
+  alias Moth.Housie
+  alias Moth.Housie.Server
 
   def index(conn, _params) do
     games = Housie.list_running_games()
@@ -27,7 +28,7 @@ defmodule MothWeb.API.GameController do
 
   def show(conn, %{"id" => id}) when is_binary id do
     game = Housie.get_game!(id)
-    case Registry.lookup(Games, id) do
+    case Registry.lookup(Moth.Games, id) do
       []              -> json conn, game
       [{p, _v} | _r]  -> json conn, Map.put(game, :server, Server.state(p))
     end
@@ -113,12 +114,12 @@ defmodule MothWeb.API.GameController do
   end
 
   defp invoke_action(game_id, func) do
-    case Registry.lookup(Games, game_id) do
+    case Registry.lookup(Moth.Games, game_id) do
       []                  -> %{error: :error, reason: "No game found for id: #{game_id}"}
       [{ p, _n} | []]     ->
         func.(p)
       [{p, _n} | _r] = l ->
-        Logger.log :info, "Multiple games found with #{game_id}: #{[l]}"
+        Logger.info("Multiple games found with #{game_id}: #{inspect(l)}")
         func.(p)
     end
   end
