@@ -21,8 +21,6 @@ defmodule MothWeb.ConnCase do
       import Phoenix.ConnTest
       import MothWeb.ConnCase
 
-      alias MothWeb.Router.Helpers, as: Routes
-
       @endpoint MothWeb.Endpoint
     end
   end

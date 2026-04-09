@@ -7,6 +7,7 @@ defmodule Moth.Application do
   def start(_type, _args) do
     children = [
       Moth.Repo,
+      {DNSCluster, query: Application.get_env(:moth, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Moth.PubSub},
       {Finch, name: Moth.Finch},
       MothWeb.Telemetry,
