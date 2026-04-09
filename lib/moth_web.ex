@@ -53,6 +53,7 @@ defmodule MothWeb do
       use Phoenix.LiveView,
         layout: {MothWeb.Layouts, :app}
 
+      on_mount MothWeb.LiveAuth
       unquote(html_helpers())
     end
   end
@@ -79,8 +80,7 @@ defmodule MothWeb do
   defp html_helpers do
     quote do
       import Phoenix.HTML
-      import MothWeb.Gettext
-
+      import Phoenix.Controller, only: [get_csrf_token: 0]
       alias Phoenix.LiveView.JS
 
       unquote(verified_routes())

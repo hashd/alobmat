@@ -8,7 +8,7 @@ defmodule MothWeb.Game.PlayLive do
     code = String.upcase(code)
 
     case Game.game_state(code) do
-      {:ok, state} ->
+      {:ok, _state} ->
         if connected?(socket) do
           Phoenix.PubSub.subscribe(Moth.PubSub, "game:#{code}")
           Game.join_game(code, socket.assigns.current_user.id)

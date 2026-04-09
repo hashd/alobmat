@@ -1,7 +1,6 @@
 defmodule MothWeb.Game.HostLive do
   use MothWeb, :live_view
 
-  import MothWeb.GameComponents
   alias Moth.Game
 
   def mount(%{"code" => code}, _session, socket) do
