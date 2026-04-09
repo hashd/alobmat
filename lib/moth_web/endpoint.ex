@@ -12,9 +12,6 @@ defmodule MothWeb.Endpoint do
     websocket: [connect_info: [session: @session_options]],
     longpoll: false
 
-  socket "/api/socket", MothWeb.GameSocket,
-    websocket: true,
-    longpoll: false
 
   plug Plug.Static,
     at: "/",
