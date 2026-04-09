@@ -5,6 +5,7 @@ defmodule Moth.Game.Server do
   """
   use GenServer
   require Logger
+  import Ecto.Query
 
   alias Moth.Game.{Board, Ticket, Prize}
 
@@ -85,8 +86,16 @@ defmodule Moth.Game.Server do
           state
         end
 
-      broadcast(state.code, :player_joined, %{user_id: user_id})
       ticket = Map.get(state.tickets, user_id)
+
+      if state.id && ticket do
+        Moth.Repo.insert!(
+          %Moth.Game.Player{game_id: state.id, user_id: user_id, ticket: Ticket.to_map(ticket)},
+          on_conflict: :nothing
+        )
+      end
+
+      broadcast(state.code, :player_joined, %{user_id: user_id})
       {:reply, {:ok, ticket}, state}
     end
   end
@@ -114,6 +123,15 @@ defmodule Moth.Game.Server do
       timer_ref: timer_ref,
       next_pick_at: next_pick_at
     }
+
+    if state.id do
+      Enum.each(tickets, fn {player_id, ticket} ->
+        Moth.Repo.insert!(
+          %Moth.Game.Player{game_id: state.id, user_id: player_id, ticket: Ticket.to_map(ticket)},
+          on_conflict: :nothing
+        )
+      end)
+    end
 
     broadcast(state.code, :status, %{status: :running, started_at: now})
     {:reply, :ok, state}
@@ -194,6 +212,14 @@ defmodule Moth.Game.Server do
         case Prize.check_claim(prize_type, ticket, picked) do
           :valid ->
             state = %{state | prizes: Map.put(state.prizes, prize_type, user_id)}
+
+            if state.id do
+              Moth.Repo.update_all(
+                from(p in Moth.Game.Player, where: p.game_id == ^state.id and p.user_id == ^user_id),
+                push: [prizes_won: to_string(prize_type)]
+              )
+            end
+
             broadcast(state.code, :prize_claimed, %{prize: prize_type, winner_id: user_id})
             {:reply, {:ok, prize_type}, state}
 
@@ -317,8 +343,12 @@ defmodule Moth.Game.Server do
     Phoenix.PubSub.broadcast(Moth.PubSub, "game:#{code}", {event, payload})
   end
 
-  defp snapshot(_state) do
-    # Write-through to DB will be added in Task 12 (crash recovery)
+  defp snapshot(%{id: nil}), do: :ok
+  defp snapshot(%{id: id, board: board, status: status}) do
+    Moth.Repo.update_all(
+      from(g in Moth.Game.Record, where: g.id == ^id),
+      set: [snapshot: Board.to_map(board), status: to_string(status), updated_at: DateTime.utc_now()]
+    )
     :ok
   end
 
