@@ -7,7 +7,7 @@ defmodule Moth.Mixfile do
       version: "0.0.1",
       elixir: "~> 1.4",
       elixirc_paths: elixirc_paths(Mix.env),
-      compilers: [:phoenix, :gettext] ++ Mix.compilers,
+      compilers: Mix.compilers(),
       start_permanent: Mix.env == :prod,
       aliases: aliases(),
       deps: deps()
@@ -20,11 +20,7 @@ defmodule Moth.Mixfile do
   def application do
     [
       mod: {Moth.Application, []},
-      extra_applications: [
-        :logger, 
-        :runtime_tools,
-        :ueberauth
-      ]
+      extra_applications: [:logger, :runtime_tools]
     ]
   end
 
@@ -37,21 +33,28 @@ defmodule Moth.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:phoenix, "~> 1.3.0"},
-      {:phoenix_pubsub, "~> 1.0"},
-      {:phoenix_ecto, "~> 3.2"},
+      {:phoenix, "~> 1.7.0"},
+      {:phoenix_ecto, "~> 4.4"},
+      {:ecto_sql, "~> 3.10"},
       {:postgrex, ">= 0.0.0"},
-      {:phoenix_html, "~> 2.10"},
-      {:phoenix_live_reload, "~> 1.0", only: :dev},
-      {:gettext, "~> 0.11"},
-      {:cowboy, "~> 1.0"},
-      {:mix_test_watch, "~> 0.3.3", runtime: false},
-      {:fs, github: "synrc/fs", manager: :rebar, override: true},
-      {:ueberauth, "~> 0.4"},
-      {:ueberauth_google, "~> 0.6"},
-      {:ja_serializer, "~> 0.12"},
-      {:guardian, "~> 1.0-beta"},
-      {:hashids, "~> 2.0"}
+      {:phoenix_html, "~> 3.3"},
+      {:phoenix_live_reload, "~> 1.4", only: :dev},
+      {:phoenix_live_view, "~> 0.20.0"},
+      {:phoenix_live_dashboard, "~> 0.8"},
+      {:esbuild, "~> 0.8", runtime: Mix.env() == :dev},
+      {:tailwind, "~> 0.2", runtime: Mix.env() == :dev},
+      {:swoosh, "~> 1.5"},
+      {:finch, "~> 0.13"},
+      {:gettext, "~> 0.20"},
+      {:jason, "~> 1.2"},
+      {:dns_cluster, "~> 0.1.1"},
+      {:bandit, "~> 1.0"},
+      {:telemetry_metrics, "~> 1.0"},
+      {:telemetry_poller, "~> 1.0"},
+      {:ueberauth, "~> 0.10"},
+      {:ueberauth_google, "~> 0.12"},
+      {:cors_plug, "~> 3.0"},
+      {:stream_data, "~> 1.0", only: [:test]}
     ]
   end
 
@@ -65,7 +68,7 @@ defmodule Moth.Mixfile do
     [
       "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
       "ecto.reset": ["ecto.drop", "ecto.setup"],
-      "test": ["ecto.create --quiet", "ecto.migrate", "test"]
+      test: ["ecto.create --quiet", "ecto.migrate", "test"]
     ]
   end
 end

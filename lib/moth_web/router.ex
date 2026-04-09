@@ -1,58 +1,27 @@
 defmodule MothWeb.Router do
   use MothWeb, :router
 
-  require Ueberauth
-
   pipeline :browser do
     plug :accepts, ["html"]
     plug :fetch_session
-    plug :fetch_flash
+    plug :fetch_live_flash
+    plug :put_root_layout, html: {MothWeb.Layouts, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
-    plug MothWeb.Plug.SetUser
   end
 
   pipeline :api do
     plug :accepts, ["json"]
-    plug :fetch_session
-    plug MothWeb.Plug.SetUser
   end
 
-  pipeline :authenticated_api do
-    plug MothWeb.Plug.CheckAPIAuth
-  end
+  # Enable LiveDashboard in dev
+  if Application.compile_env(:moth, :dev_routes) do
+    import Phoenix.LiveDashboard.Router
 
-  scope "/api", MothWeb.API do
-    pipe_through :api
-    pipe_through :authenticated_api
+    scope "/dev" do
+      pipe_through :browser
 
-    get   "/users",                                         UserController, :index
-    get   "/auth/token",                                    AuthController, :token
-    post  "/games",                                         GameController, :new
-    post  "/games/:id/pause",                               GameController, :pause
-    post  "/games/:id/resume",                              GameController, :resume
-    post  "/games/:game_id/prizes/:prize_id",               GameController, :award
-  end
-
-  scope "/api", MothWeb.API do
-    pipe_through :api
-
-    get   "/me",          AuthController, :about_user
-    get   "/games",       GameController, :index
-    get   "/games/:id",   GameController, :show
-  end
-
-  scope "/auth", MothWeb do
-    pipe_through :browser
-
-    get   "/logout",      AuthController, :log_out
-    get   "/:provider",   AuthController, :request
-    get   "/:provider/callback", AuthController, :callback
-  end
-
-  scope "/", MothWeb do
-    pipe_through :browser
-
-    get "/",              BaseController, :index
+      live_dashboard "/dashboard", metrics: MothWeb.Telemetry
+    end
   end
 end
