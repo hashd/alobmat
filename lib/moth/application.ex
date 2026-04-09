@@ -11,10 +11,12 @@ defmodule Moth.Application do
       {Phoenix.PubSub, name: Moth.PubSub},
       {Finch, name: Moth.Finch},
       MothWeb.Telemetry,
+      Moth.Game.Supervisor,
+      MothWeb.Presence,
       MothWeb.Endpoint
     ]
 
-    opts = [strategy: :one_for_one, name: Moth.Supervisor]
+    opts = [strategy: :rest_for_one, name: Moth.Supervisor]
     Supervisor.start_link(children, opts)
   end
 
