@@ -1,46 +1,18 @@
-// We import the CSS which is extracted to its own file by esbuild
-import "../css/app.css"
-
 // Include phoenix_html to handle method=PUT/DELETE in forms and buttons.
 import "phoenix_html"
 
-// Import local files
-import socket from "./socket"
+// Establish Phoenix Socket and LiveView configuration.
+import {Socket} from "phoenix"
+import {LiveSocket} from "phoenix_live_view"
 
-console.log(window.userToken)
+let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
+let liveSocket = new LiveSocket("/live", Socket, {params: {_csrf_token: csrfToken}})
 
-// Now that you are connected, you can join channels with a topic:
-let lobby = socket.channel("public:lobby", {})
+// Connect if there are any LiveViews on the page
+liveSocket.connect()
 
-lobby.on("new_game", ({id: game_id, name}) => {
-  console.log(`Game ${game_id} was started with the name: ${name}`)
-  let channel = socket.channel(`game:${game_id}`, {token: window.userToken})
-
-  channel.on("pick", payload => {
-    console.log(`${game_id} => Pick: ${payload.pick}`)
-  })
-
-  channel.on("timer", payload => {
-    console.log(`${game_id} => Left: ${payload.remaining}`)
-  })
-
-  channel.on("join", payload => {
-    console.log("User Join Event: ", payload)
-  })
-
-  channel.on("message", payload => {
-    console.log("New message", payload)
-  })
-
-  channel.join()
-    .receive("ok", resp => { console.log("Joined successfully", resp) })
-    .receive("error", resp => { console.log("Unable to join", resp) })
-})
-
-lobby.on("end_game", ({id: game_id}) => {
-  console.log(`Game ${game_id} has terminated.`)
-})
-
-lobby.join()
-  .receive("ok", resp => { console.log("Lobby joined, currently running: ", resp) })
-  .receive("error", resp => { console.log("Failed to join lobby") })
+// Expose liveSocket on window for web console debug logs and latency simulation:
+// >> liveSocket.enableDebug()
+// >> liveSocket.enableLatencySim(1000)  // enabled for duration of browser session
+// >> liveSocket.disableLatencySim()
+window.liveSocket = liveSocket

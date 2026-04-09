@@ -1,15 +1,15 @@
 defmodule MothWeb do
   @moduledoc """
   The entrypoint for defining your web interface, such
-  as controllers, views, channels and so on.
+  as controllers, components, channels, and so on.
 
   This can be used in your application as:
 
       use MothWeb, :controller
-      use MothWeb, :html
+      use MothWeb, :live_view
 
-  The definitions below will be executed for every view,
-  controller, etc, so keep them short and clean, focused
+  The definitions below will be executed for every controller,
+  component, etc, so keep them short and clean, focused
   on imports, uses and aliases.
 
   Do NOT define functions inside the quoted expressions
@@ -19,6 +19,17 @@ defmodule MothWeb do
 
   def static_paths, do: ~w(assets fonts images favicon.ico robots.txt)
 
+  def router do
+    quote do
+      use Phoenix.Router, helpers: false
+
+      import Plug.Conn
+      import Phoenix.Controller
+      import Phoenix.LiveView.Router
+    end
+  end
+
+
   def controller do
     quote do
       use Phoenix.Controller,
@@ -26,9 +37,27 @@ defmodule MothWeb do
         layouts: [html: MothWeb.Layouts]
 
       import Plug.Conn
-      use Gettext, backend: MothWeb.Gettext
+      import MothWeb.Gettext
 
       unquote(verified_routes())
+    end
+  end
+
+  def live_view do
+    quote do
+      use Phoenix.LiveView,
+        layout: {MothWeb.Layouts, :app}
+
+      on_mount MothWeb.LiveAuth
+      unquote(html_helpers())
+    end
+  end
+
+  def live_component do
+    quote do
+      use Phoenix.LiveComponent
+
+      unquote(html_helpers())
     end
   end
 
@@ -36,40 +65,20 @@ defmodule MothWeb do
     quote do
       use Phoenix.Component
 
-      # Import convenience functions from controllers
       import Phoenix.Controller,
         only: [get_csrf_token: 0, view_module: 1, view_template: 1]
 
-      # Include general helpers for rendering HTML
       unquote(html_helpers())
     end
   end
 
   defp html_helpers do
     quote do
-      # HTML escaping functionality
       import Phoenix.HTML
-      # Shortcut for generating JS commands
+      import Phoenix.Controller, only: [get_csrf_token: 0]
       alias Phoenix.LiveView.JS
 
-      # Routes generation with the ~p sigil
       unquote(verified_routes())
-    end
-  end
-
-  def router do
-    quote do
-      use Phoenix.Router, helpers: true
-
-      import Plug.Conn
-      import Phoenix.Controller
-    end
-  end
-
-  def channel do
-    quote do
-      use Phoenix.Channel
-      use Gettext, backend: MothWeb.Gettext
     end
   end
 

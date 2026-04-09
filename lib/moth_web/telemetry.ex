@@ -1,4 +1,7 @@
 defmodule MothWeb.Telemetry do
+  @moduledoc """
+  Telemetry metrics for MothWeb.
+  """
   use Supervisor
   import Telemetry.Metrics
 
@@ -22,10 +25,6 @@ defmodule MothWeb.Telemetry do
         unit: {:native, :millisecond}
       ),
       summary("phoenix.endpoint.stop.duration",
-        unit: {:native, :millisecond}
-      ),
-      summary("phoenix.router_dispatch.start.system_time",
-        tags: [:route],
         unit: {:native, :millisecond}
       ),
       summary("phoenix.router_dispatch.stop.duration",
@@ -52,11 +51,12 @@ defmodule MothWeb.Telemetry do
       ),
       summary("moth.repo.query.idle_time",
         unit: {:native, :millisecond},
-        description: "The time the connection spent waiting before being checked out for the query"
+        description:
+          "The time the connection spent waiting before being checked out for the query"
       ),
 
       # VM Metrics
-      summary("vm.memory.total", unit: {:byte, :megabyte}),
+      summary("vm.memory.total", unit: {:byte, :kilobyte}),
       summary("vm.total_run_queue_lengths.total"),
       summary("vm.total_run_queue_lengths.cpu"),
       summary("vm.total_run_queue_lengths.io")
