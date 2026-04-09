@@ -3,10 +3,13 @@ defmodule MothWeb.GameComponents do
 
   attr :ticket, :map, required: true
   attr :picks, :list, default: []
+  attr :struck, :list, default: []
+  attr :interactive, :boolean, default: false
 
   def ticket_grid(assigns) do
     picked_set = MapSet.new(assigns.picks)
-    assigns = assign(assigns, :picked_set, picked_set)
+    struck_set = MapSet.new(assigns.struck)
+    assigns = assign(assigns, picked_set: picked_set, struck_set: struck_set)
 
     ~H"""
     <div class="grid grid-rows-3 gap-1 bg-gray-200 p-2 rounded-lg">
@@ -14,9 +17,12 @@ defmodule MothWeb.GameComponents do
         <div class="grid grid-cols-9 gap-1">
           <%= for cell <- row do %>
             <%= if cell do %>
-              <div class={"flex items-center justify-center h-10 w-full rounded font-bold text-sm #{if MapSet.member?(@picked_set, cell), do: "bg-green-500 text-white", else: "bg-white text-gray-800"}"}>
-                <%= cell %>
-              </div>
+              <.ticket_cell
+                number={cell}
+                picked={MapSet.member?(@picked_set, cell)}
+                struck={MapSet.member?(@struck_set, cell)}
+                interactive={@interactive}
+              />
             <% else %>
               <div class="h-10 w-full rounded bg-gray-100"></div>
             <% end %>
@@ -24,6 +30,35 @@ defmodule MothWeb.GameComponents do
         </div>
       <% end %>
     </div>
+    """
+  end
+
+  attr :number, :integer, required: true
+  attr :picked, :boolean, default: false
+  attr :struck, :boolean, default: false
+  attr :interactive, :boolean, default: false
+
+  defp ticket_cell(assigns) do
+    ~H"""
+    <%= if @struck do %>
+      <div class="flex items-center justify-center h-10 w-full rounded font-bold text-sm bg-green-500 text-white">
+        <%= @number %>
+      </div>
+    <% else %>
+      <%= if @picked && @interactive do %>
+        <button
+          phx-click="strike_out"
+          phx-value-number={@number}
+          class="flex items-center justify-center h-10 w-full rounded font-bold text-sm bg-yellow-300 text-gray-800 animate-pulse border-2 border-yellow-500"
+        >
+          <%= @number %>
+        </button>
+      <% else %>
+        <div class={"flex items-center justify-center h-10 w-full rounded font-bold text-sm #{if @picked, do: "bg-yellow-100 text-gray-600", else: "bg-white text-gray-800"}"}>
+          <%= @number %>
+        </div>
+      <% end %>
+    <% end %>
     """
   end
 

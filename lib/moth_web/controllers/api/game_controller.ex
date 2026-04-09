@@ -66,6 +66,18 @@ defmodule MothWeb.API.GameController do
     handle_host_action(conn, code, &Game.end_game/2)
   end
 
+  def strike_out(conn, %{"code" => code, "number" => number}) do
+    case Game.strike_out(String.upcase(code), conn.assigns.current_user.id, number) do
+      :ok ->
+        json(conn, %{status: "ok"})
+
+      {:error, reason} ->
+        conn
+        |> put_status(422)
+        |> json(%{error: %{code: to_string(reason), message: "Cannot strike out"}})
+    end
+  end
+
   def claim(conn, %{"code" => code, "prize" => prize}) do
     prize_atom = String.to_existing_atom(prize)
 

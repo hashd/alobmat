@@ -15,15 +15,18 @@ defmodule MothWeb.Game.PlayLive do
         end
 
         {:ok, state} = Game.game_state(code)
+        user_id = socket.assigns.current_user.id
 
         socket =
           socket
           |> assign(:code, code)
           |> assign(:game_state, state)
-          |> assign(:ticket, state.tickets[socket.assigns.current_user.id])
+          |> assign(:ticket, state.tickets[user_id])
           |> assign(:picks, state.board.picks)
+          |> assign(:struck, Map.get(state.struck, user_id, []))
           |> assign(:prizes, state.prizes)
           |> assign(:status, state.status)
+          |> assign(:auto_strike, false)
           |> assign(:messages, [])
           |> assign(:events, [])
 
@@ -45,10 +48,23 @@ defmodule MothWeb.Game.PlayLive do
           <h1 class="text-xl font-bold"><%= @code %></h1>
           <p class="text-sm text-gray-500">Status: <%= @status %></p>
         </div>
+        <label class="flex items-center gap-2 text-sm text-gray-600">
+          <input
+            type="checkbox"
+            phx-click="toggle_auto_strike"
+            checked={@auto_strike}
+            class="rounded border-gray-300"
+          /> Auto-strike
+        </label>
       </div>
 
       <%= if @ticket do %>
-        <.ticket_grid ticket={@ticket} picks={@picks} />
+        <.ticket_grid
+          ticket={@ticket}
+          picks={@picks}
+          struck={@struck}
+          interactive={@status in [:running, :paused]}
+        />
         <.claim_buttons prizes={@prizes} enabled={@status == :running} />
       <% else %>
         <p class="text-gray-600">Waiting for the game to start...</p>
@@ -92,6 +108,22 @@ defmodule MothWeb.Game.PlayLive do
     """
   end
 
+  def handle_event("strike_out", %{"number" => number_str}, socket) do
+    number = String.to_integer(number_str)
+
+    case Game.strike_out(socket.assigns.code, socket.assigns.current_user.id, number) do
+      :ok ->
+        {:noreply, update(socket, :struck, fn struck -> [number | struck] end)}
+
+      {:error, _reason} ->
+        {:noreply, socket}
+    end
+  end
+
+  def handle_event("toggle_auto_strike", _params, socket) do
+    {:noreply, assign(socket, :auto_strike, !socket.assigns.auto_strike)}
+  end
+
   def handle_event("claim", %{"prize" => prize}, socket) do
     prize_atom = String.to_existing_atom(prize)
     code = socket.assigns.code
@@ -121,10 +153,26 @@ defmodule MothWeb.Game.PlayLive do
   end
 
   def handle_info({:pick, payload}, socket) do
-    {:noreply,
-     socket
-     |> update(:picks, fn picks -> [payload.number | picks] end)
-     |> assign(:next_pick_at, payload[:next_pick_at])}
+    socket = update(socket, :picks, fn picks -> [payload.number | picks] end)
+    socket = assign(socket, :next_pick_at, payload[:next_pick_at])
+
+    # Auto-strike if enabled and the number is on our ticket
+    socket =
+      if socket.assigns.auto_strike && socket.assigns.ticket do
+        ticket_numbers = socket.assigns.ticket["numbers"] || []
+        ticket_set = MapSet.new(ticket_numbers)
+
+        if MapSet.member?(ticket_set, payload.number) do
+          Game.strike_out(socket.assigns.code, socket.assigns.current_user.id, payload.number)
+          update(socket, :struck, fn struck -> [payload.number | struck] end)
+        else
+          socket
+        end
+      else
+        socket
+      end
+
+    {:noreply, socket}
   end
 
   def handle_info({:status, payload}, socket) do

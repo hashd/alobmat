@@ -25,6 +25,13 @@ defmodule MothWeb.GameChannel do
     end
   end
 
+  def handle_in("strike_out", %{"number" => number}, socket) do
+    case Game.strike_out(socket.assigns.code, socket.assigns.current_user.id, number) do
+      :ok -> {:reply, :ok, socket}
+      {:error, reason} -> {:reply, {:error, %{reason: to_string(reason)}}, socket}
+    end
+  end
+
   def handle_in("message", %{"text" => text}, socket) do
     Game.send_chat(socket.assigns.code, socket.assigns.current_user.id, text)
     {:noreply, socket}

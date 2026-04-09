@@ -22,6 +22,7 @@ defmodule Moth.Game.Server do
     board: nil,
     tickets: %{},
     players: MapSet.new(),
+    struck: %{},
     prizes: %{},
     bogeys: %{},
     settings: %{},
@@ -41,6 +42,7 @@ defmodule Moth.Game.Server do
   def resume(pid, host_id), do: GenServer.call(pid, {:resume, host_id})
   def end_game(pid, host_id), do: GenServer.call(pid, {:end_game, host_id})
   def claim_prize(pid, user_id, prize), do: GenServer.call(pid, {:claim, user_id, prize})
+  def strike_out(pid, user_id, number), do: GenServer.call(pid, {:strike_out, user_id, number})
   def send_chat(pid, user_id, text), do: GenServer.call(pid, {:chat, user_id, text})
   def player_left(pid, user_id), do: GenServer.cast(pid, {:player_left, user_id})
 
@@ -199,6 +201,37 @@ defmodule Moth.Game.Server do
     {:reply, {:error, :not_host}, state}
   end
 
+  def handle_call({:strike_out, user_id, number}, _from, state) do
+    picked_set = MapSet.new(state.board.picks)
+
+    cond do
+      state.status not in [:running, :paused] ->
+        {:reply, {:error, :game_not_running}, state}
+
+      not Map.has_key?(state.tickets, user_id) ->
+        {:reply, {:error, :not_in_game}, state}
+
+      not MapSet.member?(picked_set, number) ->
+        {:reply, {:error, :not_picked}, state}
+
+      true ->
+        ticket = state.tickets[user_id]
+
+        if MapSet.member?(ticket.numbers, number) do
+          user_struck = Map.get(state.struck, user_id, MapSet.new())
+
+          state = %{
+            state
+            | struck: Map.put(state.struck, user_id, MapSet.put(user_struck, number))
+          }
+
+          {:reply, :ok, state}
+        else
+          {:reply, {:error, :not_on_ticket}, state}
+        end
+    end
+  end
+
   def handle_call({:claim, user_id, prize_type}, _from, state) do
     bogey_limit = Map.get(state.settings, :bogey_limit, 3)
     user_bogeys = Map.get(state.bogeys, user_id, 0)
@@ -221,9 +254,9 @@ defmodule Moth.Game.Server do
 
       true ->
         ticket = state.tickets[user_id]
-        picked = MapSet.new(state.board.picks)
+        struck = Map.get(state.struck, user_id, MapSet.new())
 
-        case Prize.check_claim(prize_type, ticket, picked) do
+        case Prize.check_claim(prize_type, ticket, struck) do
           :valid ->
             state = %{state | prizes: Map.put(state.prizes, prize_type, user_id)}
 
@@ -373,6 +406,9 @@ defmodule Moth.Game.Server do
     Map.from_struct(state)
     |> Map.drop([:timer_ref, :host_disconnect_ref, :chat_timestamps])
     |> Map.update(:players, [], &MapSet.to_list/1)
+    |> Map.update(:struck, %{}, fn struck ->
+      Map.new(struck, fn {k, v} -> {k, MapSet.to_list(v)} end)
+    end)
     |> Map.update(:board, nil, fn
       %Board{} = b -> Board.to_map(b)
       other -> other

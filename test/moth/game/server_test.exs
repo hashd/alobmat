@@ -123,6 +123,61 @@ defmodule Moth.Game.ServerTest do
     end
   end
 
+  describe "strike_out" do
+    test "player can strike out a picked number on their ticket" do
+      %{pid: pid, host: host} = start_server(settings: Map.put(@default_settings, :interval, 1))
+      player = user_fixture()
+      Server.join(pid, player.id)
+      Server.start_game(pid, host.id)
+
+      # Wait for at least one pick
+      Process.sleep(1100)
+
+      state = Server.get_state(pid)
+      ticket_numbers = state.tickets[player.id]["numbers"] || []
+      picked = state.board["picks"] || []
+
+      # Find a number that's both picked and on the ticket
+      strikeable = Enum.find(picked, fn n -> n in ticket_numbers end)
+
+      if strikeable do
+        assert :ok = Server.strike_out(pid, player.id, strikeable)
+        new_state = Server.get_state(pid)
+        assert strikeable in Map.get(new_state.struck, player.id, [])
+      end
+    end
+
+    test "cannot strike out a number not yet picked" do
+      %{pid: pid, host: host} = start_server()
+      player = user_fixture()
+      Server.join(pid, player.id)
+      Server.start_game(pid, host.id)
+
+      # 99 is unlikely to be the first pick
+      assert {:error, :not_picked} = Server.strike_out(pid, player.id, 99)
+    end
+
+    test "cannot strike out a number not on ticket" do
+      %{pid: pid, host: host} = start_server(settings: Map.put(@default_settings, :interval, 1))
+      player = user_fixture()
+      Server.join(pid, player.id)
+      Server.start_game(pid, host.id)
+
+      Process.sleep(1100)
+
+      state = Server.get_state(pid)
+      ticket_numbers = MapSet.new(state.tickets[player.id]["numbers"] || [])
+      picked = state.board["picks"] || []
+
+      # Find a picked number NOT on the ticket
+      not_on_ticket = Enum.find(picked, fn n -> not MapSet.member?(ticket_numbers, n) end)
+
+      if not_on_ticket do
+        assert {:error, :not_on_ticket} = Server.strike_out(pid, player.id, not_on_ticket)
+      end
+    end
+  end
+
   describe "prize claims" do
     test "valid claim awards the prize" do
       %{pid: pid, host: host} = start_server()

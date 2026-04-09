@@ -72,6 +72,7 @@ defmodule MothWeb.Router do
     post "/games/:code/pause", GameController, :pause
     post "/games/:code/resume", GameController, :resume
     post "/games/:code/end", GameController, :end_game
+    post "/games/:code/strike_out", GameController, :strike_out
     post "/games/:code/claim", GameController, :claim
   end
 

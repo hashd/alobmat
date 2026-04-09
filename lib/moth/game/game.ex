@@ -69,6 +69,10 @@ defmodule Moth.Game do
     with_server(code, fn pid -> Server.end_game(pid, host_id) end)
   end
 
+  def strike_out(code, user_id, number) do
+    with_server(code, fn pid -> Server.strike_out(pid, user_id, number) end)
+  end
+
   def claim_prize(code, user_id, prize) do
     with_server(code, fn pid -> Server.claim_prize(pid, user_id, prize) end)
   end
