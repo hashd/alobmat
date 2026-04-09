@@ -355,5 +355,13 @@ defmodule Moth.Game.Server do
   defp sanitize_state(state) do
     Map.from_struct(state)
     |> Map.drop([:timer_ref, :host_disconnect_ref, :chat_timestamps])
+    |> Map.update(:players, [], &MapSet.to_list/1)
+    |> Map.update(:board, nil, fn
+      %Board{} = b -> Board.to_map(b)
+      other -> other
+    end)
+    |> Map.update(:tickets, %{}, fn tickets ->
+      Map.new(tickets, fn {k, %Ticket{} = t} -> {k, Ticket.to_map(t)}; {k, v} -> {k, v} end)
+    end)
   end
 end

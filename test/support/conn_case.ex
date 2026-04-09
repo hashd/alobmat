@@ -21,6 +21,11 @@ defmodule MothWeb.ConnCase do
       import Phoenix.ConnTest
       import MothWeb.ConnCase
 
+      use Phoenix.VerifiedRoutes,
+        endpoint: MothWeb.Endpoint,
+        router: MothWeb.Router,
+        statics: MothWeb.static_paths()
+
       @endpoint MothWeb.Endpoint
     end
   end

@@ -44,7 +44,7 @@ defmodule Moth.Game.ServerTest do
 
       assert {:ok, _ticket} = Server.join(pid, player.id)
       state = Server.get_state(pid)
-      assert MapSet.member?(state.players, player.id)
+      assert player.id in state.players
     end
 
     test "same player joining twice returns existing ticket" do
