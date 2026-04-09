@@ -93,7 +93,7 @@ defmodule Moth.Housie.Server do
     {:noreply, state |> Map.put(:status, :finished)}
   end
 
-  def handle_info(:update, %{id: id, timer: timer, board: board, time_left: 0, interval: interval} = state) do
+  def handle_info(:update, %{id: id, timer: _timer, board: board, time_left: 0, interval: interval} = state) do
     # Timer is 0, pick a number, broadcast and then choose the next action plan
     pick = Board.pick(board)
     MothWeb.Endpoint.broadcast! "game:#{id}", "pick", %{pick: pick}
@@ -120,8 +120,8 @@ defmodule Moth.Housie.Server do
     {:noreply, state}
   end
 
-  def terminate(reason, _state) do
-    Logger.log :info, "Shutdown was invoked."
+  def terminate(_reason, _state) do
+    Logger.info("Shutdown was invoked.")
     :normal
   end
 

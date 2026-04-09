@@ -18,20 +18,16 @@ defmodule MothWeb.ChannelCase do
   using do
     quote do
       # Import conveniences for testing with channels
-      use Phoenix.ChannelTest
+      import Phoenix.ChannelTest
+      import MothWeb.ChannelCase
 
       # The default endpoint for testing
       @endpoint MothWeb.Endpoint
     end
   end
 
-
   setup tags do
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(Moth.Repo)
-    unless tags[:async] do
-      Ecto.Adapters.SQL.Sandbox.mode(Moth.Repo, {:shared, self()})
-    end
+    Moth.DataCase.setup_sandbox(tags)
     :ok
   end
-
 end

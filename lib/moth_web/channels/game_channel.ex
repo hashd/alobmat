@@ -62,7 +62,7 @@ defmodule MothWeb.GameChannel do
     push socket, "presence", Players.list(socket)
     push socket, "message", %{text: "Welcome, #{user.name}", user: game.owner}
     {:ok, _} = Players.track(socket, user.id, %{
-      online_at: inspect(System.system_time(:seconds)),
+      online_at: inspect(System.system_time(:second)),
       name: user.name,
       avatar_url: user.avatar_url
     })

@@ -4,6 +4,6 @@ defmodule MothWeb.GameController do
   def index(conn, %{"id" => id} = _params) do
     conn
     |> assign(:game_id, id)
-    |> render("index.html")
+    |> render(:index)
   end
 end

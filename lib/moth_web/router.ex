@@ -1,6 +1,8 @@
 defmodule MothWeb.Router do
   use MothWeb, :router
 
+  import Phoenix.LiveDashboard.Router
+
   require Ueberauth
 
   pipeline :browser do
@@ -48,6 +50,12 @@ defmodule MothWeb.Router do
     get   "/logout",      AuthController, :log_out
     get   "/:provider",   AuthController, :request
     get   "/:provider/callback", AuthController, :callback
+  end
+
+  scope "/" do
+    pipe_through :browser
+
+    live_dashboard "/dashboard", metrics: MothWeb.Telemetry
   end
 
   scope "/", MothWeb do

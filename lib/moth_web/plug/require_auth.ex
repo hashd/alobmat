@@ -2,10 +2,9 @@ defmodule MothWeb.Plug.RequireAuth do
   import Plug.Conn
   import Phoenix.Controller
 
-  alias MothWeb.Router.Helpers
+  use MothWeb, :verified_routes
 
   def init(_params) do
-
   end
 
   def call(conn, _params) do
@@ -14,7 +13,7 @@ defmodule MothWeb.Plug.RequireAuth do
     else
       conn
       |> put_flash(:error, "You must be logged in.")
-      |> redirect(to: Helpers.base_path(conn, :index))
+      |> redirect(to: ~p"/")
       |> halt()
     end
   end
