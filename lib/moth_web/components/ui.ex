@@ -160,14 +160,28 @@ defmodule MothWeb.Components.UI do
           "bg-elevated text-secondary border border"
       end
 
-    assigns = assign(assigns, :variant_classes, variant_classes)
+    aria_label =
+      case assigns.variant do
+        "live" -> "Game is live"
+        "paused" -> "Game is paused"
+        "finished" -> "Game is finished"
+        _ -> nil
+      end
+
+    assigns =
+      assigns
+      |> assign(:variant_classes, variant_classes)
+      |> assign(:aria_label, aria_label)
 
     ~H"""
-    <span class={[
-      "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium",
-      @variant_classes,
-      @class
-    ]}>
+    <span
+      class={[
+        "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium",
+        @variant_classes,
+        @class
+      ]}
+      aria-label={@aria_label}
+    >
       <%= render_slot(@inner_block) %>
     </span>
     """
@@ -266,7 +280,8 @@ defmodule MothWeb.Components.UI do
         "animate-fade-in-up",
         @variant_classes
       ]}
-      role="alert"
+      role="status"
+      aria-live="polite"
       phx-hook="AutoDismiss"
     >
       <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
@@ -303,6 +318,7 @@ defmodule MothWeb.Components.UI do
       phx-mounted={@show && show_modal(@id)}
       phx-remove={hide_modal(@id)}
       aria-modal="true"
+      aria-labelledby={"#{@id}-title"}
       role="dialog"
     >
       <%!-- Backdrop --%>

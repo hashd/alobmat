@@ -91,6 +91,8 @@ body {
   .animate-pulse-border { animation: none; }
   .animate-shimmer { animation: none; }
   .animate-float-up { animation: none; opacity: 0; }
+  .animate-shake { animation: none; }
+  .animate-strike-ripple { animation: none; }
 }
 
 /* Stagger delays (applied via style attr or utility) */

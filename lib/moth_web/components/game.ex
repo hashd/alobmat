@@ -72,7 +72,7 @@ defmodule MothWeb.Components.Game do
     ~H"""
     <div
       role="gridcell"
-      aria-label="empty"
+      aria-label="empty cell"
       class="flex h-10 w-full items-center justify-center rounded border border-dashed border-[var(--border)] bg-[var(--elevated)]/30"
     />
     """
@@ -82,7 +82,8 @@ defmodule MothWeb.Components.Game do
     ~H"""
     <div
       role="gridcell"
-      aria-label={"#{@number} struck"}
+      aria-label={"Number #{@number}, struck"}
+      aria-pressed="true"
       class="relative flex h-10 w-full items-center justify-center rounded bg-accent text-white font-bold text-sm"
     >
       <%= @number %>
@@ -106,7 +107,7 @@ defmodule MothWeb.Components.Game do
     ~H"""
     <button
       role="gridcell"
-      aria-label={"#{@number} picked, tap to strike"}
+      aria-label={"Number #{@number}, called, not struck"}
       phx-click="strike_out"
       phx-value-number={@number}
       phx-hook="TicketStrike"
@@ -122,7 +123,7 @@ defmodule MothWeb.Components.Game do
     ~H"""
     <div
       role="gridcell"
-      aria-label={"#{@number}"}
+      aria-label={"Number #{@number}, not called"}
       class="flex h-10 w-full items-center justify-center rounded bg-[var(--surface)] font-bold text-sm text-[var(--text-primary)]"
     >
       <%= @number %>
@@ -140,10 +141,19 @@ defmodule MothWeb.Components.Game do
   attr :enabled, :boolean, default: true
 
   def prize_chip(%{winner: nil, enabled: true} = assigns) do
+    progress_label =
+      if assigns.progress,
+        do: ", progress #{elem(assigns.progress, 0)}/#{elem(assigns.progress, 1)}",
+        else: ""
+
+    assigns = assign(assigns, :progress_label, progress_label)
+
     ~H"""
     <button
+      role="button"
       phx-click="claim"
       phx-value-prize={@prize}
+      aria-label={"Claim #{@label}#{@progress_label}"}
       class="inline-flex items-center gap-1.5 rounded-full border-2 border-accent px-3 py-1.5 text-sm font-semibold text-accent transition-all hover:bg-accent/10"
     >
       <span><%= @label %></span>
@@ -156,7 +166,10 @@ defmodule MothWeb.Components.Game do
 
   def prize_chip(%{winner: nil, enabled: false} = assigns) do
     ~H"""
-    <span class="inline-flex items-center gap-1.5 rounded-full border-2 border-[var(--border)] px-3 py-1.5 text-sm font-semibold text-[var(--text-muted)] opacity-50">
+    <span
+      aria-label={"#{@label}, not yet available"}
+      class="inline-flex items-center gap-1.5 rounded-full border-2 border-[var(--border)] px-3 py-1.5 text-sm font-semibold text-[var(--text-muted)] opacity-50"
+    >
       <span><%= @label %></span>
       <span :if={@progress} class="text-xs opacity-70">
         <%= elem(@progress, 0) %>/<%= elem(@progress, 1) %>
@@ -171,13 +184,16 @@ defmodule MothWeb.Components.Game do
     assigns = assign(assigns, :claimed_by_me, claimed_by_me)
 
     ~H"""
-    <span class={[
-      "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold",
-      if(@claimed_by_me,
-        do: "bg-accent text-white",
-        else: "bg-[var(--elevated)] text-[var(--text-muted)] line-through"
-      )
-    ]}>
+    <span
+      aria-label={"#{@label}, #{if @claimed_by_me, do: "claimed by you", else: "won"}"}
+      class={[
+        "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold",
+        if(@claimed_by_me,
+          do: "bg-accent text-white",
+          else: "bg-[var(--elevated)] text-[var(--text-muted)] line-through"
+        )
+      ]}
+    >
       <%= @label %>
     </span>
     """
