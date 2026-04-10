@@ -21,6 +21,7 @@ defmodule MothWeb.Plugs.Auth do
       conn
     else
       conn
+      |> put_session(:return_to, conn.request_path)
       |> put_flash(:error, "You must sign in to access this page.")
       |> redirect(to: "/")
       |> halt()
@@ -39,10 +40,12 @@ defmodule MothWeb.Plugs.Auth do
 
   def log_in_user(conn, user) do
     token = Auth.generate_user_session_token(user)
+    return_to = get_session(conn, :return_to)
 
     conn
     |> renew_session()
     |> put_session(:user_token, token)
+    |> put_session(:return_to, return_to)
     |> assign(:current_user, user)
   end
 

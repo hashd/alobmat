@@ -19,7 +19,7 @@ defmodule MothWeb.AuthController do
         conn
         |> AuthPlug.log_in_user(user)
         |> put_flash(:info, "Welcome, #{user.name}!")
-        |> redirect(to: ~p"/")
+        |> redirect_after_login()
 
       {:error, _reason} ->
         conn
@@ -40,7 +40,7 @@ defmodule MothWeb.AuthController do
         conn
         |> AuthPlug.log_in_user(user)
         |> put_flash(:info, "Welcome, #{user.name}!")
-        |> redirect(to: ~p"/")
+        |> redirect_after_login()
 
       :error ->
         conn
@@ -51,5 +51,11 @@ defmodule MothWeb.AuthController do
 
   def logout(conn, _params) do
     AuthPlug.log_out_user(conn)
+  end
+
+  defp redirect_after_login(conn) do
+    return_to = get_session(conn, :return_to)
+    conn = delete_session(conn, :return_to)
+    redirect(conn, to: return_to || "/")
   end
 end
