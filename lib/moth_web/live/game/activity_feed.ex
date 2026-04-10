@@ -59,7 +59,7 @@ defmodule MothWeb.Game.ActivityFeed do
             )
           ]}
         >
-          {label}
+          <%= label %>
         </button>
       </div>
 
@@ -122,7 +122,7 @@ defmodule MothWeb.Game.ActivityFeed do
     <div class="flex items-center gap-2 py-1.5">
       <.number_pill number={@entry.number} latest={false} />
       <span class="text-sm text-[var(--text-secondary)]">
-        Number <strong class="text-accent">{@entry.number}</strong> picked
+        Number <strong class="text-accent"><%= @entry.number %></strong> picked
       </span>
       <.timestamp time={@entry.timestamp} />
     </div>
@@ -133,7 +133,7 @@ defmodule MothWeb.Game.ActivityFeed do
     ~H"""
     <div class="flex items-center gap-2 py-1.5 px-2 rounded-lg bg-prize-gold/10">
       <span class="text-sm font-semibold text-prize-gold">
-        🏆 {@entry.user_name} claimed {@entry.text}!
+        🏆 <%= @entry.user_name %> claimed <%= @entry.text %>!
       </span>
       <.timestamp time={@entry.timestamp} />
     </div>
@@ -144,7 +144,7 @@ defmodule MothWeb.Game.ActivityFeed do
     ~H"""
     <div class="flex items-center gap-2 py-1.5">
       <span class="text-sm font-medium text-danger">
-        ✗ {@entry.user_name} invalid claim — {@entry.text}
+        ✗ <%= @entry.user_name %> invalid claim — <%= @entry.text %>
       </span>
       <.timestamp time={@entry.timestamp} />
     </div>
@@ -156,8 +156,8 @@ defmodule MothWeb.Game.ActivityFeed do
     <div class="flex items-start gap-2 py-1.5">
       <.avatar id={to_string(@entry.user_id)} name={@entry.user_name || "?"} size="sm" />
       <div class="min-w-0 flex-1">
-        <span class="text-xs font-semibold text-[var(--text-primary)]">{@entry.user_name}</span>
-        <p class="text-sm text-[var(--text-secondary)] break-words">{@entry.text}</p>
+        <span class="text-xs font-semibold text-[var(--text-primary)]"><%= @entry.user_name %></span>
+        <p class="text-sm text-[var(--text-secondary)] break-words"><%= @entry.text %></p>
       </div>
       <.timestamp time={@entry.timestamp} />
     </div>
@@ -167,7 +167,7 @@ defmodule MothWeb.Game.ActivityFeed do
   defp entry(%{entry: %{type: :system}} = assigns) do
     ~H"""
     <div class="py-1.5 text-center">
-      <span class="text-xs italic text-[var(--text-muted)]">{@entry.text}</span>
+      <span class="text-xs italic text-[var(--text-muted)]"><%= @entry.text %></span>
     </div>
     """
   end
@@ -181,7 +181,7 @@ defmodule MothWeb.Game.ActivityFeed do
   defp timestamp(assigns) do
     ~H"""
     <time class="ml-auto shrink-0 text-[10px] text-[var(--text-muted)] tabular-nums">
-      {Calendar.strftime(@time, "%H:%M")}
+      <%= Calendar.strftime(@time, "%H:%M") %>
     </time>
     """
   end

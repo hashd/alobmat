@@ -129,7 +129,7 @@ defmodule MothWeb.Game.HostLive do
         <%!-- Game name --%>
         <div class="space-y-1">
           <h1 class="text-3xl font-bold text-[var(--text-primary)]">
-            {@game_name}
+            <%= @game_name %>
           </h1>
           <p class="text-[var(--text-muted)]">Share the code to invite players</p>
         </div>
@@ -142,7 +142,7 @@ defmodule MothWeb.Game.HostLive do
           class="cursor-pointer select-all rounded-2xl bg-[var(--elevated)] px-8 py-6 text-center shadow-lg"
         >
           <span class="font-mono text-5xl font-black tracking-widest text-accent">
-            {@code}
+            <%= @code %>
           </span>
           <p class="mt-2 text-xs text-[var(--text-muted)]">Tap to copy</p>
         </div>
@@ -155,7 +155,7 @@ defmodule MothWeb.Game.HostLive do
               <span class="relative inline-flex h-2.5 w-2.5 rounded-full bg-success" />
             </span>
             <span class="text-sm font-semibold text-[var(--text-primary)]">
-              {@player_count} player<%= if @player_count != 1, do: "s" %> joined
+              <%= @player_count %> player<%= if @player_count != 1, do: "s" %> joined
             </span>
           </div>
         </div>
@@ -171,13 +171,13 @@ defmodule MothWeb.Game.HostLive do
                 :for={{_player_id, idx} <- Enum.with_index(@display_players, 1)}
                 class="inline-flex items-center rounded-full bg-[var(--elevated)] px-3 py-1 text-sm font-medium text-[var(--text-secondary)]"
               >
-                Player {idx}
+                Player <%= idx %>
               </span>
               <span
                 :if={@overflow > 0}
                 class="inline-flex items-center rounded-full bg-accent/10 px-3 py-1 text-sm font-semibold text-accent"
               >
-                +{@overflow} more
+                +<%= @overflow %> more
               </span>
             </div>
           </.card>
@@ -192,11 +192,11 @@ defmodule MothWeb.Game.HostLive do
             <div class="grid grid-cols-2 gap-3 text-sm">
               <div class="flex items-center gap-2">
                 <span class="text-[var(--text-muted)]">Interval</span>
-                <span class="font-semibold text-[var(--text-primary)]">{@interval}s</span>
+                <span class="font-semibold text-[var(--text-primary)]"><%= @interval %>s</span>
               </div>
               <div class="flex items-center gap-2">
                 <span class="text-[var(--text-muted)]">Bogey limit</span>
-                <span class="font-semibold text-[var(--text-primary)]">{@bogey_limit}</span>
+                <span class="font-semibold text-[var(--text-primary)]"><%= @bogey_limit %></span>
               </div>
             </div>
             <div class="mt-3">
@@ -206,7 +206,7 @@ defmodule MothWeb.Game.HostLive do
                   :for={prize <- @enabled_prizes}
                   class="inline-flex items-center rounded-full border border px-2.5 py-0.5 text-xs font-medium text-[var(--text-secondary)]"
                 >
-                  {prize_label(prize)}
+                  <%= prize_label(prize) %>
                 </span>
               </div>
             </div>
@@ -225,7 +225,7 @@ defmodule MothWeb.Game.HostLive do
             <%= if @player_count == 0 do %>
               Waiting for players...
             <% else %>
-              Start Game ({@player_count} player<%= if @player_count != 1, do: "s" %>)
+              Start Game (<%= @player_count %> player<%= if @player_count != 1, do: "s" %>)
             <% end %>
           </.button>
         </div>
@@ -285,14 +285,14 @@ defmodule MothWeb.Game.HostLive do
             data-code={@code}
             class="cursor-pointer font-mono text-sm font-bold text-[var(--text-primary)]"
           >
-            {@code}
+            <%= @code %>
           </span>
           <.badge variant={if @status == :running, do: "live", else: "paused"}>
-            {if @status == :running, do: "Live", else: "Paused"}
+            <%= if @status == :running, do: "Live", else: "Paused" %>
           </.badge>
         </div>
         <span class="text-xs text-[var(--text-muted)]">
-          {@player_count} player<%= if @player_count != 1, do: "s" %>
+          <%= @player_count %> player<%= if @player_count != 1, do: "s" %>
         </span>
       </div>
     </div>
@@ -316,7 +316,7 @@ defmodule MothWeb.Game.HostLive do
             status={@status}
           />
           <span class="text-sm font-semibold text-[var(--text-muted)]">
-            {length(@picks)}/90 picked
+            <%= length(@picks) %>/90 picked
           </span>
         </div>
       </div>
@@ -331,7 +331,7 @@ defmodule MothWeb.Game.HostLive do
             status={@status}
           />
           <span class="text-sm font-semibold text-[var(--text-muted)]">
-            {length(@picks)}/90 picked
+            <%= length(@picks) %>/90 picked
           </span>
         </div>
 
@@ -373,12 +373,12 @@ defmodule MothWeb.Game.HostLive do
               class="flex items-center gap-3"
             >
               <span class="w-5 text-right text-xs font-bold text-[var(--text-muted)]">
-                {idx}
+                <%= idx %>
               </span>
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2">
                   <span class="text-sm font-medium text-[var(--text-primary)] truncate">
-                    Player {entry.player_id}
+                    Player <%= entry.player_id %>
                   </span>
                   <span
                     :if={entry.near_prize}
@@ -396,7 +396,7 @@ defmodule MothWeb.Game.HostLive do
                     />
                   </div>
                   <span class="text-xs tabular-nums text-[var(--text-muted)]">
-                    {entry.strike_count}/{entry.total}
+                    <%= entry.strike_count %>/<%= entry.total %>
                   </span>
                 </div>
               </div>
@@ -421,10 +421,10 @@ defmodule MothWeb.Game.HostLive do
                 "text-sm font-semibold",
                 if(winner, do: "text-accent", else: "text-[var(--text-primary)]")
               ]}>
-                {prize_label(prize)}
+                <%= prize_label(prize) %>
               </span>
               <span :if={winner} class="text-xs font-medium text-accent">
-                Won by Player {winner}
+                Won by Player <%= winner %>
               </span>
               <.badge :if={!winner} variant="default">
                 Unclaimed
@@ -444,15 +444,10 @@ defmodule MothWeb.Game.HostLive do
         </div>
       </div>
 
-      <%!-- Right column: Activity feed --%>
-      <div class="hidden md:flex md:flex-col md:h-[calc(100vh-8rem)]">
+      <%!-- Right column (desktop) / below content (mobile): Activity feed --%>
+      <div class="mt-4 md:mt-0 md:flex md:flex-col md:h-[calc(100vh-8rem)]">
         <.live_component module={MothWeb.Game.ActivityFeed} id="host-feed" />
       </div>
-    </div>
-
-    <%!-- Mobile: Activity feed --%>
-    <div class="mt-4 md:hidden">
-      <.live_component module={MothWeb.Game.ActivityFeed} id="host-feed" />
     </div>
 
     <%!-- Reactions bar --%>
@@ -465,7 +460,7 @@ defmodule MothWeb.Game.HostLive do
           class="flex h-9 w-9 items-center justify-center rounded-full text-lg transition-transform hover:scale-125 active:scale-90"
           aria-label={"React with #{emoji}"}
         >
-          {emoji}
+          <%= emoji %>
         </button>
       </div>
     </div>
@@ -501,7 +496,7 @@ defmodule MothWeb.Game.HostLive do
             Game Over
           </h1>
           <p class="text-[var(--text-muted)]">
-            {length(@picks)} numbers picked
+            <%= length(@picks) %> numbers picked
           </p>
         </div>
 
@@ -515,9 +510,9 @@ defmodule MothWeb.Game.HostLive do
               :for={w <- @winners}
               class="flex items-center justify-between rounded-xl bg-[var(--surface)] border border px-4 py-3"
             >
-              <span class="font-semibold text-[var(--text-primary)]">{w.label}</span>
+              <span class="font-semibold text-[var(--text-primary)]"><%= w.label %></span>
               <span class="text-sm font-medium text-accent">
-                Player {w.winner_id}
+                Player <%= w.winner_id %>
               </span>
             </div>
           </div>
@@ -535,12 +530,12 @@ defmodule MothWeb.Game.HostLive do
           <div class="grid grid-cols-2 gap-3 text-sm">
             <div>
               <span class="text-[var(--text-muted)]">Numbers picked</span>
-              <p class="text-lg font-bold text-[var(--text-primary)]">{length(@picks)}/90</p>
+              <p class="text-lg font-bold text-[var(--text-primary)]"><%= length(@picks) %>/90</p>
             </div>
             <div>
               <span class="text-[var(--text-muted)]">Prizes claimed</span>
               <p class="text-lg font-bold text-[var(--text-primary)]">
-                {length(@winners)}/{map_size(@prizes)}
+                <%= length(@winners) %>/<%= map_size(@prizes) %>
               </p>
             </div>
           </div>
