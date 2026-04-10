@@ -27,6 +27,8 @@ defmodule MothWeb.Game.HostLive do
         else
           if connected?(socket) do
             Phoenix.PubSub.subscribe(Moth.PubSub, "game:#{code}")
+            Phoenix.PubSub.subscribe(Moth.PubSub, "game:#{code}:presence")
+            MothWeb.Presence.track_player(socket, code, socket.assigns.current_user)
           end
 
           socket =
@@ -44,6 +46,7 @@ defmodule MothWeb.Game.HostLive do
             |> assign(:server_now, state[:started_at] || DateTime.utc_now())
             |> assign(:settings, state[:settings] || %{})
             |> assign(:game_name, state[:name] || "Untitled Game")
+            |> assign(:presences, MothWeb.Presence.list_players(code))
 
           {:ok, socket}
         end
@@ -57,7 +60,7 @@ defmodule MothWeb.Game.HostLive do
 
   def render(assigns) do
     ~H"""
-    <div class="mx-auto max-w-7xl px-4 pb-28">
+    <div id="host-presence" phx-hook="Presence" class="mx-auto max-w-7xl px-4 pb-28">
       <%= case @status do %>
         <% :lobby -> %>
           <.lobby_view
@@ -618,6 +621,16 @@ defmodule MothWeb.Game.HostLive do
     {:noreply, push_navigate(socket, to: ~p"/")}
   end
 
+  def handle_event("away", _params, socket) do
+    MothWeb.Presence.update_status(socket, socket.assigns.code, socket.assigns.current_user.id, :away)
+    {:noreply, socket}
+  end
+
+  def handle_event("online", _params, socket) do
+    MothWeb.Presence.update_status(socket, socket.assigns.code, socket.assigns.current_user.id, :online)
+    {:noreply, socket}
+  end
+
   # ── PubSub Handlers ────────────────────────────────────────────────
 
   def handle_info({:pick, payload}, socket) do
@@ -774,6 +787,10 @@ defmodule MothWeb.Game.HostLive do
       end)
 
     {:noreply, socket}
+  end
+
+  def handle_info(%Phoenix.Socket.Broadcast{event: "presence_diff"}, socket) do
+    {:noreply, assign(socket, :presences, MothWeb.Presence.list_players(socket.assigns.code))}
   end
 
   def handle_info(_, socket), do: {:noreply, socket}

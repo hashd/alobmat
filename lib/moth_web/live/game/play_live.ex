@@ -21,7 +21,9 @@ defmodule MothWeb.Game.PlayLive do
       {:ok, state} ->
         if connected?(socket) do
           Phoenix.PubSub.subscribe(Moth.PubSub, "game:#{code}")
+          Phoenix.PubSub.subscribe(Moth.PubSub, "game:#{code}:presence")
           Game.join_game(code, user_id)
+          MothWeb.Presence.track_player(socket, code, socket.assigns.current_user)
         end
 
         ticket = state.tickets[user_id]
@@ -42,6 +44,7 @@ defmodule MothWeb.Game.PlayLive do
           |> assign(:server_now, state[:started_at] || DateTime.utc_now())
           |> assign(:settings, state[:settings] || %{})
           |> assign(:show_board, false)
+          |> assign(:presences, MothWeb.Presence.list_players(code))
 
         {:ok, socket}
 
@@ -57,7 +60,7 @@ defmodule MothWeb.Game.PlayLive do
 
   def render(assigns) do
     ~H"""
-    <div class="mx-auto max-w-5xl px-4 pb-28">
+    <div id="play-presence" phx-hook="Presence" class="mx-auto max-w-5xl px-4 pb-28">
       <%= case @status do %>
         <% :lobby -> %>
           <.lobby_view
@@ -467,6 +470,16 @@ defmodule MothWeb.Game.PlayLive do
     {:noreply, push_navigate(socket, to: ~p"/")}
   end
 
+  def handle_event("away", _params, socket) do
+    MothWeb.Presence.update_status(socket, socket.assigns.code, socket.assigns.current_user.id, :away)
+    {:noreply, socket}
+  end
+
+  def handle_event("online", _params, socket) do
+    MothWeb.Presence.update_status(socket, socket.assigns.code, socket.assigns.current_user.id, :online)
+    {:noreply, socket}
+  end
+
   # ── PubSub Handlers ────────────────────────────────────────────────
 
   def handle_info({:pick, payload}, socket) do
@@ -599,6 +612,10 @@ defmodule MothWeb.Game.PlayLive do
 
   def handle_info({:player_left, _payload}, socket) do
     {:noreply, update(socket, :player_count, &max(&1 - 1, 0))}
+  end
+
+  def handle_info(%Phoenix.Socket.Broadcast{event: "presence_diff"}, socket) do
+    {:noreply, assign(socket, :presences, MothWeb.Presence.list_players(socket.assigns.code))}
   end
 
   def handle_info(_, socket), do: {:noreply, socket}
