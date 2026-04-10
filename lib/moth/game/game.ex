@@ -81,10 +81,48 @@ defmodule Moth.Game do
     with_server(code, fn pid -> Server.send_chat(pid, user_id, text) end)
   end
 
+  def strike_out_async(code, user_id, number) do
+    case lookup(code) do
+      {:ok, pid} -> Server.strike_out_async(pid, user_id, number)
+      _ -> :ok
+    end
+  end
+
+  def send_reaction(code, user_id, emoji) do
+    with_server(code, fn pid -> Server.send_reaction(pid, user_id, emoji) end)
+  end
+
   def player_left(code, user_id) do
     case lookup(code) do
       {:ok, pid} -> Server.player_left(pid, user_id)
       _ -> :ok
+    end
+  end
+
+  def recent_games(user_id, limit \\ 5) do
+    import Ecto.Query
+
+    from(g in Record,
+      where: g.host_id == ^user_id,
+      order_by: [desc: g.inserted_at],
+      limit: ^limit,
+      select: %{
+        code: g.code,
+        name: g.name,
+        status: g.status,
+        inserted_at: g.inserted_at
+      }
+    )
+    |> Repo.all()
+  end
+
+  def clone_game(old_code, host_id) do
+    case game_state(old_code) do
+      {:ok, state} ->
+        create_game(host_id, %{name: state[:name] || "Rematch", settings: state.settings})
+
+      {:error, _} = err ->
+        err
     end
   end
 

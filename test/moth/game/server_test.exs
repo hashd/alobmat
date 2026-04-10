@@ -216,6 +216,30 @@ defmodule Moth.Game.ServerTest do
     end
   end
 
+  describe "prize_progress" do
+    test "game_state includes prize_progress per player" do
+      %{pid: pid, host: host} = start_server()
+      player = user_fixture()
+      Server.join(pid, player.id)
+      Server.start_game(pid, host.id)
+      state = Server.get_state(pid)
+      assert is_map(state.prize_progress)
+      assert is_map(state.prize_progress[player.id])
+      # top_line should have {0, 5} — 0 struck, 5 required
+      assert {0, 5} = state.prize_progress[player.id][:top_line]
+    end
+  end
+
+  describe "reactions" do
+    test "send_reaction broadcasts and rate limits" do
+      %{pid: pid} = start_server()
+      player = user_fixture()
+      Server.join(pid, player.id)
+      assert :ok = Server.send_reaction(pid, player.id, "🔥")
+      assert {:error, :rate_limited} = Server.send_reaction(pid, player.id, "😂")
+    end
+  end
+
   describe "concurrent claims" do
     test "only one player wins when multiple claim simultaneously" do
       %{pid: pid, host: host} = start_server()

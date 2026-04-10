@@ -48,4 +48,13 @@ defmodule Moth.Game.GameTest do
       assert :ok = Game.start_game(code, host.id)
     end
   end
+
+  describe "recent_games/2" do
+    test "returns games user hosted" do
+      %{host: host} = game_fixture()
+      games = Game.recent_games(host.id, 5)
+      assert length(games) >= 1
+      assert hd(games).code != nil
+    end
+  end
 end
