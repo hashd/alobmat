@@ -2,17 +2,30 @@
 <html lang="en" class="h-full">
   <head>
     <meta charset="utf-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
-    />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="csrf-token" content={get_csrf_token()} />
     <.live_title><%= assigns[:page_title] || "Moth" %></.live_title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link phx-track-static rel="stylesheet" href={~p"/assets/app.css"} />
-    <script defer phx-track-static type="text/javascript" src={~p"/assets/app.js"}>
+    <script>
+      // Blocking: apply theme before first paint to prevent FOUC
+      (function() {
+        var theme = localStorage.getItem('moth-theme');
+        if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+          document.documentElement.classList.add('dark');
+        }
+      })();
     </script>
+    <script defer phx-track-static type="text/javascript" src={~p"/assets/app.js"}></script>
   </head>
-  <body class="h-full bg-gray-50">
+  <body class="h-full font-sans antialiased" style="background-color: var(--bg); color: var(--text-primary);">
+    <div class="page-loading-bar"></div>
+    <div id="connection-status" class="fixed top-0 inset-x-0 z-50 items-center justify-center gap-2 bg-accent/90 text-white py-2 text-sm font-medium" role="alert">
+      <svg class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" class="opacity-25"></circle><path d="M4 12a8 8 0 018-8" stroke="currentColor" stroke-width="4" stroke-linecap="round" class="opacity-75"></path></svg>
+      Connection lost. Reconnecting...
+    </div>
     <%= @inner_content %>
   </body>
 </html>
