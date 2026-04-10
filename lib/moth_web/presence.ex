@@ -3,16 +3,16 @@ defmodule MothWeb.Presence do
     otp_app: :moth,
     pubsub_server: Moth.PubSub
 
-  def track_player(socket, code, user) do
-    track(socket, "game:#{code}:presence", user.id, %{
+  def track_player(_socket, code, user) do
+    track(self(), "game:#{code}:presence", user.id, %{
       name: user.name,
       status: :online,
       joined_at: System.monotonic_time(:millisecond)
     })
   end
 
-  def update_status(socket, code, user_id, status) do
-    update(socket, "game:#{code}:presence", user_id, fn meta ->
+  def update_status(_socket, code, user_id, status) do
+    update(self(), "game:#{code}:presence", user_id, fn meta ->
       Map.put(meta, :status, status)
     end)
   end
