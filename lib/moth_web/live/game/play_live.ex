@@ -1,7 +1,6 @@
 defmodule MothWeb.Game.PlayLive do
   use MothWeb, :live_view
 
-  import MothWeb.GameComponents
   alias Moth.Game
 
   def mount(%{"code" => code}, _session, socket) do
@@ -65,7 +64,7 @@ defmodule MothWeb.Game.PlayLive do
           struck={@struck}
           interactive={@status in [:running, :paused]}
         />
-        <.claim_buttons prizes={@prizes} enabled={@status == :running} />
+        <MothWeb.GameComponents.claim_buttons prizes={@prizes} enabled={@status == :running} />
       <% else %>
         <p class="text-gray-600">Waiting for the game to start...</p>
       <% end %>

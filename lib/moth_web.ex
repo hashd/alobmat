@@ -77,6 +77,7 @@ defmodule MothWeb do
       import Phoenix.HTML
       import Phoenix.Controller, only: [get_csrf_token: 0]
       import MothWeb.Components.UI
+      import MothWeb.Components.Game
       alias Phoenix.LiveView.JS
 
       unquote(verified_routes())
