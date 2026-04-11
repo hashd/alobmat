@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import type { Ticket } from '@/types/domain'
 
 const props = defineProps<{
@@ -10,6 +10,7 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{ strike: [number: number] }>()
 
+const pickedSet = computed(() => new Set(props.pickedNumbers))
 const inFlight = ref<Set<number>>(new Set())
 const rejected = ref<Set<number>>(new Set())
 
@@ -46,7 +47,7 @@ defineExpose({ onStrikeResult })
           !cell ? 'bg-transparent' :
           rejected.has(cell) ? 'animate-shake bg-red-500/20 text-red-400' :
           struck.has(cell) ? 'bg-[--accent]/20 text-[--accent] line-through' :
-          pickedNumbers.includes(cell) ? 'bg-[--accent] text-white cursor-pointer' :
+          pickedSet.has(cell) ? 'bg-[--accent] text-white cursor-pointer' :
           interactive ? 'cursor-pointer bg-[--bg] text-[--text-primary] hover:bg-[--surface-2]' :
           'bg-[--bg] text-[--text-primary]'
         ]"

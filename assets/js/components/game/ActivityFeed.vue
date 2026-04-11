@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useAutoScroll } from '@/composables/useAutoScroll'
 import { useChatStore } from '@/stores/chat'
 import type { ChatEntry } from '@/types/domain'
@@ -14,7 +14,7 @@ const filtered = computed<ChatEntry[]>(() =>
 )
 
 const { containerRef } = useAutoScroll(() => filtered.value.length)
-let draft = ''
+const draft = ref('')
 
 const filterOptions = [
   { value: 'all', label: 'All' },
@@ -41,7 +41,7 @@ const filterOptions = [
         <span v-else class="text-[--text-secondary] italic">{{ entry.text }}</span>
       </div>
     </div>
-    <form @submit.prevent="emit('sendChat', draft); draft = ''" class="mt-2 flex gap-2">
+    <form @submit.prevent="emit('sendChat', draft.value); draft.value = ''" class="mt-2 flex gap-2">
       <input v-model="draft" placeholder="Say something…" class="flex-1 rounded-lg border border-[--border] bg-[--bg] px-3 py-2 text-sm focus:outline-none focus:border-[--accent]" />
       <button type="submit" class="rounded-lg bg-[--accent] px-3 py-2 text-sm text-white">Send</button>
     </form>

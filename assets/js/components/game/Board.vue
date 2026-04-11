@@ -1,5 +1,7 @@
 <script setup lang="ts">
-defineProps<{ picks: number[] }>()
+import { computed } from 'vue'
+const props = defineProps<{ picks: number[] }>()
+const pickSet = computed(() => new Set(props.picks))
 const allNumbers = Array.from({ length: 90 }, (_, i) => i + 1)
 </script>
 <template>
@@ -9,7 +11,7 @@ const allNumbers = Array.from({ length: 90 }, (_, i) => i + 1)
       :key="n"
       :class="[
         'flex h-8 w-full items-center justify-center rounded text-xs font-medium transition-all',
-        picks.includes(n) ? 'bg-[--accent] text-white' : 'bg-[--surface] text-[--text-secondary]'
+        pickSet.has(n) ? 'bg-[--accent] text-white' : 'bg-[--surface] text-[--text-secondary]'
       ]"
     >{{ n }}</div>
   </div>
