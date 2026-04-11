@@ -69,8 +69,10 @@ defmodule MothWeb.Router do
     get "/user/me", UserController, :show
     patch "/user/me", UserController, :update
 
+    get "/games", GameController, :recent
     post "/games", GameController, :create
     get "/games/:code", GameController, :show
+    post "/games/:code/clone", GameController, :clone
     post "/games/:code/join", GameController, :join
     post "/games/:code/start", GameController, :start
     post "/games/:code/pause", GameController, :pause

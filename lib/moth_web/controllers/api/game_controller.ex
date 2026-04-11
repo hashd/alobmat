@@ -3,6 +3,19 @@ defmodule MothWeb.API.GameController do
 
   alias Moth.Game
 
+  def recent(conn, _params) do
+    games = Game.recent_games(conn.assigns.current_user.id, 10)
+    json(conn, %{games: games})
+  end
+
+  def clone(conn, %{"code" => code}) do
+    case Game.clone_game(String.upcase(code), conn.assigns.current_user.id) do
+      {:ok, new_code} -> conn |> put_status(201) |> json(%{code: new_code})
+      {:error, reason} ->
+        conn |> put_status(422) |> json(%{error: %{code: to_string(reason), message: "Clone failed"}})
+    end
+  end
+
   def create(conn, params) do
     user = conn.assigns.current_user
 
