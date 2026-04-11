@@ -35,7 +35,7 @@ export const router = createRouter({
 router.beforeEach(async (to) => {
   const auth = useAuthStore()
 
-  if (!auth.isAuthenticated && auth.token) {
+  if (!auth.isAuthenticated) {
     await auth.loadUser()
   }
 

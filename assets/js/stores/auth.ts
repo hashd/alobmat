@@ -22,12 +22,29 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function loadUser() {
-    if (!token.value) return
+    if (!token.value) {
+      if (import.meta.env.DEV) {
+        await devLogin()
+      }
+      return
+    }
     try {
       const { user: u } = await api.user.me()
       user.value = u
     } catch {
       logout()
+      if (import.meta.env.DEV) {
+        await devLogin()
+      }
+    }
+  }
+
+  async function devLogin() {
+    try {
+      const { token: t, user: u } = await api.auth.devLogin()
+      login(u, t)
+    } catch {
+      // dev endpoint not available, fall through to normal auth
     }
   }
 

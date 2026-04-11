@@ -30,6 +30,8 @@ export const api = {
       request<{ token: string }>('POST', '/auth/refresh'),
     logout: () =>
       request<void>('DELETE', '/auth/session'),
+    devLogin: () =>
+      request<{ token: string; user: User }>('POST', '/auth/dev'),
   },
   user: {
     me: () => request<{ user: User }>('GET', '/user/me'),
