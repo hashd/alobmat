@@ -7,9 +7,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 export default defineConfig({
   plugins: [vue()],
-  root: 'assets',
+  root: __dirname,
   build: {
-    outDir: '../priv/static',
+    outDir: path.resolve(__dirname, '../priv/static'),
     emptyOutDir: true,
     manifest: true,
   },
@@ -26,7 +26,8 @@ export default defineConfig({
     },
   },
   test: {
-    environment: 'jsdom',
+    environment: 'happy-dom',
     globals: true,
+    setupFiles: ['js/test/setup.ts'],
   },
 })
