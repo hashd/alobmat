@@ -5,14 +5,34 @@ defmodule MothWeb.GameChannel do
 
   alias Moth.Game
 
+  intercept ["presence_diff"]
+
   @impl true
   def join("game:" <> code, _params, socket) do
     current_user = socket.assigns.current_user
 
     case Game.game_state(code) do
-      {:ok, state} ->
+      {:ok, _state} ->
+        # Ensure player is joined (idempotent — returns ticket or existing ticket)
+        _join_result = Game.join_game(code, current_user.id)
+        # Re-fetch state after join to get the player's ticket
+        {:ok, state} = Game.game_state(code)
+
         :ok = Phoenix.PubSub.subscribe(Moth.PubSub, "game:#{code}")
         send(self(), {:after_join, code})
+
+        # Enrich players with names, prizes_won, and bogeys
+        user_names = Moth.Auth.get_users_map(state.players)
+        players = Enum.map(state.players, fn uid ->
+          %{
+            user_id: uid,
+            name: Map.get(user_names, uid, "Unknown"),
+            prizes_won: state.prizes
+              |> Enum.filter(fn {_p, winner} -> winner == uid end)
+              |> Enum.map(fn {p, _} -> to_string(p) end),
+            bogeys: Map.get(state.bogeys || %{}, uid, 0)
+          }
+        end)
 
         # state is already sanitized: board is a map, players is a list,
         # tickets and struck are already converted, prize_progress is computed
@@ -23,9 +43,10 @@ defmodule MothWeb.GameChannel do
           code: state.code,
           name: Map.get(state, :name),
           status: to_string(state.status),
+          host_id: state.host_id,
           settings: format_settings(state.settings),
           board: state.board,
-          players: state.players,
+          players: players,
           prizes: format_prizes(state.prizes),
           prize_progress: Map.get(state, :prize_progress, %{}),
           my_ticket: my_ticket,
@@ -94,12 +115,18 @@ defmodule MothWeb.GameChannel do
   end
 
   def handle_info({:chat, payload}, socket) do
+    user_id = payload.user_id
+    sender_name = case MothWeb.Presence.list_players(socket.assigns.game_code) do
+      %{^user_id => %{metas: [%{name: name} | _]}} -> name
+      _ -> user_id
+    end
+
     push(socket, "chat", %{
-      id: Map.get(payload, :id),
+      id: "chat-#{System.unique_integer([:positive])}",
       user_id: payload.user_id,
-      user_name: Map.get(payload, :user_name),
+      user_name: sender_name,
       text: payload.text,
-      timestamp: format_datetime(Map.get(payload, :timestamp))
+      timestamp: DateTime.utc_now() |> DateTime.to_iso8601()
     })
 
     {:noreply, socket}
@@ -111,6 +138,21 @@ defmodule MothWeb.GameChannel do
   end
 
   def handle_info(_, socket), do: {:noreply, socket}
+
+  @impl true
+  def handle_out("presence_diff", diff, socket) do
+    push(socket, "presence_diff", diff)
+    {:noreply, socket}
+  end
+
+  @impl true
+  def terminate(_reason, socket) do
+    if code = socket.assigns[:game_code] do
+      user = socket.assigns[:current_user]
+      if user, do: Moth.Game.player_left(code, user.id)
+    end
+    :ok
+  end
 
   # Inbound messages (client -> server)
 

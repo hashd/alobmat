@@ -35,15 +35,11 @@ defmodule MothWeb.AuthController do
   def verify_magic_link(conn, %{"token" => token}) do
     case Auth.verify_magic_link(token) do
       {:ok, user} ->
-        conn
-        |> AuthPlug.log_in_user(user)
-        |> put_flash(:info, "Welcome, #{user.name}!")
-        |> redirect_after_login()
+        {api_token, _} = Auth.generate_api_token(user)
+        redirect(conn, to: "/#/auth/callback?token=#{api_token}")
 
       :error ->
-        conn
-        |> put_flash(:error, "Invalid or expired link. Please request a new one.")
-        |> redirect(to: ~p"/auth/magic")
+        redirect(conn, to: "/#/auth?error=invalid_link")
     end
   end
 
@@ -51,9 +47,4 @@ defmodule MothWeb.AuthController do
     AuthPlug.log_out_user(conn)
   end
 
-  defp redirect_after_login(conn) do
-    return_to = get_session(conn, :return_to)
-    conn = delete_session(conn, :return_to)
-    redirect(conn, to: return_to || "/")
-  end
 end

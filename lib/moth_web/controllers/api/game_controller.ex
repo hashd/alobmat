@@ -19,10 +19,20 @@ defmodule MothWeb.API.GameController do
   def create(conn, params) do
     user = conn.assigns.current_user
 
+    valid_prizes = ~w(early_five top_line middle_line bottom_line full_house)
+    enabled_prizes = case params["enabled_prizes"] do
+      list when is_list(list) ->
+        list
+        |> Enum.filter(&(&1 in valid_prizes))
+        |> Enum.map(&String.to_existing_atom/1)
+      _ ->
+        [:early_five, :top_line, :middle_line, :bottom_line, :full_house]
+    end
+
     settings = %{
       interval: params["interval"] || 30,
       bogey_limit: params["bogey_limit"] || 3,
-      enabled_prizes: [:early_five, :top_line, :middle_line, :bottom_line, :full_house]
+      enabled_prizes: enabled_prizes
     }
 
     case Game.create_game(user.id, %{name: params["name"] || "Untitled", settings: settings}) do
@@ -92,31 +102,37 @@ defmodule MothWeb.API.GameController do
   end
 
   def claim(conn, %{"code" => code, "prize" => prize}) do
-    prize_atom = String.to_existing_atom(prize)
+    valid_prizes = ~w(early_five top_line middle_line bottom_line full_house)
 
-    case Game.claim_prize(String.upcase(code), conn.assigns.current_user.id, prize_atom) do
-      {:ok, prize} ->
-        json(conn, %{prize: prize})
+    if prize in valid_prizes do
+      prize_atom = String.to_existing_atom(prize)
 
-      {:error, :already_claimed} ->
-        conn
-        |> put_status(409)
-        |> json(%{error: %{code: "already_claimed", message: "Prize already claimed"}})
+      case Game.claim_prize(String.upcase(code), conn.assigns.current_user.id, prize_atom) do
+        {:ok, prize} ->
+          json(conn, %{prize: prize})
 
-      {:error, :bogey, remaining} ->
-        conn
-        |> put_status(422)
-        |> json(%{error: %{code: "bogey", message: "Invalid claim", remaining: remaining}})
+        {:error, :already_claimed} ->
+          conn
+          |> put_status(409)
+          |> json(%{error: %{code: "already_claimed", message: "Prize already claimed"}})
 
-      {:error, :disqualified} ->
-        conn
-        |> put_status(403)
-        |> json(%{error: %{code: "disqualified", message: "You are disqualified"}})
+        {:error, :bogey, remaining} ->
+          conn
+          |> put_status(422)
+          |> json(%{error: %{code: "bogey", message: "Invalid claim", remaining: remaining}})
 
-      {:error, reason} ->
-        conn
-        |> put_status(422)
-        |> json(%{error: %{code: to_string(reason), message: "Claim failed"}})
+        {:error, :disqualified} ->
+          conn
+          |> put_status(403)
+          |> json(%{error: %{code: "disqualified", message: "You are disqualified"}})
+
+        {:error, reason} ->
+          conn
+          |> put_status(422)
+          |> json(%{error: %{code: to_string(reason), message: "Claim failed"}})
+      end
+    else
+      conn |> put_status(422) |> json(%{error: %{code: "invalid_prize", message: "Invalid prize"}})
     end
   end
 

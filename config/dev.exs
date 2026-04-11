@@ -17,7 +17,7 @@ config :moth, MothWeb.Endpoint,
     patterns: [
       ~r"priv/static/.*(js|css|png|jpeg|jpg|gif|svg)$",
       ~r"priv/gettext/.*(po)$",
-      ~r"lib/moth_web/(controllers|live|components)/.*(ex|heex)$"
+      ~r"lib/moth_web/(controllers|channels)/.*(ex)$"
     ]
   ]
 
