@@ -130,21 +130,28 @@ defmodule MothWeb.GameChannel do
   end
 
   def handle_in("claim", %{"prize" => prize}, socket) do
-    user = socket.assigns.current_user
-    code = socket.assigns.game_code
-    prize_atom = String.to_existing_atom(prize)
+    valid_prizes = ~w(early_five top_line middle_line bottom_line full_house)
 
-    case Game.claim_prize(code, user.id, prize_atom) do
-      {:ok, _prize} ->
-        {:noreply, socket}
+    if prize in valid_prizes do
+      user = socket.assigns.current_user
+      code = socket.assigns.game_code
+      prize_atom = String.to_existing_atom(prize)
 
-      {:error, :bogey, remaining} ->
-        push(socket, "claim_rejection", %{reason: "bogey", bogeys_remaining: remaining})
-        {:noreply, socket}
+      case Game.claim_prize(code, user.id, prize_atom) do
+        {:ok, _prize} ->
+          {:noreply, socket}
 
-      {:error, reason} ->
-        push(socket, "claim_rejection", %{reason: to_string(reason)})
-        {:noreply, socket}
+        {:error, :bogey, remaining} ->
+          push(socket, "claim_rejection", %{reason: "bogey", bogeys_remaining: remaining})
+          {:noreply, socket}
+
+        {:error, reason} ->
+          push(socket, "claim_rejection", %{reason: to_string(reason)})
+          {:noreply, socket}
+      end
+    else
+      push(socket, "claim_rejection", %{reason: "invalid_prize"})
+      {:noreply, socket}
     end
   end
 

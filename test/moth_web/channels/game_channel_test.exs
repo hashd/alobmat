@@ -33,27 +33,28 @@ defmodule MothWeb.GameChannelTest do
       %{game_code: game_code, channel_socket: channel_socket}
     end
 
-    test "strike valid number returns ok", %{channel_socket: cs} do
+    test "strike in lobby state returns rejected", %{channel_socket: cs} do
       push(cs, "strike", %{"number" => 1})
-      assert_push "strike_result", %{number: 1, result: _}
+      assert_push "strike_result", %{number: 1, result: "rejected"}
     end
 
     test "claim with no match returns bogey rejection", %{channel_socket: cs, user: user, game_code: gc} do
       {:ok, _} = Moth.Game.join_game(gc, user.id)
       Moth.Game.start_game(gc, user.id)
       push(cs, "claim", %{"prize" => "early_five"})
-      assert_push "claim_rejection", %{reason: reason}
-      assert reason in ["bogey", "invalid"]
+      assert_push "claim_rejection", %{reason: "bogey", bogeys_remaining: _}
     end
 
-    test "chat broadcasts to all subscribers", %{channel_socket: cs} do
+    test "chat push triggers translated channel push back to sender", %{channel_socket: cs, user: user} do
+      user_id = user.id
       push(cs, "chat", %{"text" => "hello"})
-      assert_push "chat", %{text: "hello"}
+      assert_push "chat", %{text: "hello", user_id: ^user_id}
     end
 
-    test "reaction broadcasts to all subscribers", %{channel_socket: cs} do
+    test "reaction push triggers translated channel push back to sender", %{channel_socket: cs, user: user} do
+      user_id = user.id
       push(cs, "reaction", %{"emoji" => "🎉"})
-      assert_push "reaction", %{emoji: "🎉"}
+      assert_push "reaction", %{emoji: "🎉", user_id: ^user_id}
     end
   end
 end
