@@ -456,7 +456,7 @@ defmodule Moth.Game.Server do
 
     Map.from_struct(state)
     |> Map.drop([:timer_ref, :host_disconnect_ref, :chat_timestamps, :reaction_timestamps])
-    |> Map.put(:prize_progress, prize_progress)
+    |> Map.put(:prize_progress, stringify_prize_progress(prize_progress))
     |> Map.update(:players, [], &MapSet.to_list/1)
     |> Map.update(:struck, %{}, fn struck ->
       Map.new(struck, fn {k, v} -> {k, MapSet.to_list(v)} end)
@@ -473,6 +473,12 @@ defmodule Moth.Game.Server do
     end)
   end
 
+  defp stringify_prize_progress(progress) do
+    Map.new(progress, fn {user_id, prizes} ->
+      {user_id, Map.new(prizes, fn {prize, val} -> {to_string(prize), val} end)}
+    end)
+  end
+
   defp compute_prize_progress(tickets, struck, prizes) do
     Map.new(tickets, fn {user_id, ticket} ->
       user_struck = Map.get(struck, user_id, MapSet.new())
@@ -480,7 +486,7 @@ defmodule Moth.Game.Server do
       progress =
         Map.new(prizes, fn {prize_type, _winner} ->
           {required, struck_count} = prize_requirement(prize_type, ticket, user_struck)
-          {prize_type, {struck_count, required}}
+          {prize_type, %{struck: struck_count, required: required}}
         end)
 
       {user_id, progress}
