@@ -62,8 +62,13 @@ const reactions = ['👏','🎉','🔥','😮','❤️']
       <span class="ml-auto text-sm text-[--text-secondary]">{{ gameStore.players.length }} players</span>
     </div>
 
+    <!-- Connecting state -->
+    <div v-if="!gameStore.hydrated" class="flex flex-1 flex-col items-center justify-center gap-4 p-6">
+      <p class="text-[--text-secondary]">Connecting…</p>
+    </div>
+
     <!-- Lobby state -->
-    <div v-if="gameStore.status === 'lobby'" class="flex flex-1 flex-col items-center justify-center gap-4 p-6">
+    <div v-else-if="gameStore.status === 'lobby'" class="flex flex-1 flex-col items-center justify-center gap-4 p-6">
       <p class="text-[--text-secondary]">Waiting for host to start…</p>
       <div class="flex flex-wrap gap-2">
         <div v-for="p in gameStore.players" :key="p.user_id" class="flex items-center gap-2 rounded-full border border-[--border] px-3 py-1 text-sm">

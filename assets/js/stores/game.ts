@@ -21,6 +21,8 @@ export const useGameStore = defineStore('game', () => {
   const nextPickAt = ref<string | null>(null)
   const channelConnected = ref(false)
 
+  const hydrated = ref(false)
+
   function hydrate(reply: GameJoinReply) {
     code.value = reply.code
     name.value = reply.name
@@ -34,6 +36,7 @@ export const useGameStore = defineStore('game', () => {
     prizes.value = reply.prizes
     prizeProgress.value = reply.prize_progress
     channelConnected.value = true
+    hydrated.value = true
   }
 
   function onPick(event: NumberPickedEvent, autoStrike?: (n: number) => void) {
@@ -93,11 +96,12 @@ export const useGameStore = defineStore('game', () => {
     players.value = []
     prizes.value = {}
     channelConnected.value = false
+    hydrated.value = false
   }
 
   return {
     code, name, hostId, status, settings, board, myTicket, myStruck,
-    players, prizes, prizeProgress, nextPickAt, channelConnected,
+    players, prizes, prizeProgress, nextPickAt, channelConnected, hydrated,
     hydrate, onPick, onStatusChange, onPrizeClaimed, onBogey,
     onPlayerJoined, onPlayerLeft, onStrikeConfirmed, reset,
   }
