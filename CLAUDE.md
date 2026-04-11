@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this project is
 
-**Moth** is a real-time multiplayer Tambola (Indian bingo/housie) game server. One GenServer process per active game, capable of hosting 100k+ concurrent games on a single machine. The backend is Elixir/Phoenix; the frontend is being migrated from LiveView to Vue 3 + TypeScript + Pinia + Vite (see `docs/superpowers/specs/` and `docs/superpowers/plans/`).
+**Moth** is a real-time multiplayer Tambola (Indian bingo/housie) game server. One GenServer process per active game, capable of hosting 100k+ concurrent games on a single machine. The backend is Elixir/Phoenix; the frontend is a Vue 3 + TypeScript + Pinia + Vite SPA communicating via Phoenix Channels.
 
 ## Commands
 
@@ -13,21 +13,26 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 mix setup                          # deps.get + ecto.setup + assets.setup
 
 # Development
-mix phx.server                     # starts Phoenix + asset watchers on :4000
+mix phx.server                     # starts Phoenix on :4000 + Vite dev server on :5173
 iex -S mix phx.server              # same, with interactive shell
 
 # Database
 mix ecto.migrate                   # run pending migrations
 mix ecto.reset                     # drop + recreate + seed
 
-# Tests
+# Backend tests
 mix test                           # all tests (also runs ecto.create + migrate)
 mix test test/moth/game/server_test.exs                    # single file
 mix test test/moth/game/server_test.exs:42                 # single test by line
 mix test --only game                                        # by tag
 
-# Assets (current state — esbuild/tailwind, being replaced by Vite)
-mix assets.deploy                  # minify + digest for production
+# Frontend tests
+cd assets && npx vitest run        # all frontend unit tests
+cd assets && npx vitest            # watch mode
+cd assets && npx tsc --noEmit      # TypeScript strict check
+
+# Assets
+cd assets && npm run build         # production build → priv/static/
 ```
 
 ## Architecture
@@ -40,7 +45,7 @@ mix assets.deploy                  # minify + digest for production
 - **`server.ex`** — one `GenServer` per active game. Holds all in-memory game state (board, tickets, struck numbers, prizes, bogeys, chat rate-limits). Broadcasts state changes via `Phoenix.PubSub` as `{event_atom, payload_map}` tuples on topic `"game:#{code}"`.
 - **`supervisor.ex`** — `rest_for_one` tree: `Registry` → `DynSup` (hosts all Server processes) → `Monitor` (cleans up dead game processes).
 - **`monitor.ex`** — watches Server PIDs via `Process.monitor`; cleans up Registry + DB record on crash.
-- **`board.ex`**, **`ticket.ex`**, **`prize.ex`** — pure data modules. `Board.to_map/1` and `Ticket.to_map/1` produce JSON-serializable maps used by both the API and (upcoming) GameChannel.
+- **`board.ex`**, **`ticket.ex`**, **`prize.ex`** — pure data modules. `Board.to_map/1` and `Ticket.to_map/1` produce JSON-serializable maps.
 
 Game lookup: `Registry.lookup(Moth.Game.Registry, code)` → PID. `Game.with_server/2` wraps this and returns `{:error, :game_not_found}` if the process isn't alive.
 
@@ -48,35 +53,46 @@ Game lookup: `Registry.lookup(Moth.Game.Registry, code)` → PID. `Game.with_ser
 
 `lib/moth/auth/` — three token contexts in `UserToken`:
 - `"session"` — cookie-based, used by the browser `AuthController`
-- `"api"` — bearer token, used by `MothWeb.Plugs.APIAuth` and all `/api/*` routes
+- `"api"` — bearer token (30-day validity), used by `MothWeb.Plugs.APIAuth` and all `/api/*` routes, and by `UserSocket` for channel auth
 - `"magic_link"` — 15-minute single-use token for passwordless login
 
 `Moth.Auth` is the context module wrapping all token ops. `MothWeb.Plugs.Auth` reads session cookies; `MothWeb.Plugs.APIAuth` reads `Authorization: Bearer <token>` headers.
 
 In dev, `MothWeb.Plugs.DevAuth` provides passwordless local login (enabled via `:dev_routes` compile env).
 
+### Real-time layer (Phoenix Channels)
+
+- **`user_socket.ex`** — authenticates via bearer token (`Moth.Auth.get_user_by_api_token/1`). Routes `"game:*"` to `GameChannel`.
+- **`channels/game_channel.ex`** — one channel process per player per game. On join: calls `Game.join_game` (idempotent), subscribes to PubSub topic `"game:#{code}"` and presence topic `"game:#{code}:presence"`, enriches player data with names/prizes/bogeys. Translates 8 PubSub events to JSON channel pushes. Handles 4 inbound messages (strike, claim, chat, reaction). `terminate/2` calls `Game.player_left/2` on disconnect.
+- **`presence.ex`** — wraps `Phoenix.Presence` on topic `"game:#{code}:presence"`. Channel subscribes to this topic and forwards `presence_diff` events to clients.
+
 ### Web layer
 
 `lib/moth_web/` — standard Phoenix structure:
-- `router.ex` — three scopes: `:browser` (LiveView pages, being removed), `/api` (unauthenticated), `/api` + `:require_api_auth` (authenticated REST)
+- `router.ex` — three scopes: `/api` (unauthenticated), `/api` + `:require_api_auth` (authenticated REST), `:browser` (OAuth callbacks + SPA catch-all)
 - `controllers/api/` — JSON controllers for auth, user, game actions
-- `live/` — LiveView modules (being replaced by Vue SPA)
-- `components/` — HEEX component macros (being replaced by Vue SFCs)
-- `presence.ex` — wraps `Phoenix.Presence` on topic `"game:#{code}:presence"`
+- `controllers/page_controller.ex` — `spa` action serves `priv/static/index.html`
+- `controllers/auth_controller.ex` — OAuth callback and magic link verify both redirect to `/#/auth/callback?token=<bearer_token>`
 
-### Migration in progress
+### Frontend (Vue SPA)
 
-The `feat/revamped-ui` branch is migrating the frontend to Vue 3 + TypeScript + Pinia + Vite. The design spec is at `docs/superpowers/specs/2026-04-11-vue-spa-migration-design.md` and the implementation plan (23 tasks) is at `docs/superpowers/plans/2026-04-11-vue-spa-migration.md`.
+`assets/js/` — Vue 3 + TypeScript + Pinia + Vite:
 
-**Phase 1 (backend, not yet done):** Add `UserSocket` + `GameChannel` (real-time via Phoenix Channels instead of LiveView PubSub); fix OAuth callback to return bearer tokens; add `GET /api/games` and `POST /api/games/:code/clone` endpoints.
-
-**Phase 2 (frontend, not yet started):** Vue SPA in `assets/js/` with Pinia stores, `useChannel` composable wrapping phoenix.js, and Vue pages replacing all HEEX templates.
-
-Key architectural constraint: `Game.Server` broadcasts raw Elixir tuples `{:pick, payload}` via PubSub. The planned `GameChannel` must subscribe to the same PubSub topic and translate these to JSON Channel pushes before clients can receive them.
+- **`app.ts`** — entry point, creates Pinia + Vue app, mounts router
+- **`router.ts`** — hash-based routing with `beforeEach` auth guard
+- **`types/`** — `domain.ts` (User, Player, Ticket, Board, etc.), `channel.ts` (GameJoinReply, event types), `phoenix.d.ts` (type shim)
+- **`api/client.ts`** — typed fetch wrapper for all REST endpoints
+- **`stores/`** — Pinia stores: `auth` (login/logout/token), `theme` (light/dark/system), `game` (full game state + event handlers), `chat` (activity feed with 50-entry cap), `presence` (online players)
+- **`composables/`** — `useChannel` (Phoenix socket/channel wiring to stores), `useCountdown`, `useConfetti`, `useAutoScroll`
+- **`components/ui/`** — Button, Card, Avatar, Badge, Modal, Toast, InputField, SegmentedControl, BottomSheet, ConnectionStatus
+- **`components/game/`** — TicketGrid, Board, CountdownRing, ActivityFeed, ReactionOverlay
+- **`pages/`** — Auth, Home, Profile, NewGame, GamePlay, HostDashboard
 
 ## Key conventions
 
-- Game codes are 4-letter uppercase strings generated by `Game.Code` using Hashids, guaranteed unique against currently-running games via Registry.
-- Prize names are atoms: `:early_five`, `:top_line`, `:middle_line`, `:bottom_line`, `:full_house`. They're stored as atoms in GenServer state and as strings in the DB (`StatusEnum`).
-- `strike_out_async` (cast) vs `strike_out` (call) — use async from client hooks to avoid blocking the LiveView/Channel on network round-trips.
+- Game codes are uppercase strings generated by `Game.Code` using Hashids, guaranteed unique against currently-running games via Registry.
+- Prize names are atoms: `:early_five`, `:top_line`, `:middle_line`, `:bottom_line`, `:full_house`. Stored as atoms in GenServer state and as strings in the DB and channel JSON.
+- `strike_out_async` (cast) vs `strike_out` (call) — use async from channel handlers to avoid blocking.
 - Test fixtures live in `test/support/`. The `mix test` alias auto-creates and migrates the test DB.
+- Frontend uses `@` alias for `assets/js/` in imports.
+- CSS custom properties (`--bg`, `--accent`, `--border`, `--text-primary`, etc.) drive theming.
