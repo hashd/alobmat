@@ -41,7 +41,7 @@ async function joinGame() {
     <Card class="mb-6">
       <h2 class="mb-3 font-semibold">Join a game</h2>
       <form @submit.prevent="joinGame" class="flex gap-2">
-        <input v-model="joinCode" placeholder="Game code" maxlength="4"
+        <input v-model="joinCode" placeholder="Game code" maxlength="20"
           class="flex-1 rounded-lg border border-[--border] bg-[--bg] px-3 py-2 text-sm uppercase tracking-widest focus:outline-none focus:border-[--accent]" />
         <Button type="submit">Join</Button>
       </form>
