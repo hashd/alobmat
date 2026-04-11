@@ -20,6 +20,7 @@ export const useGameStore = defineStore('game', () => {
   const prizeProgress = ref<Record<string, Record<string, number>>>({})
   const nextPickAt = ref<string | null>(null)
   const channelConnected = ref(false)
+  const autoStrikeEnabled = ref(false)
 
   const hydrated = ref(false)
 
@@ -47,8 +48,8 @@ export const useGameStore = defineStore('game', () => {
     }
     nextPickAt.value = event.next_pick_at
 
-    // Auto-strike if number is on my ticket and not yet struck
-    if (myTicket.value?.numbers.includes(event.number) && !myStruck.value.has(event.number)) {
+    // Auto-strike if number is on my ticket and not yet struck and auto-strike is enabled
+    if (autoStrikeEnabled.value && myTicket.value?.numbers.includes(event.number) && !myStruck.value.has(event.number)) {
       autoStrike?.(event.number)
     }
   }
@@ -97,12 +98,13 @@ export const useGameStore = defineStore('game', () => {
     prizes.value = {}
     channelConnected.value = false
     hydrated.value = false
+    autoStrikeEnabled.value = false
   }
 
   return {
     code, name, hostId, status, settings, board, myTicket, myStruck,
     players, prizes, prizeProgress, nextPickAt, channelConnected, hydrated,
-    hydrate, onPick, onStatusChange, onPrizeClaimed, onBogey,
+    autoStrikeEnabled, hydrate, onPick, onStatusChange, onPrizeClaimed, onBogey,
     onPlayerJoined, onPlayerLeft, onStrikeConfirmed, reset,
   }
 })
