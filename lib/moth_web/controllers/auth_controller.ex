@@ -16,10 +16,8 @@ defmodule MothWeb.AuthController do
 
     case Auth.authenticate_oauth(auth.provider, user_info) do
       {:ok, user} ->
-        conn
-        |> AuthPlug.log_in_user(user)
-        |> put_flash(:info, "Welcome, #{user.name}!")
-        |> redirect_after_login()
+        {token, _} = Auth.generate_api_token(user)
+        redirect(conn, to: "/#/auth/callback?token=#{token}")
 
       {:error, _reason} ->
         conn
