@@ -37,4 +37,5 @@ dev_env.sh
 # Editor/IDE specific
 .idea
 .vscode
+/.elixir_ls
 moth.iml
