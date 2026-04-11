@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, onUnmounted } from 'vue'
 const props = defineProps<{ message: string; variant?: 'success' | 'error' | 'info' }>()
 const emit = defineEmits<{ dismiss: [] }>()
-onMounted(() => setTimeout(() => emit('dismiss'), 3000))
+let timer: ReturnType<typeof setTimeout>
+onMounted(() => { timer = setTimeout(() => emit('dismiss'), 3000) })
+onUnmounted(() => clearTimeout(timer))
 const colors = { success: 'bg-green-600', error: 'bg-red-600', info: 'bg-zinc-700' }
 </script>
 <template>
