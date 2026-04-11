@@ -27,6 +27,7 @@ function makeMockSocket() {
     disconnect: vi.fn(),
     onOpen: vi.fn(),
     onClose: vi.fn(),
+    onError: vi.fn(),
     channel: vi.fn().mockReturnValue(channel),
     mockChannel: channel,
   }

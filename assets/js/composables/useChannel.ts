@@ -7,7 +7,7 @@ import { usePresenceStore } from '@/stores/presence'
 import type {
   NumberPickedEvent, GameStatusEvent, PrizeClaimedEvent, ClaimRejectionEvent,
   StrikeResultEvent, BogeyEvent, ChatEvent, ReactionEvent,
-  PlayerJoinedEvent, PlayerLeftEvent, PresenceDiff,
+  PlayerJoinedEvent, PlayerLeftEvent, PresenceDiff, GameJoinReply,
 } from '@/types/channel'
 
 type SocketFactory = (token: string) => Socket
@@ -40,10 +40,10 @@ export function useChannel(gameCode: string, socketFactory: SocketFactory = crea
     channel = socket.channel(`game:${gameCode}`)
 
     channel.join()
-      .receive('ok', (reply) => {
+      .receive('ok', (reply: GameJoinReply) => {
         gameStore.hydrate(reply)
       })
-      .receive('error', (err) => {
+      .receive('error', (err: { reason: string }) => {
         console.error('Channel join error:', err)
       })
 
@@ -101,6 +101,10 @@ export function useChannel(gameCode: string, socketFactory: SocketFactory = crea
     socket.onClose(() => {
       gameStore.channelConnected = false
     })
+
+    socket.onError(() => {
+      gameStore.channelConnected = false
+    })
   }
 
   function strike(number: number) {
@@ -126,6 +130,9 @@ export function useChannel(gameCode: string, socketFactory: SocketFactory = crea
     gameStore.reset()
     chatStore.reset()
     presenceStore.reset()
+    reactions.listeners = []
+    channel = null
+    socket = null
   }
 
   onMounted(connect)

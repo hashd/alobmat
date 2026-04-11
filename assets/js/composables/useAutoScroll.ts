@@ -8,7 +8,7 @@ export function useAutoScroll(deps: () => unknown) {
     if (containerRef.value) {
       containerRef.value.scrollTop = containerRef.value.scrollHeight
     }
-  })
+  }, { flush: 'post' })
 
   return { containerRef }
 }
