@@ -1,4 +1,6 @@
 defmodule MothWeb.UserSocket do
+  @moduledoc "Phoenix Socket authenticating Vue SPA clients via API bearer tokens."
+
   use Phoenix.Socket
 
   channel "game:*", MothWeb.GameChannel
