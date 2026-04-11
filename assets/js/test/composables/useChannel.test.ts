@@ -41,7 +41,7 @@ describe('useChannel', () => {
     const authStore = useAuthStore()
     authStore.token = 'test-token'
     const mockSocket = makeMockSocket()
-    const { gameStore, connect } = useChannel('TEST', () => mockSocket as any)
+    const { gameStore, connect } = useChannel('TEST', undefined, () => mockSocket as any)
     connect()
     expect(gameStore.code).toBe('TEST')
   })
@@ -51,7 +51,7 @@ describe('useChannel', () => {
     const authStore = useAuthStore()
     authStore.token = null
     const mockSocket = makeMockSocket()
-    const { connect } = useChannel('TEST', () => mockSocket as any)
+    const { connect } = useChannel('TEST', undefined, () => mockSocket as any)
     connect()
     expect(mockSocket.connect).not.toHaveBeenCalled()
   })
@@ -61,7 +61,7 @@ describe('useChannel', () => {
     const authStore = useAuthStore()
     authStore.token = 'test-token'
     const mockSocket = makeMockSocket()
-    const { gameStore, connect, disconnect } = useChannel('TEST', () => mockSocket as any)
+    const { gameStore, connect, disconnect } = useChannel('TEST', undefined, () => mockSocket as any)
     connect()
     expect(gameStore.code).toBe('TEST')
     disconnect()
@@ -73,7 +73,7 @@ describe('useChannel', () => {
     const authStore = useAuthStore()
     authStore.token = 'test-token'
     const mockSocket = makeMockSocket()
-    const { strike, connect } = useChannel('TEST', () => mockSocket as any)
+    const { strike, connect } = useChannel('TEST', undefined, () => mockSocket as any)
     connect()
     strike(42)
     expect(mockSocket.mockChannel.push).toHaveBeenCalledWith('strike', { number: 42 })
@@ -84,7 +84,7 @@ describe('useChannel', () => {
     const authStore = useAuthStore()
     authStore.token = 'test-token'
     const mockSocket = makeMockSocket()
-    const { onReaction, connect } = useChannel('TEST', () => mockSocket as any)
+    const { onReaction, connect } = useChannel('TEST', undefined, () => mockSocket as any)
     connect()
     const received: Array<{ emoji: string; user_id: string }> = []
     onReaction((r) => received.push(r))
