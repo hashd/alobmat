@@ -24,7 +24,7 @@ defmodule Moth.Game do
       %Record{}
       |> Record.changeset(%{
         code: code,
-        name: attrs[:name] || attrs["name"] || "Untitled Game",
+        name: non_empty(attrs[:name]) || non_empty(attrs["name"]) || "Untitled Game",
         host_id: host_id,
         settings: settings
       })
@@ -147,4 +147,9 @@ defmodule Moth.Game do
   end
 
   defp clamp(val, min_val, max_val), do: val |> max(min_val) |> min(max_val)
+
+  defp non_empty(""), do: nil
+  defp non_empty(nil), do: nil
+  defp non_empty(s) when is_binary(s), do: s
+  defp non_empty(_), do: nil
 end

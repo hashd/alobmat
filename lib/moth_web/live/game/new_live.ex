@@ -39,14 +39,15 @@ defmodule MothWeb.Game.NewLive do
         <h1 class="text-2xl font-bold text-primary">Create a Game</h1>
       </div>
 
-      <.input_field
-        name="name"
-        label="Game Name"
-        placeholder="Friday Housie"
-        value={@name}
-        phx-change="update_name"
-        phx-debounce="300"
-      />
+      <form phx-change="update_name">
+        <.input_field
+          name="name"
+          label="Game Name"
+          placeholder="Friday Housie"
+          value={@name}
+          phx-debounce="300"
+        />
+      </form>
 
       <div class="space-y-2">
         <label class="block text-sm font-medium text-primary">Pick Speed</label>
