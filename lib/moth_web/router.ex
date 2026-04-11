@@ -29,30 +29,7 @@ defmodule MothWeb.Router do
     plug MothWeb.Plugs.APIAuth, :require_api_auth
   end
 
-  # Web routes (LiveView)
-  scope "/", MothWeb do
-    pipe_through :browser
-
-    live "/", HomeLive
-    live "/auth/magic", MagicLinkLive
-    live "/profile", ProfileLive
-
-    get "/auth/:provider", AuthController, :request
-    get "/auth/:provider/callback", AuthController, :callback
-    delete "/auth/logout", AuthController, :logout
-    get "/auth/magic/verify", AuthController, :verify_magic_link
-  end
-
-  # Authenticated web routes
-  scope "/", MothWeb do
-    pipe_through [:browser, :require_auth]
-
-    live "/game/new", Game.NewLive
-    live "/game/:code", Game.PlayLive
-    live "/game/:code/host", Game.HostLive
-  end
-
-  # Mobile API
+  # Mobile API (unauthenticated)
   scope "/api", MothWeb.API do
     pipe_through :api
 
@@ -63,6 +40,7 @@ defmodule MothWeb.Router do
     delete "/auth/session", AuthController, :logout
   end
 
+  # Mobile API (authenticated)
   scope "/api", MothWeb.API do
     pipe_through [:api, :require_api_auth]
 
@@ -91,6 +69,19 @@ defmodule MothWeb.Router do
       live_dashboard "/dashboard", metrics: MothWeb.Telemetry
       forward "/mailbox", Plug.Swoosh.MailboxPreview
     end
+  end
+
+  # Web routes — browser scope with SPA catch-all last so it doesn't shadow API routes
+  scope "/", MothWeb do
+    pipe_through :browser
+
+    get "/auth/:provider", AuthController, :request
+    get "/auth/:provider/callback", AuthController, :callback
+    delete "/auth/logout", AuthController, :logout
+    get "/auth/magic/verify", AuthController, :verify_magic_link
+
+    # SPA catch-all — must be the very last route
+    get "/*path", PageController, :spa
   end
 
   defp require_authenticated_user(conn, _opts) do
