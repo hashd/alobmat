@@ -2,7 +2,6 @@ defmodule MothWeb.GameChannelTest do
   use MothWeb.ChannelCase
 
   import Moth.AuthFixtures
-  import Moth.GameFixtures
 
   setup do
     user = user_fixture()
@@ -25,5 +24,36 @@ defmodule MothWeb.GameChannelTest do
   test "join fails for non-existent game", %{socket: socket} do
     assert {:error, %{reason: "game_not_found"}} =
              subscribe_and_join(socket, "game:XXXX")
+  end
+
+  describe "inbound messages" do
+    setup %{socket: socket, user: user} do
+      {:ok, game_code} = Moth.Game.create_game(user.id, %{name: "Test"})
+      {:ok, _reply, channel_socket} = subscribe_and_join(socket, "game:#{game_code}")
+      %{game_code: game_code, channel_socket: channel_socket}
+    end
+
+    test "strike valid number returns ok", %{channel_socket: cs} do
+      push(cs, "strike", %{"number" => 1})
+      assert_push "strike_result", %{number: 1, result: _}
+    end
+
+    test "claim with no match returns bogey rejection", %{channel_socket: cs, user: user, game_code: gc} do
+      {:ok, _} = Moth.Game.join_game(gc, user.id)
+      Moth.Game.start_game(gc, user.id)
+      push(cs, "claim", %{"prize" => "early_five"})
+      assert_push "claim_rejection", %{reason: reason}
+      assert reason in ["bogey", "invalid"]
+    end
+
+    test "chat broadcasts to all subscribers", %{channel_socket: cs} do
+      push(cs, "chat", %{"text" => "hello"})
+      assert_push "chat", %{text: "hello"}
+    end
+
+    test "reaction broadcasts to all subscribers", %{channel_socket: cs} do
+      push(cs, "reaction", %{"emoji" => "🎉"})
+      assert_push "reaction", %{emoji: "🎉"}
+    end
   end
 end
