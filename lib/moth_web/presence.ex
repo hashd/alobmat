@@ -5,7 +5,7 @@ defmodule MothWeb.Presence do
 
   def track_player(socket_or_pid, code, user) do
     pid = to_pid(socket_or_pid)
-    track(pid, "game:#{code}", user.id, %{
+    track(pid, "game:#{code}:presence", user.id, %{
       name: user.name,
       status: :online,
       joined_at: System.monotonic_time(:millisecond)
@@ -14,7 +14,7 @@ defmodule MothWeb.Presence do
 
   def update_status(socket_or_pid, code, user_id, status) do
     pid = to_pid(socket_or_pid)
-    update(pid, "game:#{code}", user_id, fn meta ->
+    update(pid, "game:#{code}:presence", user_id, fn meta ->
       Map.put(meta, :status, status)
     end)
   end
@@ -23,6 +23,6 @@ defmodule MothWeb.Presence do
   defp to_pid(pid) when is_pid(pid), do: pid
 
   def list_players(code) do
-    list("game:#{code}")
+    list("game:#{code}:presence")
   end
 end

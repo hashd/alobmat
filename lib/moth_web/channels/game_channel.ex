@@ -5,8 +5,6 @@ defmodule MothWeb.GameChannel do
 
   alias Moth.Game
 
-  intercept ["presence_diff"]
-
   @impl true
   def join("game:" <> code, _params, socket) do
     current_user = socket.assigns.current_user
@@ -19,6 +17,7 @@ defmodule MothWeb.GameChannel do
         {:ok, state} = Game.game_state(code)
 
         :ok = Phoenix.PubSub.subscribe(Moth.PubSub, "game:#{code}")
+        :ok = Phoenix.PubSub.subscribe(Moth.PubSub, "game:#{code}:presence")
         send(self(), {:after_join, code})
 
         # Enrich players with names, prizes_won, and bogeys
@@ -137,13 +136,12 @@ defmodule MothWeb.GameChannel do
     {:noreply, socket}
   end
 
-  def handle_info(_, socket), do: {:noreply, socket}
-
-  @impl true
-  def handle_out("presence_diff", diff, socket) do
+  def handle_info(%Phoenix.Socket.Broadcast{event: "presence_diff", payload: diff}, socket) do
     push(socket, "presence_diff", diff)
     {:noreply, socket}
   end
+
+  def handle_info(_, socket), do: {:noreply, socket}
 
   @impl true
   def terminate(_reason, socket) do
