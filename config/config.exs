@@ -23,6 +23,7 @@ config :phoenix, :json_library, Jason
 
 # Assets are built by Vite (see assets/vite.config.ts)
 # Tailwind is configured via assets/tailwind.config.js + PostCSS
+config :tailwind, version: "4.1.12"
 
 config :ueberauth, Ueberauth,
   base_path: "/auth",

@@ -9,8 +9,7 @@ config :moth, MothWeb.Endpoint,
   watchers: [
     node: [
       "node_modules/.bin/vite",
-      "--config", "assets/vite.config.ts",
-      cd: Path.expand("..", __DIR__)
+      cd: Path.expand("../assets", __DIR__)
     ]
   ],
   live_reload: [
