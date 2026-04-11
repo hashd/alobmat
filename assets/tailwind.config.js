@@ -1,14 +1,11 @@
 // See the Tailwind configuration guide for advanced usage
 // https://tailwindcss.com/docs/configuration
 
-const plugin = require("tailwindcss/plugin")
-
-module.exports = {
+export default {
   darkMode: 'class',
   content: [
-    "./js/**/*.js",
-    "../lib/moth_web.ex",
-    "../lib/moth_web/**/*.*ex"
+    './js/**/*.{vue,ts,js}',
+    './index.html',
   ],
   theme: {
     extend: {
@@ -37,21 +34,5 @@ module.exports = {
       },
     },
   },
-  plugins: [
-    require("@tailwindcss/forms"),
-    plugin(({addVariant}) => addVariant("phx-no-feedback", [".phx-no-feedback&", ".phx-no-feedback &"])),
-    plugin(({addVariant}) => addVariant("phx-click-loading", [".phx-click-loading&", ".phx-click-loading &"])),
-    plugin(({addVariant}) => addVariant("phx-submit-loading", [".phx-submit-loading&", ".phx-submit-loading &"])),
-    plugin(({addVariant}) => addVariant("phx-change-loading", [".phx-change-loading&", ".phx-change-loading &"])),
-    plugin(({addBase, addUtilities}) => {
-      addBase({
-        "[phx-click]": { cursor: "pointer" },
-      })
-      addUtilities({
-        ".phx-no-feedback.phx-no-feedback": {
-          ".phx-no-feedback &": { display: "none" },
-        },
-      })
-    }),
-  ]
+  plugins: [],
 }

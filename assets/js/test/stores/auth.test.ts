@@ -2,7 +2,7 @@ import { setActivePinia, createPinia } from 'pinia'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { useAuthStore } from '@/stores/auth'
 
-beforeEach(() => setActivePinia(createPinia()))
+beforeEach(() => { setActivePinia(createPinia()) })
 
 describe('authStore', () => {
   it('is unauthenticated by default', () => {

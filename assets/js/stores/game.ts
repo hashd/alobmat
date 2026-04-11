@@ -9,6 +9,7 @@ import type {
 export const useGameStore = defineStore('game', () => {
   const code = ref('')
   const name = ref('')
+  const hostId = ref<string | null>(null)
   const status = ref<string>('lobby')
   const settings = ref<GameSettings>({ interval: 30, bogey_limit: 3, enabled_prizes: [] })
   const board = ref<Board>({ picks: [], count: 0, finished: false })
@@ -23,6 +24,7 @@ export const useGameStore = defineStore('game', () => {
   function hydrate(reply: GameJoinReply) {
     code.value = reply.code
     name.value = reply.name
+    hostId.value = reply.host_id ?? null
     status.value = reply.status
     settings.value = reply.settings
     board.value = reply.board
@@ -83,6 +85,7 @@ export const useGameStore = defineStore('game', () => {
 
   function reset() {
     code.value = ''
+    hostId.value = null
     status.value = 'lobby'
     board.value = { picks: [], count: 0, finished: false }
     myTicket.value = null
@@ -93,7 +96,7 @@ export const useGameStore = defineStore('game', () => {
   }
 
   return {
-    code, name, status, settings, board, myTicket, myStruck,
+    code, name, hostId, status, settings, board, myTicket, myStruck,
     players, prizes, prizeProgress, nextPickAt, channelConnected,
     hydrate, onPick, onStatusChange, onPrizeClaimed, onBogey,
     onPlayerJoined, onPlayerLeft, onStrikeConfirmed, reset,

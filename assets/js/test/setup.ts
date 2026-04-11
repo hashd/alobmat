@@ -1,3 +1,4 @@
+/// <reference types="vitest/globals" />
 import { vi } from 'vitest'
 
 // Polyfill localStorage for test environments that don't implement it fully

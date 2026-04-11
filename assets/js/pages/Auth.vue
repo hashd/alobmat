@@ -19,6 +19,8 @@ const error = ref('')
 onMounted(async () => {
   const token = (route.query.token as string) ?? ''
   if (token) {
+    // Clear token from URL immediately to prevent it leaking via browser history
+    window.history.replaceState({}, '', window.location.pathname)
     try {
       auth.token = token
       localStorage.setItem('auth_token', token)

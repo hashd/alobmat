@@ -33,7 +33,7 @@ function makeMockSocket() {
   }
 }
 
-beforeEach(() => setActivePinia(createPinia()))
+beforeEach(() => { setActivePinia(createPinia()) })
 
 describe('useChannel', () => {
   it('hydrates game store on join', async () => {

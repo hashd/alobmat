@@ -21,7 +21,7 @@ const router = useRouter()
 const auth = useAuthStore()
 const code = route.params.code as string
 
-const { gameStore, strike, claim, sendReaction, sendChat, onReaction } = useChannel(code)
+const { gameStore, strike, claim, sendReaction, sendChat, onReaction, claimRejection } = useChannel(code)
 const { secondsLeft, start: startCountdown } = useCountdown(() => gameStore.nextPickAt)
 const { fire: fireConfetti } = useConfetti()
 
@@ -141,6 +141,15 @@ const reactions = ['👏','🎉','🔥','😮','❤️']
       </div>
       <Button @click="router.push('/')">Home</Button>
     </div>
+
+    <!-- Claim rejection toast -->
+    <Transition name="fade">
+      <div v-if="claimRejection" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 rounded-xl bg-red-600 px-4 py-3 text-sm text-white shadow-lg">
+        {{ claimRejection.reason === 'bogey'
+          ? `Bogey! ${claimRejection.bogeys_remaining} remaining`
+          : claimRejection.reason.replace(/_/g, ' ') }}
+      </div>
+    </Transition>
 
     <!-- Board bottom sheet -->
     <BottomSheet :open="boardOpen" title="All numbers" @close="boardOpen = false">

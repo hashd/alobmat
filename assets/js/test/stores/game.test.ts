@@ -2,7 +2,7 @@ import { setActivePinia, createPinia } from 'pinia'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { useGameStore } from '@/stores/game'
 
-beforeEach(() => setActivePinia(createPinia()))
+beforeEach(() => { setActivePinia(createPinia()) })
 
 describe('gameStore', () => {
   it('onPick appends number to board picks', () => {

@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useChannel } from '@/composables/useChannel'
+import { useAuthStore } from '@/stores/auth'
 import { api } from '@/api/client'
 import Board from '@/components/game/Board.vue'
 import ConnectionStatus from '@/components/ui/ConnectionStatus.vue'
@@ -15,6 +16,14 @@ const router = useRouter()
 const code = route.params.code as string
 
 const { gameStore } = useChannel(code)
+const auth = useAuthStore()
+
+// Redirect non-host users once game state is hydrated
+watch(() => gameStore.code, (c) => {
+  if (c && gameStore.hostId && gameStore.hostId !== auth.user?.id) {
+    router.replace(`/game/${c}`)
+  }
+})
 const loading = ref<string | null>(null)
 const actionError = ref<string | null>(null)
 

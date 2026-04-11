@@ -106,14 +106,3 @@ body {
 #connection-status {
   display: none;
 }
-[phx-disconnected] #connection-status {
-  display: flex;
-}
-
-/* === Page loading bar === */
-.phx-page-loading .page-loading-bar {
-  position: fixed; top: 0; left: 0; right: 0; height: 2px;
-  background: var(--accent);
-  z-index: 50;
-  animation: shimmer 1s infinite;
-}

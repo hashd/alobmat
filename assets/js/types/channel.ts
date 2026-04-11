@@ -12,6 +12,7 @@ export interface GameJoinReply {
   prize_progress: Record<string, Record<string, number>>
   my_ticket: Ticket | null
   my_struck: number[]
+  host_id?: string
 }
 
 // ── Server → Client events ────────────────────────────────────────────────────

@@ -7,6 +7,11 @@ import App from './App.vue'
 
 const pinia = createPinia()
 const app = createApp(App)
+
+app.config.errorHandler = (err, _vm, info) => {
+  console.error(`[Vue Error] ${info}:`, err)
+}
+
 app.use(pinia)
 app.use(router)
 

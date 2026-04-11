@@ -1,4 +1,4 @@
-import { onMounted, onUnmounted } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import { Socket, Channel } from 'phoenix'
 import { useAuthStore } from '@/stores/auth'
 import { useGameStore } from '@/stores/game'
@@ -25,6 +25,7 @@ export function useChannel(gameCode: string, socketFactory: SocketFactory = crea
   let socket: Socket | null = null
   let channel: Channel | null = null
 
+  const claimRejection = ref<{ reason: string; bogeys_remaining?: number } | null>(null)
   const reactions = { listeners: [] as Array<(r: { emoji: string; user_id: string }) => void> }
 
   function onReaction(cb: (r: { emoji: string; user_id: string }) => void) {
@@ -62,7 +63,8 @@ export function useChannel(gameCode: string, socketFactory: SocketFactory = crea
     })
 
     channel.on('claim_rejection', (event: ClaimRejectionEvent) => {
-      console.warn('Claim rejected:', event)
+      claimRejection.value = event
+      setTimeout(() => { claimRejection.value = null }, 3000)
     })
 
     channel.on('strike_result', (event: StrikeResultEvent) => {
@@ -138,5 +140,5 @@ export function useChannel(gameCode: string, socketFactory: SocketFactory = crea
   onMounted(connect)
   onUnmounted(disconnect)
 
-  return { gameStore, strike, claim, sendReaction, sendChat, onReaction, connect, disconnect }
+  return { gameStore, strike, claim, sendReaction, sendChat, onReaction, connect, disconnect, claimRejection }
 }
