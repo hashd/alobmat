@@ -26,7 +26,8 @@ defmodule Moth.Game.Server do
     prizes: %{},
     bogeys: %{},
     settings: %{},
-    chat_timestamps: %{}
+    chat_timestamps: %{},
+    reaction_timestamps: %{}
   ]
 
   # Client API
@@ -43,7 +44,9 @@ defmodule Moth.Game.Server do
   def end_game(pid, host_id), do: GenServer.call(pid, {:end_game, host_id})
   def claim_prize(pid, user_id, prize), do: GenServer.call(pid, {:claim, user_id, prize})
   def strike_out(pid, user_id, number), do: GenServer.call(pid, {:strike_out, user_id, number})
+  def strike_out_async(pid, user_id, number), do: GenServer.cast(pid, {:strike_out, user_id, number})
   def send_chat(pid, user_id, text), do: GenServer.call(pid, {:chat, user_id, text})
+  def send_reaction(pid, user_id, emoji), do: GenServer.call(pid, {:reaction, user_id, emoji})
   def player_left(pid, user_id), do: GenServer.cast(pid, {:player_left, user_id})
 
   # Server callbacks
@@ -290,13 +293,26 @@ defmodule Moth.Game.Server do
 
   def handle_call({:chat, user_id, text}, _from, state) do
     now = System.monotonic_time(:millisecond)
-    last = Map.get(state.chat_timestamps, user_id, 0)
+    last = Map.get(state.chat_timestamps, user_id, now - 1_000)
 
     if now - last < 1_000 do
       {:reply, {:error, :rate_limited}, state}
     else
       state = %{state | chat_timestamps: Map.put(state.chat_timestamps, user_id, now)}
       broadcast(state.code, :chat, %{user_id: user_id, text: text})
+      {:reply, :ok, state}
+    end
+  end
+
+  def handle_call({:reaction, user_id, emoji}, _from, state) do
+    now = System.monotonic_time(:millisecond)
+    last = Map.get(state.reaction_timestamps, user_id, now - 1_000)
+
+    if now - last < 1_000 do
+      {:reply, {:error, :rate_limited}, state}
+    else
+      state = %{state | reaction_timestamps: Map.put(state.reaction_timestamps, user_id, now)}
+      broadcast(state.code, :reaction, %{user_id: user_id, emoji: emoji})
       {:reply, :ok, state}
     end
   end
@@ -310,6 +326,37 @@ defmodule Moth.Game.Server do
   def handle_cast({:player_left, user_id}, state) do
     broadcast(state.code, :player_left, %{user_id: user_id})
     {:noreply, state}
+  end
+
+  def handle_cast({:strike_out, user_id, number}, state) do
+    picked_set = MapSet.new(state.board.picks)
+
+    cond do
+      state.status not in [:running, :paused] ->
+        {:noreply, state}
+
+      not Map.has_key?(state.tickets, user_id) ->
+        {:noreply, state}
+
+      not MapSet.member?(picked_set, number) ->
+        {:noreply, state}
+
+      true ->
+        ticket = state.tickets[user_id]
+
+        if MapSet.member?(ticket.numbers, number) do
+          user_struck = Map.get(state.struck, user_id, MapSet.new())
+
+          state = %{
+            state
+            | struck: Map.put(state.struck, user_id, MapSet.put(user_struck, number))
+          }
+
+          {:noreply, state}
+        else
+          {:noreply, state}
+        end
+    end
   end
 
   @impl true
@@ -330,7 +377,8 @@ defmodule Moth.Game.Server do
         broadcast(state.code, :pick, %{
           number: number,
           count: board.count,
-          next_pick_at: next_pick_at
+          next_pick_at: next_pick_at,
+          server_now: DateTime.utc_now()
         })
 
         if rem(board.count, 5) == 0, do: snapshot(state)
@@ -403,8 +451,12 @@ defmodule Moth.Game.Server do
   end
 
   defp sanitize_state(state) do
+    # Compute prize_progress while tickets/struck are still raw structs/MapSets
+    prize_progress = compute_prize_progress(state.tickets, state.struck, state.prizes)
+
     Map.from_struct(state)
-    |> Map.drop([:timer_ref, :host_disconnect_ref, :chat_timestamps])
+    |> Map.drop([:timer_ref, :host_disconnect_ref, :chat_timestamps, :reaction_timestamps])
+    |> Map.put(:prize_progress, prize_progress)
     |> Map.update(:players, [], &MapSet.to_list/1)
     |> Map.update(:struck, %{}, fn struck ->
       Map.new(struck, fn {k, v} -> {k, MapSet.to_list(v)} end)
@@ -419,5 +471,36 @@ defmodule Moth.Game.Server do
         {k, v} -> {k, v}
       end)
     end)
+  end
+
+  defp compute_prize_progress(tickets, struck, prizes) do
+    Map.new(tickets, fn {user_id, ticket} ->
+      user_struck = Map.get(struck, user_id, MapSet.new())
+
+      progress =
+        Map.new(prizes, fn {prize_type, _winner} ->
+          {required, struck_count} = prize_requirement(prize_type, ticket, user_struck)
+          {prize_type, {struck_count, required}}
+        end)
+
+      {user_id, progress}
+    end)
+  end
+
+  defp prize_requirement(:top_line, ticket, struck), do: line_progress(ticket, 0, struck)
+  defp prize_requirement(:middle_line, ticket, struck), do: line_progress(ticket, 1, struck)
+  defp prize_requirement(:bottom_line, ticket, struck), do: line_progress(ticket, 2, struck)
+  defp prize_requirement(:early_five, _ticket, struck), do: {5, min(MapSet.size(struck), 5)}
+
+  defp prize_requirement(:full_house, ticket, struck) do
+    total = MapSet.size(ticket.numbers)
+    hit = MapSet.size(MapSet.intersection(ticket.numbers, struck))
+    {total, hit}
+  end
+
+  defp line_progress(ticket, row_index, struck) do
+    row_numbers = Enum.at(ticket.rows, row_index) |> Enum.reject(&is_nil/1) |> MapSet.new()
+    hit = MapSet.size(MapSet.intersection(row_numbers, struck))
+    {MapSet.size(row_numbers), hit}
   end
 end

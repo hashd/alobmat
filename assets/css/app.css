@@ -1,3 +1,119 @@
 @import "tailwindcss/base";
 @import "tailwindcss/components";
 @import "tailwindcss/utilities";
+
+/* === Theme tokens === */
+:root {
+  --bg: #FFFFFF;
+  --surface: #F9FAFB;
+  --elevated: #F3F4F6;
+  --border: #E5E7EB;
+  --text-primary: #111827;
+  --text-secondary: #6B7280;
+  --text-muted: #9CA3AF;
+  --accent: #6366F1;
+  --success: #10B981;
+  --warning: #F59E0B;
+  --danger: #F43F5E;
+  --prize-gold: #FBBF24;
+}
+
+.dark {
+  --bg: #09090B;
+  --surface: #18181B;
+  --elevated: #27272A;
+  --border: #3F3F46;
+  --text-primary: #FAFAFA;
+  --text-secondary: #A1A1AA;
+  --text-muted: #A1A1AA;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text-primary);
+}
+
+/* === Animations (respect reduced motion) === */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes fade-in-up {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes scale-in {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  @keyframes bounce-in {
+    0% { opacity: 0; transform: scale(0); }
+    60% { transform: scale(1.05); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+  @keyframes pulse-border {
+    0%, 100% { border-color: var(--warning); }
+    50% { border-color: transparent; }
+  }
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  @keyframes float-up {
+    0% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(-200px); }
+  }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+  }
+  @keyframes strike-ripple {
+    0% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4); }
+    100% { box-shadow: 0 0 0 10px rgba(99, 102, 241, 0); }
+  }
+  .animate-fade-in-up { animation: fade-in-up 200ms ease-out both; }
+  .animate-scale-in { animation: scale-in 200ms ease-out both; }
+  .animate-bounce-in { animation: bounce-in 200ms ease-out both; }
+  .animate-pulse-border { animation: pulse-border 1.5s ease-in-out infinite; }
+  .animate-shimmer {
+    background: linear-gradient(90deg, var(--elevated) 25%, var(--surface) 50%, var(--elevated) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+  .animate-float-up { animation: float-up 2s ease-out forwards; }
+  .animate-shake { animation: shake 200ms ease-in-out; }
+  .animate-strike-ripple { animation: strike-ripple 300ms ease-out; }
+}
+
+/* Reduced motion: instant opacity only */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in-up,
+  .animate-scale-in,
+  .animate-bounce-in { animation: none; opacity: 1; }
+  .animate-pulse-border { animation: none; }
+  .animate-shimmer { animation: none; }
+  .animate-float-up { animation: none; opacity: 0; }
+  .animate-shake { animation: none; }
+  .animate-strike-ripple { animation: none; }
+}
+
+/* Stagger delays (applied via style attr or utility) */
+.stagger-1 { animation-delay: 50ms; }
+.stagger-2 { animation-delay: 100ms; }
+.stagger-3 { animation-delay: 150ms; }
+.stagger-4 { animation-delay: 200ms; }
+.stagger-5 { animation-delay: 250ms; }
+
+/* === Connection status === */
+#connection-status {
+  display: none;
+}
+[phx-disconnected] #connection-status {
+  display: flex;
+}
+
+/* === Page loading bar === */
+.phx-page-loading .page-loading-bar {
+  position: fixed; top: 0; left: 0; right: 0; height: 2px;
+  background: var(--accent);
+  z-index: 50;
+  animation: shimmer 1s infinite;
+}
