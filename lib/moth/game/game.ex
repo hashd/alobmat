@@ -20,29 +20,28 @@ defmodule Moth.Game do
 
     code = Code.generate(existing_codes)
 
-    {:ok, record} =
-      %Record{}
-      |> Record.changeset(%{
-        code: code,
-        name: non_empty(attrs[:name]) || non_empty(attrs["name"]) || "Untitled Game",
-        host_id: host_id,
-        settings: settings
-      })
-      |> Repo.insert()
-
-    {:ok, _pid} =
-      DynamicSupervisor.start_child(Moth.Game.DynSup, {
-        Server,
-        %{
-          code: code,
-          name: record.name,
-          host_id: host_id,
-          settings: settings,
-          game_record_id: record.id
-        }
-      })
-
-    {:ok, code}
+    with {:ok, record} <-
+           %Record{}
+           |> Record.changeset(%{
+             code: code,
+             name: non_empty(attrs[:name]) || non_empty(attrs["name"]) || "Untitled Game",
+             host_id: host_id,
+             settings: settings
+           })
+           |> Repo.insert(),
+         {:ok, _pid} <-
+           DynamicSupervisor.start_child(Moth.Game.DynSup, {
+             Server,
+             %{
+               code: code,
+               name: record.name,
+               host_id: host_id,
+               settings: settings,
+               game_record_id: record.id
+             }
+           }) do
+      {:ok, code}
+    end
   end
 
   def join_game(code, user_id) do
