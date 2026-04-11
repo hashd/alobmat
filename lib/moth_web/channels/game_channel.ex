@@ -74,6 +74,7 @@ defmodule MothWeb.GameChannel do
   end
 
   def handle_info({:bogey, payload}, socket) do
+    # Server broadcasts :remaining; we expose it as bogeys_remaining to clients
     push(socket, "bogey", %{
       user_id: payload.user_id,
       bogeys_remaining: payload.remaining
