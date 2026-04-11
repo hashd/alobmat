@@ -16,10 +16,12 @@ const code = route.params.code as string
 
 const { gameStore } = useChannel(code)
 const loading = ref<string | null>(null)
+const actionError = ref<string | null>(null)
 
 async function action(fn: () => Promise<unknown>, key: string) {
   loading.value = key
-  try { await fn() } catch (e: any) { alert(e.message) }
+  actionError.value = null
+  try { await fn() } catch (e: any) { actionError.value = e.message ?? 'Action failed' }
   finally { loading.value = null }
 }
 
@@ -116,6 +118,7 @@ async function playAgain() {
       </div>
     </div>
 
+    <p v-if="actionError" class="mt-4 text-sm text-red-500">{{ actionError }}</p>
     <ConnectionStatus :connected="gameStore.channelConnected" />
   </div>
 </template>

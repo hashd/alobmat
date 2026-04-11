@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useChannel } from '@/composables/useChannel'
@@ -38,7 +38,7 @@ const myPrizesWon = computed(() =>
     .map(([p]) => p)
 )
 
-gameStore.$onAction(({ name, args }) => {
+const unsubAction = gameStore.$onAction(({ name, args }) => {
   if (name === 'onStrikeConfirmed' && ticketRef.value) {
     ticketRef.value.onStrikeResult(args[0].number, args[0].result)
   }
@@ -46,6 +46,7 @@ gameStore.$onAction(({ name, args }) => {
     fireConfetti()
   }
 })
+onUnmounted(() => unsubAction())
 
 onReaction((r) => reactionRef.value?.addReaction(r.emoji))
 
