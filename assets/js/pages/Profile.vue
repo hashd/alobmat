@@ -22,10 +22,17 @@ onMounted(async () => {
   try { const { games } = await api.games.recent(); recentGames.value = games } catch {}
 })
 
+const saveError = ref('')
 async function saveName() {
   saving.value = true
-  await auth.updateProfile({ name: name.value })
-  saving.value = false
+  saveError.value = ''
+  try {
+    await auth.updateProfile({ name: name.value })
+  } catch (e: any) {
+    saveError.value = e.message ?? 'Failed to save'
+  } finally {
+    saving.value = false
+  }
 }
 
 async function logout() {
@@ -48,9 +55,12 @@ async function logout() {
           <p class="text-sm text-[--text-secondary]">{{ auth.user!.email }}</p>
         </div>
       </div>
-      <form @submit.prevent="saveName" class="flex gap-2">
-        <InputField v-model="name" class="flex-1" placeholder="Your name" />
-        <Button type="submit" :loading="saving">Save</Button>
+      <form @submit.prevent="saveName" class="flex flex-col gap-2">
+        <div class="flex gap-2">
+          <InputField v-model="name" class="flex-1" placeholder="Your name" />
+          <Button type="submit" :loading="saving">Save</Button>
+        </div>
+        <p v-if="saveError" class="text-xs text-red-500">{{ saveError }}</p>
       </form>
     </Card>
     <Card class="mb-4">

@@ -21,6 +21,7 @@ onMounted(async () => {
   if (token) {
     try {
       auth.token = token
+      localStorage.setItem('auth_token', token)
       const { user: u } = await api.user.me()
       auth.login(u, token)
       router.replace((route.query.redirect as string) ?? '/')
