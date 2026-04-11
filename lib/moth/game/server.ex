@@ -37,7 +37,7 @@ defmodule Moth.Game.Server do
   end
 
   def get_state(pid), do: GenServer.call(pid, :state)
-  def join(pid, user_id), do: GenServer.call(pid, {:join, user_id})
+  def join(pid, user_id, secret \\ nil), do: GenServer.call(pid, {:join, user_id, secret})
   def start_game(pid, host_id), do: GenServer.call(pid, {:start_game, host_id})
   def pause(pid, host_id), do: GenServer.call(pid, {:pause, host_id})
   def resume(pid, host_id), do: GenServer.call(pid, {:resume, host_id})
@@ -85,12 +85,18 @@ defmodule Moth.Game.Server do
     {:reply, sanitize_state(state), state}
   end
 
-  def handle_call({:join, _user_id}, _from, %{status: :finished} = state) do
+  def handle_call({:join, _user_id, _secret}, _from, %{status: :finished} = state) do
     {:reply, {:error, :game_finished}, state}
   end
 
-  def handle_call({:join, user_id}, _from, state) do
-    if Map.has_key?(state.tickets, user_id) do
+  def handle_call({:join, user_id, secret}, _from, state) do
+    visibility = Map.get(state.settings, :visibility) || Map.get(state.settings, "visibility", "public")
+    join_secret = Map.get(state.settings, :join_secret) || Map.get(state.settings, "join_secret")
+
+    if visibility == "private" and user_id != state.host_id and secret != join_secret do
+      {:reply, {:error, :invalid_secret}, state}
+    else
+      if Map.has_key?(state.tickets, user_id) do
       {:reply, {:ok, state.tickets[user_id]}, state}
     else
       state = %{state | players: MapSet.put(state.players, user_id)}
@@ -115,6 +121,7 @@ defmodule Moth.Game.Server do
       broadcast(state.code, :player_joined, %{user_id: user_id})
       {:reply, {:ok, ticket}, state}
     end
+  end
   end
 
   def handle_call({:start_game, host_id}, _from, %{host_id: host_id, status: :lobby} = state) do

@@ -7,7 +7,9 @@ defmodule Moth.Game do
   @default_settings %{
     interval: 30,
     bogey_limit: 3,
-    enabled_prizes: [:early_five, :top_line, :middle_line, :bottom_line, :full_house]
+    enabled_prizes: [:early_five, :top_line, :middle_line, :bottom_line, :full_house],
+    visibility: "public",
+    join_secret: nil
   }
 
   def create_game(host_id, attrs) do
@@ -44,8 +46,8 @@ defmodule Moth.Game do
     end
   end
 
-  def join_game(code, user_id) do
-    with_server(code, fn pid -> Server.join(pid, user_id) end)
+  def join_game(code, user_id, secret \\ nil) do
+    with_server(code, fn pid -> Server.join(pid, user_id, secret) end)
   end
 
   def game_state(code) do
@@ -113,6 +115,30 @@ defmodule Moth.Game do
       }
     )
     |> Repo.all()
+  end
+
+  def list_public_games do
+    Registry.select(Moth.Game.Registry, [{{:"$1", :"$2", :_}, [], [{{:"$1", :"$2"}}]}])
+    |> Enum.map(fn {_code, pid} ->
+      try do
+        state = Server.get_state(pid)
+        vis = Map.get(state.settings, :visibility) || Map.get(state.settings, "visibility", "public")
+        if vis == "public" and state.status in [:lobby, :running] do
+          %{
+            code: state.code,
+            name: state.name,
+            status: state.status,
+            host_id: state.host_id,
+            players_count: MapSet.size(state.players)
+          }
+        else
+          nil
+        end
+      catch
+        :exit, _ -> nil
+      end
+    end)
+    |> Enum.reject(&is_nil/1)
   end
 
   def clone_game(old_code, host_id) do
