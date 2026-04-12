@@ -7,14 +7,16 @@ config :moth, MothWeb.Endpoint,
   debug_errors: true,
   secret_key_base: "wD/QryEz4g+gbBX07rcqlOSa+1noaIinDCeuOlZRplMvuE9qx4NYRf6hNfPHPJMk",
   watchers: [
-    esbuild: {Esbuild, :install_and_run, [:default, ~w(--sourcemap=inline --watch)]},
-    tailwind: {Tailwind, :install_and_run, [:moth, ~w(--watch)]}
+    node: [
+      "node_modules/.bin/vite",
+      cd: Path.expand("../assets", __DIR__)
+    ]
   ],
   live_reload: [
     patterns: [
       ~r"priv/static/.*(js|css|png|jpeg|jpg|gif|svg)$",
       ~r"priv/gettext/.*(po)$",
-      ~r"lib/moth_web/(controllers|live|components)/.*(ex|heex)$"
+      ~r"lib/moth_web/(controllers|channels)/.*(ex)$"
     ]
   ]
 

@@ -3,9 +3,9 @@ defmodule Moth.Game.Player do
   use Ecto.Schema
   import Ecto.Changeset
 
-  @derive {Jason.Encoder, only: [:id, :user_id, :ticket, :prizes_won, :bogeys]}
+  @derive {Jason.Encoder, only: [:id, :user_id, :tickets, :prizes_won, :bogeys]}
   schema "game_players" do
-    field :ticket, :map
+    field :tickets, {:array, :map}, default: []
     field :prizes_won, {:array, :string}, default: []
     field :bogeys, :integer, default: 0
 
@@ -17,7 +17,7 @@ defmodule Moth.Game.Player do
 
   def changeset(player, attrs) do
     player
-    |> cast(attrs, [:game_id, :user_id, :ticket, :prizes_won, :bogeys])
+    |> cast(attrs, [:game_id, :user_id, :tickets, :prizes_won, :bogeys])
     |> validate_required([:game_id, :user_id])
     |> unique_constraint([:game_id, :user_id])
   end

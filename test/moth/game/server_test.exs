@@ -88,7 +88,9 @@ defmodule Moth.Game.ServerTest do
       Server.start_game(pid, host.id)
 
       state = Server.get_state(pid)
-      assert Map.has_key?(state.tickets, player.id)
+      ticket_ids = Map.get(state.ticket_owners, player.id, [])
+      assert length(ticket_ids) > 0
+      assert Map.has_key?(state.tickets, hd(ticket_ids))
     end
   end
 
@@ -134,7 +136,8 @@ defmodule Moth.Game.ServerTest do
       Process.sleep(1100)
 
       state = Server.get_state(pid)
-      ticket_numbers = state.tickets[player.id]["numbers"] || []
+      ticket_id = state.ticket_owners[player.id] |> List.first()
+      ticket_numbers = state.tickets[ticket_id]["numbers"] || []
       picked = state.board["picks"] || []
 
       # Find a number that's both picked and on the ticket
@@ -166,7 +169,8 @@ defmodule Moth.Game.ServerTest do
       Process.sleep(1100)
 
       state = Server.get_state(pid)
-      ticket_numbers = MapSet.new(state.tickets[player.id]["numbers"] || [])
+      ticket_id = state.ticket_owners[player.id] |> List.first()
+      ticket_numbers = MapSet.new(state.tickets[ticket_id]["numbers"] || [])
       picked = state.board["picks"] || []
 
       # Find a picked number NOT on the ticket
@@ -186,7 +190,8 @@ defmodule Moth.Game.ServerTest do
       Server.start_game(pid, host.id)
 
       state = Server.get_state(pid)
-      ticket = state.tickets[player.id]
+      ticket_id = state.ticket_owners[player.id] |> List.first()
+      ticket = state.tickets[ticket_id]
       assert is_map(ticket)
     end
 
@@ -196,7 +201,9 @@ defmodule Moth.Game.ServerTest do
       Server.join(pid, player.id)
       Server.start_game(pid, host.id)
 
-      assert {:error, :bogey, 2} = Server.claim_prize(pid, player.id, :top_line)
+      state = Server.get_state(pid)
+      ticket_id = state.ticket_owners[player.id] |> List.first()
+      assert {:error, :bogey, 2} = Server.claim_prize(pid, player.id, ticket_id, :top_line)
     end
 
     test "already claimed prize returns :already_claimed, not bogey" do
@@ -211,8 +218,10 @@ defmodule Moth.Game.ServerTest do
       Server.join(pid, player.id)
       Server.start_game(pid, host.id)
 
-      {:error, :bogey, 0} = Server.claim_prize(pid, player.id, :top_line)
-      assert {:error, :disqualified} = Server.claim_prize(pid, player.id, :middle_line)
+      state = Server.get_state(pid)
+      ticket_id = state.ticket_owners[player.id] |> List.first()
+      {:error, :bogey, 0} = Server.claim_prize(pid, player.id, ticket_id, :top_line)
+      assert {:error, :disqualified} = Server.claim_prize(pid, player.id, ticket_id, :middle_line)
     end
   end
 
@@ -223,10 +232,11 @@ defmodule Moth.Game.ServerTest do
       Server.join(pid, player.id)
       Server.start_game(pid, host.id)
       state = Server.get_state(pid)
+      ticket_id = state.ticket_owners[player.id] |> List.first()
       assert is_map(state.prize_progress)
-      assert is_map(state.prize_progress[player.id])
-      # top_line should have {0, 5} — 0 struck, 5 required
-      assert {0, 5} = state.prize_progress[player.id][:top_line]
+      assert is_map(state.prize_progress[ticket_id])
+      # top_line should have %{struck: 0, required: 5}
+      assert %{struck: 0, required: 5} = state.prize_progress[ticket_id]["top_line"]
     end
   end
 
@@ -249,9 +259,13 @@ defmodule Moth.Game.ServerTest do
 
       Process.sleep(150)
 
+      state = Server.get_state(pid)
+      ticket_ids = Map.new(players, fn p -> {p.id, state.ticket_owners[p.id] |> List.first()} end)
+
       tasks =
         Enum.map(players, fn p ->
-          Task.async(fn -> Server.claim_prize(pid, p.id, :early_five) end)
+          ticket_id = ticket_ids[p.id]
+          Task.async(fn -> Server.claim_prize(pid, p.id, ticket_id, :early_five) end)
         end)
 
       results = Enum.map(tasks, &Task.await/1)

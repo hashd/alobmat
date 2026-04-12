@@ -40,7 +40,6 @@ defmodule Moth.MixProject do
       {:phoenix_live_reload, "~> 1.4", only: :dev},
       {:phoenix_live_view, "~> 0.20.0"},
       {:phoenix_live_dashboard, "~> 0.8"},
-      {:esbuild, "~> 0.8", runtime: Mix.env() == :dev},
       {:tailwind, "~> 0.2", runtime: Mix.env() == :dev},
       {:swoosh, "~> 1.5"},
       {:finch, "~> 0.13"},
@@ -66,8 +65,8 @@ defmodule Moth.MixProject do
   defp aliases do
     [
       setup: ["deps.get", "ecto.setup", "assets.setup"],
-      "assets.setup": ["tailwind.install --if-missing", "esbuild.install --if-missing"],
-      "assets.deploy": ["tailwind moth --minify", "esbuild default --minify", "phx.digest"],
+      "assets.setup": ["tailwind.install --if-missing"],
+      "assets.deploy": ["cmd npm run build --prefix assets", "phx.digest"],
       "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
       "ecto.reset": ["ecto.drop", "ecto.setup"],
       test: ["ecto.create --quiet", "ecto.migrate", "test"]

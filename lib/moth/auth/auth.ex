@@ -147,6 +147,13 @@ defmodule Moth.Auth do
     :ok
   end
 
+  ## Bulk lookups
+
+  def get_users_map(ids) when is_list(ids) do
+    Repo.all(from u in User, where: u.id in ^ids, select: {u.id, u.name})
+    |> Map.new()
+  end
+
   ## Helpers
 
   defp email_to_name(email) do

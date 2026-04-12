@@ -21,25 +21,9 @@ config :logger, :console,
 
 config :phoenix, :json_library, Jason
 
-config :esbuild,
-  version: "0.17.11",
-  default: [
-    args:
-      ~w(js/app.js --bundle --target=es2017 --outdir=../priv/static/assets --external:/fonts/* --external:/images/*),
-    cd: Path.expand("../assets", __DIR__),
-    env: %{"NODE_PATH" => Path.expand("../deps", __DIR__)}
-  ]
-
-config :tailwind,
-  version: "3.4.0",
-  moth: [
-    args: ~w(
-      --config=tailwind.config.js
-      --input=css/app.css
-      --output=../priv/static/assets/app.css
-    ),
-    cd: Path.expand("../assets", __DIR__)
-  ]
+# Assets are built by Vite (see assets/vite.config.ts)
+# Tailwind is configured via assets/tailwind.config.js + PostCSS
+config :tailwind, version: "4.1.12"
 
 config :ueberauth, Ueberauth,
   base_path: "/auth",

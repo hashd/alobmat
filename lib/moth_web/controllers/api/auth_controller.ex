@@ -39,4 +39,22 @@ defmodule MothWeb.API.AuthController do
   def logout(conn, _params) do
     json(conn, %{status: "ok"})
   end
+
+  if Application.compile_env(:moth, :dev_routes) do
+    def dev_login(conn, params) do
+      id = params["name"] || System.unique_integer([:positive]) |> to_string()
+      email = "dev_#{id}@localhost"
+      
+      user =
+        case Moth.Repo.get_by(Auth.User, email: email) do
+          %Auth.User{} = u -> u
+          nil -> 
+            {:ok, u} = Auth.register(%{email: email, name: "Dev #{id}"})
+            u
+        end
+
+      {api_token, _} = Auth.generate_api_token(user)
+      json(conn, %{token: api_token, user: user})
+    end
+  end
 end
