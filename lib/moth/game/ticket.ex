@@ -21,12 +21,59 @@ defmodule Moth.Game.Ticket do
 
   @doc "Generates a valid Tambola strip: 6 tickets covering 1–90 exactly once, each with a UUID."
   def generate_strip do
-    do_generate_strip()
+    # Phase 1: Build a valid 6×9 count matrix.
+    # row sums = 15 (15 numbers per ticket)
+    # col c sum = col_sizes[c] (all numbers in that column distributed)
+    # each cell in 0..3 (Tambola column constraint)
+    #
+    # Algorithm: fill one ticket at a time. For each ticket, compute per-column
+    # lower bounds (must take at least this many to leave a feasible remainder for
+    # future tickets) and upper bounds (at most 3 or column remainder). Then
+    # randomly fill up to 15. This is provably deadlock-free: lower ≤ upper always
+    # holds, and 15 is always reachable given the bounds.
+    col_sizes = for col <- 0..8 do
+      {low, high} = column_range(col)
+      high - low + 1
+    end
+
+    {count_matrix, _} =
+      Enum.reduce(1..6, {[], col_sizes}, fn _, {rows, col_remaining} ->
+        r = 6 - length(rows)
+        lower = Enum.map(col_remaining, &max(0, &1 - 3 * (r - 1)))
+        upper = Enum.map(col_remaining, &min(3, &1))
+        counts = random_bounded_sum(lower, upper, 15)
+        new_remaining = Enum.zip(col_remaining, counts) |> Enum.map(fn {a, b} -> a - b end)
+        {rows ++ [counts], new_remaining}
+      end)
+
+    # Phase 2: Shuffle each column's numbers, then slice according to count_matrix.
+    column_pools =
+      for col <- 0..8 do
+        {low, high} = column_range(col)
+        Enum.to_list(low..high) |> Enum.shuffle()
+      end
+
+    {tickets, _} =
+      Enum.reduce(count_matrix, {[], column_pools}, fn ticket_counts, {tickets_acc, pools} ->
+        {col_numbers, new_pools} =
+          Enum.zip(ticket_counts, pools)
+          |> Enum.reduce({[], []}, fn {count, pool}, {nums, new_ps} ->
+            {nums ++ [Enum.take(pool, count) |> Enum.sort()], new_ps ++ [Enum.drop(pool, count)]}
+          end)
+
+        col_counts = Enum.map(col_numbers, &length/1)
+        rows = assign_to_rows(col_numbers, col_counts)
+        numbers = col_numbers |> List.flatten() |> MapSet.new()
+        ticket = %__MODULE__{id: Ecto.UUID.generate(), rows: rows, numbers: numbers}
+        {tickets_acc ++ [ticket], new_pools}
+      end)
+
+    tickets
   end
 
   @doc "Converts a ticket to a serializable map."
   def to_map(%__MODULE__{id: id, rows: rows, numbers: numbers}) do
-    %{"id" => id, "rows" => rows, "numbers" => MapSet.to_list(numbers)}
+    %{"id" => id, "rows" => rows, "numbers" => numbers |> MapSet.to_list() |> Enum.sort()}
   end
 
   @doc "Restores a ticket from a map."
@@ -38,73 +85,26 @@ defmodule Moth.Game.Ticket do
     %__MODULE__{rows: rows, numbers: MapSet.new(numbers)}
   end
 
-  # ── Strip generation ─────────────────────────────────────────────────────────
+  # ── Strip internals ───────────────────────────────────────────────────────────
 
-  defp do_generate_strip do
-    column_pools =
-      for col <- 0..8 do
-        {low, high} = column_range(col)
-        Enum.to_list(low..high) |> Enum.shuffle()
-      end
+  # Randomly build a count vector in [lower[c], upper[c]] summing to target.
+  # Starts at lower bounds, then distributes the deficit randomly.
+  # Provably always succeeds: sum(lower) ≤ target ≤ sum(upper) by construction.
+  defp random_bounded_sum(lower, upper, target) do
+    deficit = target - Enum.sum(lower)
 
-    col_assignments =
-      Enum.map(column_pools, fn pool ->
-        counts = fill_counts(List.duplicate(0, 6), length(pool), 3) |> Enum.shuffle()
-        split_by_counts(pool, counts)
-      end)
+    Enum.reduce(0..(deficit - 1)//1, lower, fn _, counts ->
+      eligible =
+        counts
+        |> Enum.zip(upper)
+        |> Enum.with_index()
+        |> Enum.filter(fn {{c, u}, _} -> c < u end)
+        |> Enum.map(fn {_, i} -> i end)
 
-    tickets_data =
-      for t <- 0..5 do
-        col_nums = Enum.map(col_assignments, fn slots -> Enum.at(slots, t) end)
-        col_counts = Enum.map(col_nums, &length/1)
-        {col_nums, col_counts}
-      end
-
-    tickets =
-      Enum.map(tickets_data, fn {col_nums, col_counts} ->
-        rows = assign_to_rows(col_nums, col_counts)
-        numbers = rows |> List.flatten() |> Enum.reject(&is_nil/1) |> MapSet.new()
-        %__MODULE__{id: Ecto.UUID.generate(), rows: rows, numbers: numbers}
-      end)
-
-    all_numbers =
-      tickets
-      |> Enum.flat_map(fn t -> MapSet.to_list(t.numbers) end)
-      |> Enum.sort()
-
-    if all_numbers == Enum.to_list(1..90) do
-      tickets
-    else
-      do_generate_strip()
-    end
-  rescue
-    _ -> do_generate_strip()
+      idx = Enum.random(eligible)
+      List.update_at(counts, idx, &(&1 + 1))
+    end)
   end
-
-  defp fill_counts(counts, 0, _max), do: counts
-
-  defp fill_counts(counts, remaining, max_val) do
-    eligible =
-      counts
-      |> Enum.with_index()
-      |> Enum.filter(fn {c, _} -> c < max_val end)
-      |> Enum.map(fn {_, i} -> i end)
-
-    idx = Enum.random(eligible)
-    fill_counts(List.update_at(counts, idx, &(&1 + 1)), remaining - 1, max_val)
-  end
-
-  defp split_by_counts(pool, counts) do
-    {_, result} =
-      Enum.reduce(counts, {pool, []}, fn count, {remaining, acc} ->
-        {taken, rest} = Enum.split(remaining, count)
-        {rest, acc ++ [Enum.sort(taken)]}
-      end)
-
-    result
-  end
-
-  # ── Row assignment ────────────────────────────────────────────────────────────
 
   # Deterministic greedy row assignment: no random retries.
   # For each row (0..2), greedily picks the 5 columns with the highest remaining
@@ -114,7 +114,6 @@ defmodule Moth.Game.Ticket do
   defp assign_to_rows(col_numbers, col_counts) do
     {per_col_rows, _} =
       Enum.reduce(0..2, {List.duplicate([], 9), col_counts}, fn row, {per_col, remaining} ->
-        # Pick 5 cols with highest remaining; break ties by column index (stable)
         chosen =
           remaining
           |> Enum.with_index()
