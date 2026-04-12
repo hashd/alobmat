@@ -97,23 +97,16 @@ defmodule Moth.Game.Server do
       {:reply, {:error, :invalid_secret}, state}
     else
       if Map.has_key?(state.tickets, user_id) do
-      {:reply, {:ok, state.tickets[user_id]}, state}
-    else
-      state = %{state | players: MapSet.put(state.players, user_id)}
+        {:reply, {:ok, state.tickets[user_id]}, state}
+      else
+        state = %{state | players: MapSet.put(state.players, user_id)}
+        
+        ticket = Ticket.generate()
+        state = %{state | tickets: Map.put(state.tickets, user_id, ticket)}
 
-      state =
-        if state.status in [:running, :paused] do
-          ticket = Ticket.generate()
-          %{state | tickets: Map.put(state.tickets, user_id, ticket)}
-        else
-          state
-        end
-
-      ticket = Map.get(state.tickets, user_id)
-
-      if state.id && ticket do
+        if state.id && ticket do
         Moth.Repo.insert!(
-          %Moth.Game.Player{game_id: state.id, user_id: user_id, ticket: Ticket.to_map(ticket)},
+          %Moth.Game.Player{game_id: state.id, user_id: user_id, tickets: [Ticket.to_map(ticket)]},
           on_conflict: :nothing
         )
       end
@@ -152,7 +145,7 @@ defmodule Moth.Game.Server do
     if state.id do
       Enum.each(tickets, fn {player_id, ticket} ->
         Moth.Repo.insert!(
-          %Moth.Game.Player{game_id: state.id, user_id: player_id, ticket: Ticket.to_map(ticket)},
+          %Moth.Game.Player{game_id: state.id, user_id: player_id, tickets: [Ticket.to_map(ticket)]},
           on_conflict: :nothing
         )
       end)
