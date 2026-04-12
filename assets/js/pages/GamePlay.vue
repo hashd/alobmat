@@ -32,6 +32,7 @@ function setTicketRef(el: any, index: number) { ticketRefs.value[index] = el as 
 const reactionRef = ref<InstanceType<typeof ReactionOverlay> | null>(null)
 const numberCallRef = ref<InstanceType<typeof NumberCallOverlay> | null>(null)
 const boardOpen = ref(false)
+const activityOpen = ref(false)
 
 const isDev = import.meta.env.DEV
 
@@ -55,13 +56,39 @@ const myPrizesWon = computed(() =>
     .map(([p]) => p)
 )
 
-function claimPrize(prize: string) {
-  const ticket = gameStore.myTickets.find(t => {
-    const progress = (gameStore.prizeProgress[t.id] as Record<string, { struck: number; required: number }> | undefined)?.[prize]
-    return progress && progress.struck >= progress.required
-  })
-  const ticketId = ticket?.id ?? gameStore.myTickets[0]?.id
-  if (ticketId) claim(prize, ticketId)
+// ── Claim modal state ─────────────────────────────────────────────────────────
+const claimingTicketId = ref<string | null>(null)
+const claimingTicketIndex = ref<number>(0)
+
+const prizeLabel: Record<string, string> = {
+  early_five: 'Early Five',
+  top_line: 'Top Line',
+  middle_line: 'Middle Line',
+  bottom_line: 'Bottom Line',
+  full_house: 'Full House',
+}
+const prizeOrder = ['early_five', 'top_line', 'middle_line', 'bottom_line', 'full_house']
+
+const availablePrizes = computed(() =>
+  prizeOrder
+    .filter(p => p in gameStore.prizes && !gameStore.prizes[p].claimed)
+    .map(p => ({ key: p, label: prizeLabel[p] ?? p.replace(/_/g, ' ') }))
+)
+
+function openClaimModal(ticketId: string, index: number) {
+  claimingTicketId.value = ticketId
+  claimingTicketIndex.value = index
+}
+
+function submitClaim(prizeKey: string) {
+  if (claimingTicketId.value) {
+    claim(prizeKey, claimingTicketId.value)
+    claimingTicketId.value = null
+  }
+}
+
+function closeClaimModal() {
+  claimingTicketId.value = null
 }
 
 const unsubAction = gameStore.$onAction(({ name, args, after }) => {
@@ -179,109 +206,107 @@ async function retryJoin() {
     <div v-else-if="['running','paused'].includes(gameStore.status)" class="flex flex-1 overflow-hidden">
       <!-- Main area -->
       <div class="flex flex-1 flex-col gap-6 overflow-y-auto p-4 md:p-6 pb-32">
-        <div class="flex flex-col md:flex-row gap-6 max-w-5xl mx-auto w-full">
-          <!-- Left Column: Status & Ticket -->
-          <div class="flex flex-1 flex-col gap-6">
-            <div class="flex items-center justify-between bg-[--surface]/60 backdrop-blur-md rounded-2xl border border-[--border] p-5 shadow-sm">
-              <div class="flex items-center gap-6">
-                <!-- Last picked number -->
-                <div v-if="gameStore.board.picks.length" class="text-center relative">
-                  <div class="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(99,102,241,0.4)] text-white font-black text-4xl mb-1">
-                    {{ gameStore.board.picks[gameStore.board.picks.length - 1] }}
-                  </div>
-                  <span class="text-xs font-bold text-[--text-secondary] uppercase tracking-wider">Latest</span>
+        <div class="flex flex-col gap-6 max-w-3xl mx-auto w-full">
+          <!-- Status bar -->
+          <div class="flex items-center justify-between bg-[--surface]/60 backdrop-blur-md rounded-2xl border border-[--border] p-5 shadow-sm">
+            <div class="flex items-center gap-6">
+              <!-- Last picked number -->
+              <div v-if="gameStore.board.picks.length" class="text-center relative">
+                <div class="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(99,102,241,0.4)] text-white font-black text-4xl mb-1">
+                  {{ gameStore.board.picks[gameStore.board.picks.length - 1] }}
                 </div>
-                
-                <div class="flex flex-col gap-1">
-                  <p class="text-sm font-bold text-[--text-secondary] uppercase tracking-wider">Progress</p>
-                  <p class="text-2xl font-bold font-mono">{{ gameStore.board.count }} <span class="text-[--text-muted] text-lg">/ 90</span></p>
-                </div>
+                <span class="text-xs font-bold text-[--text-secondary] uppercase tracking-wider">Latest</span>
               </div>
               
-              <!-- Countdown -->
-              <div v-if="gameStore.status === 'running'" class="flex flex-col items-center">
-                <CountdownRing :seconds-left="secondsLeft" :total-seconds="gameStore.settings.interval" />
-                <span class="text-[10px] font-bold text-[--text-secondary] uppercase tracking-wider mt-1">Next</span>
-              </div>
-              <div v-else class="text-indigo-500 font-bold px-4 py-2 bg-indigo-500/10 rounded-xl border border-indigo-500/20">PAUSED</div>
-            </div>
-
-            <!-- Tickets -->
-            <div class="relative bg-[--surface]/40 backdrop-blur-xl p-4 md:p-6 rounded-3xl border border-[--border] shadow-[0_8px_40px_rgb(0,0,0,0.04)] flex flex-col gap-4">
-              <div class="flex items-center justify-between">
-                <span class="text-sm font-bold text-[--text-secondary] uppercase tracking-wider">Your Ticket{{ gameStore.myTickets.length > 1 ? 's' : '' }}</span>
-                <label class="flex items-center gap-2 cursor-pointer group">
-                  <span class="text-xs font-bold text-[--text-secondary] uppercase tracking-wider group-hover:text-indigo-500 transition-colors">Auto Strike</span>
-                  <div class="relative">
-                    <input type="checkbox" v-model="gameStore.autoStrikeEnabled" class="sr-only peer" />
-                    <div class="w-9 h-5 bg-[--border] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-500"></div>
-                  </div>
-                </label>
-              </div>
-              <div v-for="(ticket, i) in gameStore.myTickets" :key="ticket.id" class="flex flex-col gap-2">
-                <p v-if="gameStore.myTickets.length > 1" class="text-xs font-bold text-[--text-secondary] uppercase tracking-wider">Ticket {{ i + 1 }}</p>
-                <TicketGrid
-                  :ref="(el) => setTicketRef(el, i)"
-                  :ticket="ticket"
-                  :struck="gameStore.myStruck"
-                  :picked-numbers="gameStore.board.picks"
-                  :interactive="gameStore.status === 'running'"
-                  @strike="strike"
-                />
+              <div class="flex flex-col gap-1">
+                <p class="text-sm font-bold text-[--text-secondary] uppercase tracking-wider">Progress</p>
+                <p class="text-2xl font-bold font-mono">{{ gameStore.board.count }} <span class="text-[--text-muted] text-lg">/ 90</span></p>
               </div>
             </div>
+            
+            <!-- Countdown -->
+            <div v-if="gameStore.status === 'running'" class="flex flex-col items-center">
+              <CountdownRing :seconds-left="secondsLeft" :total-seconds="gameStore.settings.interval" />
+              <span class="text-[10px] font-bold text-[--text-secondary] uppercase tracking-wider mt-1">Next</span>
+            </div>
+            <div v-else class="text-indigo-500 font-bold px-4 py-2 bg-indigo-500/10 rounded-xl border border-indigo-500/20">PAUSED</div>
           </div>
 
-          <!-- Right Column: Prizes (Mobile layout puts this below ticket) -->
-          <div class="w-full md:w-72 flex flex-col gap-4">
-            <!-- Prizes -->
-            <Card class="!p-4 bg-gradient-to-br from-yellow-500/5 to-transparent border-yellow-500/20">
-              <h3 class="font-bold mb-4 flex items-center justify-between text-yellow-600 dark:text-yellow-500">
-                <span>Prizes</span>
-                <span class="text-2xl">🏆</span>
-              </h3>
-              <div class="flex flex-col gap-2">
-                <button
-                  v-for="(status, prize) in gameStore.prizes"
-                  :key="prize"
-                  @click="!status.claimed && claimPrize(prize)"
-                  :disabled="status.claimed"
-                  class="relative overflow-hidden w-full text-left px-4 py-3 rounded-xl border transition-all duration-300 font-bold flex items-center justify-between group"
-                  :class="[
-                    status.claimed ? 'border-yellow-500/20 bg-yellow-500/5 text-yellow-600/50 dark:text-yellow-400/50 cursor-not-allowed' :
-                    myPrizesWon.includes(prize) ? 'border-green-500 bg-green-500/10 text-green-600 dark:text-green-400 shadow-[0_0_20px_rgba(16,185,129,0.2)]' :
-                    'border-[--border] bg-[--surface] text-[--text-primary] hover:border-indigo-500 hover:shadow-[0_4px_15px_rgba(99,102,241,0.15)] hover:-translate-y-0.5'
-                  ]"
-                >
-                  <span class="capitalize z-10">{{ prize.replace(/_/g, ' ') }}</span>
-                  
-                  <span v-if="status.claimed" class="z-10 text-xs px-2 py-1 bg-yellow-500/10 rounded-md">{{ myPrizesWon.includes(prize) ? 'You Won!' : 'Claimed' }}</span>
-                  <span v-else class="z-10 text-xs px-3 py-1 bg-indigo-500 text-white rounded-full opacity-0 translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all">Claim</span>
-                  
-                  <div v-if="myPrizesWon.includes(prize)" class="absolute inset-0 bg-gradient-to-r from-green-400/20 to-emerald-500/20 pointer-events-none"></div>
-                </button>
+          <!-- Tickets -->
+          <div class="flex flex-col gap-6">
+            <div v-for="(ticket, i) in gameStore.myTickets" :key="ticket.id"
+              class="relative bg-[--surface]/40 backdrop-blur-xl p-4 md:p-6 rounded-3xl border border-[--border] shadow-[0_8px_40px_rgb(0,0,0,0.04)]"
+            >
+              <!-- Ticket header -->
+              <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2">
+                  <span v-if="gameStore.myTickets.length > 1" class="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-black">{{ i + 1 }}</span>
+                  <span class="text-sm font-bold text-[--text-secondary] uppercase tracking-wider">
+                    {{ gameStore.myTickets.length > 1 ? `Ticket ${i + 1}` : 'Your Ticket' }}
+                  </span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <!-- Auto Strike toggle (only on first ticket) -->
+                  <label v-if="i === 0" class="flex items-center gap-2 cursor-pointer group">
+                    <span class="text-xs font-bold text-[--text-secondary] uppercase tracking-wider group-hover:text-indigo-500 transition-colors">Auto Strike</span>
+                    <div class="relative">
+                      <input type="checkbox" v-model="gameStore.autoStrikeEnabled" class="sr-only peer" />
+                      <div class="w-9 h-5 bg-[--border] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-500"></div>
+                    </div>
+                  </label>
+                  <!-- Claim button -->
+                  <button
+                    v-if="gameStore.status === 'running' && availablePrizes.length > 0"
+                    @click="openClaimModal(ticket.id, i)"
+                    class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider
+                           bg-gradient-to-r from-yellow-400 to-amber-500 text-yellow-950
+                           shadow-[0_2px_12px_rgba(251,191,36,0.35)]
+                           hover:shadow-[0_4px_20px_rgba(251,191,36,0.5)] hover:scale-105
+                           active:scale-95 transition-all duration-200"
+                  >
+                    <span>🏆</span> Claim
+                  </button>
+                </div>
               </div>
-            </Card>
+
+              <TicketGrid
+                :ref="(el) => setTicketRef(el, i)"
+                :ticket="ticket"
+                :struck="gameStore.myStruck"
+                :picked-numbers="gameStore.board.picks"
+                :interactive="gameStore.status === 'running'"
+                @strike="strike"
+              />
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Activity feed (desktop) -->
-      <div class="hidden w-80 border-l border-[--border] bg-[--bg]/50 backdrop-blur-xl p-0 md:flex flex-col">
-        <ActivityFeed @send-chat="sendChat" />
-      </div>
+      <!-- Activity feed slide-in overlay -->
+      <Transition name="slide-right">
+        <div v-if="activityOpen" class="fixed inset-0 z-40 flex justify-end" @click.self="activityOpen = false">
+          <div class="absolute inset-0 bg-black/30 backdrop-blur-[2px]" @click="activityOpen = false"></div>
+          <div class="relative w-full max-w-sm h-full bg-[--bg] border-l border-[--border] shadow-[-10px_0_40px_rgba(0,0,0,0.15)] flex flex-col">
+            <ActivityFeed @send-chat="sendChat" @close="activityOpen = false" class="flex-1" />
+          </div>
+        </div>
+      </Transition>
 
-      <!-- Floating Action Bar (Mobile Bottom) -->
-      <div class="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-[90%] max-w-sm rounded-full bg-[--surface]/90 backdrop-blur-xl border border-[--border] shadow-[0_10px_40px_rgba(0,0,0,0.1)] p-2">
+      <!-- Floating Action Bar -->
+      <div class="fixed bottom-6 left-1/2 -translate-x-1/2 z-30 w-[90%] max-w-sm rounded-full bg-[--surface]/90 backdrop-blur-xl border border-[--border] shadow-[0_10px_40px_rgba(0,0,0,0.1)] p-2">
         <div class="flex items-center justify-between">
-          <Button variant="ghost" class="!px-4 !py-2 rounded-full basis-1/3 text-sm font-bold" @click="boardOpen = true">
+          <Button variant="ghost" class="!px-4 !py-2 rounded-full text-sm font-bold" @click="boardOpen = true">
             <span class="flex items-center gap-2">Board <span class="text-xs bg-indigo-500 text-white px-1.5 py-0.5 rounded-md">{{ gameStore.board.count }}</span></span>
           </Button>
           <div class="h-8 w-[1px] bg-[--border]"></div>
-          <div class="flex items-center justify-evenly basis-2/3 px-2">
+          <div class="flex items-center justify-evenly flex-1 px-2">
             <button v-for="e in reactions" :key="e" @click="sendReaction(e)"
-              class="text-2xl hover:scale-150 transition-transform origin-bottom duration-300">{{ e }}</button>
+              class="text-xl hover:scale-150 transition-transform origin-bottom duration-300">{{ e }}</button>
           </div>
+          <div class="h-8 w-[1px] bg-[--border]"></div>
+          <Button variant="ghost" class="!px-4 !py-2 rounded-full text-sm font-bold" @click="activityOpen = true">
+            <span class="flex items-center gap-1">💬</span>
+          </Button>
         </div>
       </div>
     </div>
@@ -314,6 +339,42 @@ async function retryJoin() {
       <Button class="px-10 py-3 text-lg rounded-full" @click="router.push('/')">Return to Home</Button>
     </div>
 
+    <!-- Claim prize modal -->
+    <Transition name="fade">
+      <div v-if="claimingTicketId" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" @click.self="closeClaimModal">
+        <div class="bg-[--surface] border border-[--border] rounded-2xl shadow-2xl p-6 max-w-sm w-full mx-4 animate-bounce-in">
+          <div class="flex items-center justify-between mb-1">
+            <h3 class="font-bold text-lg flex items-center gap-2">
+              <span>🏆</span> Claim a Prize
+            </h3>
+            <button @click="closeClaimModal" class="w-8 h-8 rounded-lg flex items-center justify-center text-[--text-secondary] hover:bg-[--elevated] transition-colors">✕</button>
+          </div>
+          <p class="text-sm text-[--text-secondary] mb-5">
+            Claiming with <span class="font-bold text-[--text-primary]">Ticket {{ claimingTicketIndex + 1 }}</span>
+          </p>
+
+          <div v-if="availablePrizes.length" class="flex flex-col gap-2">
+            <button
+              v-for="prize in availablePrizes"
+              :key="prize.key"
+              @click="submitClaim(prize.key)"
+              class="w-full text-left px-4 py-3.5 rounded-xl border border-[--border] bg-[--bg]
+                     hover:border-yellow-500/60 hover:bg-yellow-500/5 hover:shadow-[0_4px_15px_rgba(251,191,36,0.15)]
+                     hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200
+                     flex items-center justify-between group"
+            >
+              <span class="font-bold capitalize">{{ prize.label }}</span>
+              <span class="text-xs px-3 py-1 bg-gradient-to-r from-yellow-400 to-amber-500 text-yellow-950 rounded-full font-black uppercase tracking-wider opacity-0 translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200">Claim</span>
+            </button>
+          </div>
+          <div v-else class="text-center py-6 text-[--text-secondary]">
+            <p class="text-3xl mb-2">🎉</p>
+            <p class="font-medium">All prizes have been claimed!</p>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
     <!-- Claim rejection toast -->
     <Transition name="fade">
       <div v-if="claimRejection" class="fixed top-8 left-1/2 -translate-x-1/2 z-[60] rounded-2xl bg-red-600/90 backdrop-blur-md px-6 py-4 text-sm text-white shadow-[0_10px_40px_rgba(220,38,38,0.4)] border border-red-500 flex items-center gap-3 font-bold">
@@ -341,3 +402,22 @@ async function retryJoin() {
     <ConnectionStatus :connected="gameStore.channelConnected" />
   </div>
 </template>
+
+<style scoped>
+.slide-right-enter-active,
+.slide-right-leave-active {
+  transition: opacity 0.3s ease;
+}
+.slide-right-enter-active > div:last-child,
+.slide-right-leave-active > div:last-child {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.slide-right-enter-from,
+.slide-right-leave-to {
+  opacity: 0;
+}
+.slide-right-enter-from > div:last-child,
+.slide-right-leave-to > div:last-child {
+  transform: translateX(100%);
+}
+</style>
