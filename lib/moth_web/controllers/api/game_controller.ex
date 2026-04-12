@@ -8,6 +8,11 @@ defmodule MothWeb.API.GameController do
     json(conn, %{games: games})
   end
 
+  def public_games(conn, _params) do
+    games = Game.list_public_games()
+    json(conn, %{games: games})
+  end
+
   def clone(conn, %{"code" => code}) do
     case Game.clone_game(String.upcase(code), conn.assigns.current_user.id) do
       {:ok, new_code} -> conn |> put_status(201) |> json(%{code: new_code})
@@ -32,7 +37,9 @@ defmodule MothWeb.API.GameController do
     settings = %{
       interval: params["interval"] || 30,
       bogey_limit: params["bogey_limit"] || 3,
-      enabled_prizes: enabled_prizes
+      enabled_prizes: enabled_prizes,
+      visibility: params["visibility"] || "public",
+      join_secret: params["join_secret"]
     }
 
     case Game.create_game(user.id, %{name: params["name"] || "Untitled", settings: settings}) do
@@ -61,8 +68,9 @@ defmodule MothWeb.API.GameController do
     end
   end
 
-  def join(conn, %{"code" => code}) do
-    case Game.join_game(String.upcase(code), conn.assigns.current_user.id) do
+  def join(conn, %{"code" => code} = params) do
+    secret = params["secret"]
+    case Game.join_game(String.upcase(code), conn.assigns.current_user.id, secret) do
       {:ok, ticket} ->
         json(conn, %{ticket: ticket})
 
@@ -101,13 +109,13 @@ defmodule MothWeb.API.GameController do
     end
   end
 
-  def claim(conn, %{"code" => code, "prize" => prize}) do
+  def claim(conn, %{"code" => code, "prize" => prize, "ticket_id" => ticket_id}) do
     valid_prizes = ~w(early_five top_line middle_line bottom_line full_house)
 
     if prize in valid_prizes do
       prize_atom = String.to_existing_atom(prize)
 
-      case Game.claim_prize(String.upcase(code), conn.assigns.current_user.id, prize_atom) do
+      case Game.claim_prize(String.upcase(code), conn.assigns.current_user.id, ticket_id, prize_atom) do
         {:ok, prize} ->
           json(conn, %{prize: prize})
 
@@ -133,6 +141,25 @@ defmodule MothWeb.API.GameController do
       end
     else
       conn |> put_status(422) |> json(%{error: %{code: "invalid_prize", message: "Invalid prize"}})
+    end
+  end
+
+  def set_ticket_count(conn, %{"code" => code, "user_id" => user_id, "count" => count}) do
+    case Game.set_ticket_count(String.upcase(code), conn.assigns.current_user.id, user_id, count) do
+      :ok ->
+        json(conn, %{status: "ok"})
+
+      {:error, :not_host} ->
+        conn |> put_status(403) |> json(%{error: %{code: "not_host", message: "Only the host can do this"}})
+
+      {:error, :player_not_found} ->
+        conn |> put_status(404) |> json(%{error: %{code: "player_not_found", message: "Player not found"}})
+
+      {:error, :invalid_count} ->
+        conn |> put_status(422) |> json(%{error: %{code: "invalid_count", message: "Count must be between 1 and 6"}})
+
+      {:error, reason} ->
+        conn |> put_status(422) |> json(%{error: %{code: to_string(reason), message: "Cannot set ticket count"}})
     end
   end
 

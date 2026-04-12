@@ -50,6 +50,7 @@ defmodule MothWeb.Router do
     patch "/user/me", UserController, :update
 
     get "/games", GameController, :recent
+    get "/games/public", GameController, :public_games
     post "/games", GameController, :create
     get "/games/:code", GameController, :show
     post "/games/:code/clone", GameController, :clone
@@ -60,6 +61,7 @@ defmodule MothWeb.Router do
     post "/games/:code/end", GameController, :end_game
     post "/games/:code/strike_out", GameController, :strike_out
     post "/games/:code/claim", GameController, :claim
+    put "/games/:code/players/:user_id/ticket_count", GameController, :set_ticket_count
   end
 
   # LiveDashboard (dev only)
