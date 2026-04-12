@@ -148,7 +148,11 @@ defmodule MothWeb.API.GameController do
   end
 
   def set_ticket_count(conn, %{"code" => code, "user_id" => user_id, "count" => count}) do
-    case Game.set_ticket_count(String.upcase(code), conn.assigns.current_user.id, user_id, count) do
+    target_user_id = case Integer.parse(user_id) do
+      {id, ""} -> id
+      _ -> user_id
+    end
+    case Game.set_ticket_count(String.upcase(code), conn.assigns.current_user.id, target_user_id, count) do
       :ok ->
         json(conn, %{status: "ok"})
 
