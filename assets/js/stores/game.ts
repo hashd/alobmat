@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
-import type { Board, GameSettings, Player, PrizeStatus, Ticket } from '@/types/domain'
+import { ref, computed } from 'vue'
+import type { Board, GameSettings, Player, PrizeProgress, PrizeStatus, Ticket } from '@/types/domain'
 import type {
   GameJoinReply, NumberPickedEvent, GameStatusEvent, PrizeClaimedEvent,
   BogeyEvent, PlayerJoinedEvent, PlayerLeftEvent, StrikeResultEvent,
@@ -18,12 +18,65 @@ export const useGameStore = defineStore('game', () => {
   const myStruck = ref<Set<number>>(new Set())
   const players = ref<Player[]>([])
   const prizes = ref<Record<string, PrizeStatus>>({})
-  const prizeProgress = ref<Record<string, Record<string, number>>>({})
+  const prizeProgress = ref<Record<string, Record<string, PrizeProgress>>>({})
   const nextPickAt = ref<string | null>(null)
   const channelConnected = ref(false)
   const autoStrikeEnabled = ref(false)
 
   const hydrated = ref(false)
+
+  // ── Client-side prize progress computation ──────────────────────────────────
+  // Mirrors backend's compute_prize_progress so progress updates instantly
+  // when numbers are struck, without waiting for server round-trips.
+
+  function lineProgress(row: (number | null)[], struck: Set<number>): PrizeProgress {
+    const rowNumbers = row.filter((n): n is number => n !== null)
+    const hit = rowNumbers.filter(n => struck.has(n)).length
+    return { struck: hit, required: rowNumbers.length }
+  }
+
+  function computeTicketProgress(ticket: Ticket, struck: Set<number>, enabledPrizes: string[]): Record<string, PrizeProgress> {
+    const progress: Record<string, PrizeProgress> = {}
+
+    for (const prize of enabledPrizes) {
+      switch (prize) {
+        case 'top_line':
+          progress[prize] = lineProgress(ticket.rows[0], struck)
+          break
+        case 'middle_line':
+          progress[prize] = lineProgress(ticket.rows[1], struck)
+          break
+        case 'bottom_line':
+          progress[prize] = lineProgress(ticket.rows[2], struck)
+          break
+        case 'early_five': {
+          const hit = ticket.numbers.filter(n => struck.has(n)).length
+          progress[prize] = { struck: Math.min(hit, 5), required: 5 }
+          break
+        }
+        case 'full_house': {
+          const total = ticket.numbers.length
+          const hit = ticket.numbers.filter(n => struck.has(n)).length
+          progress[prize] = { struck: hit, required: total }
+          break
+        }
+      }
+    }
+
+    return progress
+  }
+
+  const myPrizeProgress = computed<Record<string, Record<string, PrizeProgress>>>(() => {
+    const result: Record<string, Record<string, PrizeProgress>> = {}
+    const struck = myStruck.value
+    const enabledPrizes = settings.value.enabled_prizes
+
+    for (const ticket of myTickets.value) {
+      result[ticket.id] = computeTicketProgress(ticket, struck, enabledPrizes)
+    }
+
+    return result
+  })
 
   function hydrate(reply: GameJoinReply) {
     code.value = reply.code
@@ -116,7 +169,7 @@ export const useGameStore = defineStore('game', () => {
 
   return {
     code, name, hostId, status, settings, board, myTickets, myStruck,
-    players, prizes, prizeProgress, nextPickAt, channelConnected, hydrated,
+    players, prizes, prizeProgress, myPrizeProgress, nextPickAt, channelConnected, hydrated,
     autoStrikeEnabled, hydrate, onPick, onStatusChange, onPrizeClaimed, onBogey,
     onPlayerJoined, onPlayerLeft, onStrikeConfirmed, onTicketCountUpdated,
     onMyTicketsUpdated, reset,
