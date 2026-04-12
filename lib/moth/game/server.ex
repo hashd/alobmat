@@ -277,9 +277,10 @@ defmodule Moth.Game.Server do
     end
   end
 
-  def handle_call({:claim, user_id, prize_type}, _from, state) do
+  def handle_call({:claim, user_id, ticket_id, prize_type}, _from, state) do
     bogey_limit = Map.get(state.settings, :bogey_limit, 3)
     user_bogeys = Map.get(state.bogeys, user_id, 0)
+    active_ids = Map.get(state.ticket_owners, user_id, [])
 
     cond do
       state.status != :running ->
@@ -288,8 +289,11 @@ defmodule Moth.Game.Server do
       user_bogeys >= bogey_limit ->
         {:reply, {:error, :disqualified}, state}
 
-      not Map.has_key?(state.tickets, user_id) ->
+      Enum.empty?(active_ids) ->
         {:reply, {:error, :not_in_game}, state}
+
+      ticket_id not in active_ids ->
+        {:reply, {:error, :invalid_ticket}, state}
 
       not Map.has_key?(state.prizes, prize_type) ->
         {:reply, {:error, :prize_not_enabled}, state}
@@ -298,37 +302,37 @@ defmodule Moth.Game.Server do
         {:reply, {:error, :already_claimed}, state}
 
       true ->
-        ticket = state.tickets[user_id]
+        ticket = state.tickets[ticket_id]
         struck = Map.get(state.struck, user_id, MapSet.new())
 
         case Prize.check_claim(prize_type, ticket, struck) do
           :valid ->
-            state = %{state | prizes: Map.put(state.prizes, prize_type, user_id)}
+            new_state = %{state | prizes: Map.put(state.prizes, prize_type, user_id)}
 
-            if state.id do
+            if new_state.id do
               Moth.Repo.update_all(
                 from(p in Moth.Game.Player,
-                  where: p.game_id == ^state.id and p.user_id == ^user_id
+                  where: p.game_id == ^new_state.id and p.user_id == ^user_id
                 ),
                 push: [prizes_won: to_string(prize_type)]
               )
             end
 
-            broadcast(state.code, :prize_claimed, %{prize: prize_type, winner_id: user_id})
-            {:reply, {:ok, prize_type}, state}
+            broadcast(new_state.code, :prize_claimed, %{prize: prize_type, winner_id: user_id})
+            {:reply, {:ok, prize_type}, new_state}
 
           :invalid ->
             new_bogeys = user_bogeys + 1
             remaining = bogey_limit - new_bogeys
-            state = %{state | bogeys: Map.put(state.bogeys, user_id, new_bogeys)}
+            new_state = %{state | bogeys: Map.put(state.bogeys, user_id, new_bogeys)}
 
-            broadcast(state.code, :bogey, %{
+            broadcast(new_state.code, :bogey, %{
               user_id: user_id,
               prize: prize_type,
               remaining: remaining
             })
 
-            {:reply, {:error, :bogey, remaining}, state}
+            {:reply, {:error, :bogey, remaining}, new_state}
         end
     end
   end
