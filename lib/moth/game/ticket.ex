@@ -19,37 +19,6 @@ defmodule Moth.Game.Ticket do
   def column_range(8), do: {80, 90}
   def column_range(col) when col in 1..7, do: {col * 10, col * 10 + 9}
 
-  @doc "Generates a valid Tambola ticket."
-  def generate do
-    # Step 1: For each column, pick random numbers from the column range
-    column_pools =
-      for col <- 0..8 do
-        {low, high} = column_range(col)
-        Enum.to_list(low..high) |> Enum.shuffle()
-      end
-
-    # Step 2: Determine how many numbers each column contributes (1-3)
-    col_counts = distribute_numbers(column_pools)
-
-    # Step 3: Pick that many numbers from each column pool, sort them
-    col_numbers =
-      Enum.zip(column_pools, col_counts)
-      |> Enum.map(fn {pool, count} ->
-        pool |> Enum.take(count) |> Enum.sort()
-      end)
-
-    # Step 4: Assign numbers to rows, ensuring 5 per row
-    rows = assign_to_rows(col_numbers, col_counts)
-
-    numbers =
-      rows
-      |> List.flatten()
-      |> Enum.reject(&is_nil/1)
-      |> MapSet.new()
-
-    %__MODULE__{rows: rows, numbers: numbers}
-  end
-
   @doc "Generates a valid Tambola strip: 6 tickets covering 1–90 exactly once, each with a UUID."
   def generate_strip do
     do_generate_strip()
@@ -133,31 +102,6 @@ defmodule Moth.Game.Ticket do
       end)
 
     result
-  end
-
-  # ── Single-ticket helpers ────────────────────────────────────────────────────
-
-  defp distribute_numbers(column_pools) do
-    pool_sizes = Enum.map(column_pools, &length/1)
-    base = List.duplicate(1, 9)
-    remaining = 6
-    add_numbers(base, remaining, pool_sizes)
-  end
-
-  defp add_numbers(counts, 0, _pools), do: counts
-
-  defp add_numbers(counts, remaining, pool_sizes) do
-    eligible =
-      counts
-      |> Enum.with_index()
-      |> Enum.filter(fn {count, idx} ->
-        count < 3 and count < Enum.at(pool_sizes, idx)
-      end)
-      |> Enum.map(fn {_count, idx} -> idx end)
-
-    idx = Enum.random(eligible)
-    counts = List.update_at(counts, idx, &(&1 + 1))
-    add_numbers(counts, remaining - 1, pool_sizes)
   end
 
   # ── Row assignment ────────────────────────────────────────────────────────────

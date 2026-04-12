@@ -101,7 +101,7 @@ defmodule Moth.Game.Server do
       else
         state = %{state | players: MapSet.put(state.players, user_id)}
         
-        ticket = Ticket.generate()
+        ticket = hd(Ticket.generate_strip())
         state = %{state | tickets: Map.put(state.tickets, user_id, ticket)}
 
         if state.id && ticket do
@@ -124,7 +124,7 @@ defmodule Moth.Game.Server do
         if Map.has_key?(acc, player_id) do
           acc
         else
-          Map.put(acc, player_id, Ticket.generate())
+          Map.put(acc, player_id, hd(Ticket.generate_strip()))
         end
       end)
 

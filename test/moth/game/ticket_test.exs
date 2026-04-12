@@ -1,98 +1,67 @@
 defmodule Moth.Game.TicketTest do
   use ExUnit.Case, async: true
-  use ExUnitProperties
 
   alias Moth.Game.Ticket
 
-  describe "generate/0" do
-    test "returns a ticket with 3 rows" do
-      ticket = Ticket.generate()
-      assert length(ticket.rows) == 3
+  describe "generate_strip/0" do
+    test "returns exactly 6 tickets" do
+      strip = Ticket.generate_strip()
+      assert length(strip) == 6
     end
 
-    test "each row has 9 columns" do
-      ticket = Ticket.generate()
-      Enum.each(ticket.rows, fn row -> assert length(row) == 9 end)
+    test "all 90 numbers appear exactly once across the strip" do
+      strip = Ticket.generate_strip()
+      all_numbers = strip |> Enum.flat_map(fn t -> MapSet.to_list(t.numbers) end) |> Enum.sort()
+      assert all_numbers == Enum.to_list(1..90)
     end
 
-    test "each row has exactly 5 numbers and 4 nils" do
-      ticket = Ticket.generate()
-
-      Enum.each(ticket.rows, fn row ->
-        numbers = Enum.reject(row, &is_nil/1)
-        assert length(numbers) == 5
-      end)
-    end
-
-    test "ticket has exactly 15 unique numbers" do
-      ticket = Ticket.generate()
-      assert MapSet.size(ticket.numbers) == 15
-    end
-
-    test "numbers fall in correct column ranges" do
-      ticket = Ticket.generate()
-
-      Enum.each(ticket.rows, fn row ->
-        row
-        |> Enum.with_index()
-        |> Enum.each(fn {val, col} ->
-          if val do
-            {low, high} = Ticket.column_range(col)
-
-            assert val >= low and val <= high,
-                   "#{val} not in range #{low}..#{high} for column #{col}"
-          end
-        end)
-      end)
-    end
-
-    test "numbers within a column are sorted top to bottom" do
-      ticket = Ticket.generate()
-
-      for col <- 0..8 do
-        col_values =
-          ticket.rows
-          |> Enum.map(&Enum.at(&1, col))
-          |> Enum.reject(&is_nil/1)
-
-        assert col_values == Enum.sort(col_values),
-               "Column #{col} not sorted: #{inspect(col_values)}"
-      end
-    end
-  end
-
-  describe "property: generate always produces valid tickets" do
-    property "all generated tickets satisfy Tambola rules" do
-      check all(_ <- constant(:ok), max_runs: 200) do
-        ticket = Ticket.generate()
-        assert length(ticket.rows) == 3
-        Enum.each(ticket.rows, fn row -> assert length(row) == 9 end)
-
-        Enum.each(ticket.rows, fn row ->
-          assert length(Enum.reject(row, &is_nil/1)) == 5
-        end)
-
+    test "each ticket has exactly 15 numbers" do
+      strip = Ticket.generate_strip()
+      Enum.each(strip, fn ticket ->
         assert MapSet.size(ticket.numbers) == 15
+      end)
+    end
 
+    test "each row has exactly 5 numbers" do
+      strip = Ticket.generate_strip()
+      Enum.each(strip, fn ticket ->
         Enum.each(ticket.rows, fn row ->
-          row
-          |> Enum.with_index()
-          |> Enum.each(fn {val, col} ->
-            if val do
-              {low, high} = Ticket.column_range(col)
-              assert val >= low and val <= high
-            end
-          end)
+          count = Enum.count(row, &(&1 != nil))
+          assert count == 5, "Row #{inspect(row)} does not have 5 numbers"
         end)
+      end)
+    end
 
+    test "each ticket has a unique binary UUID" do
+      strip = Ticket.generate_strip()
+      ids = Enum.map(strip, & &1.id)
+      assert length(Enum.uniq(ids)) == 6
+      Enum.each(ids, fn id ->
+        assert is_binary(id) and byte_size(id) == 36
+      end)
+    end
+
+    test "numbers respect column ranges" do
+      strip = Ticket.generate_strip()
+      Enum.each(strip, fn ticket ->
         for col <- 0..8 do
-          col_values =
-            ticket.rows
-            |> Enum.map(&Enum.at(&1, col))
+          {low, high} = Ticket.column_range(col)
+          col_nums =
+            Enum.flat_map(ticket.rows, fn row -> [Enum.at(row, col)] end)
             |> Enum.reject(&is_nil/1)
-
-          assert col_values == Enum.sort(col_values)
+          Enum.each(col_nums, fn n ->
+            assert n >= low and n <= high,
+                   "Number #{n} in col #{col} is outside range #{low}-#{high}"
+          end)
         end
+      end)
+    end
+
+    test "is valid across 5 runs" do
+      for _ <- 1..5 do
+        strip = Ticket.generate_strip()
+        all_numbers = strip |> Enum.flat_map(fn t -> MapSet.to_list(t.numbers) end) |> Enum.sort()
+        assert all_numbers == Enum.to_list(1..90)
       end
     end
   end
@@ -104,6 +73,22 @@ defmodule Moth.Game.TicketTest do
 
     test "column 8 is 80-90" do
       assert Ticket.column_range(8) == {80, 90}
+    end
+  end
+
+  describe "to_map/1 and from_map/1" do
+    test "to_map includes id" do
+      [ticket | _] = Ticket.generate_strip()
+      map = Ticket.to_map(ticket)
+      assert Map.has_key?(map, "id")
+      assert map["id"] == ticket.id
+    end
+
+    test "round-trips id through to_map/from_map" do
+      [ticket | _] = Ticket.generate_strip()
+      map = Ticket.to_map(ticket)
+      restored = Ticket.from_map(map)
+      assert restored.id == ticket.id
     end
   end
 end
