@@ -7,7 +7,10 @@ import type { ChatEntry } from '@/types/domain'
 
 const chat = useChatStore()
 const auth = useAuthStore()
-const emit = defineEmits<{ sendChat: [text: string] }>()
+const emit = defineEmits<{ 
+  sendChat: [text: string],
+  close: []
+}>()
 
 const filtered = computed<ChatEntry[]>(() =>
   chat.filter === 'all' ? chat.entries :
@@ -25,21 +28,31 @@ const filterOptions = [
 ]
 </script>
 <template>
-  <div class="flex flex-col h-full bg-[--surface]/20 backdrop-blur-xl border-l border-[--border] shadow-lg relative p-4 pl-5">
-    <!-- Header with segmented filters -->
-    <div class="flex items-center justify-between mb-4 pb-3 border-b border-[--border]/50 mt-2">
-      <h3 class="font-bold text-[--text-primary] flex items-center gap-2">
-        <span class="text-indigo-500">⚡</span> Activity
-      </h3>
-      <div class="flex bg-black/5 dark:bg-white/5 rounded-full p-1 border border-[--border]">
-        <button v-for="opt in filterOptions" :key="opt.value"
+  <div class="flex flex-col h-full relative p-4">
+    <!-- Tabs -->
+    <div class="flex items-center bg-[--surface] p-1 rounded-xl border border-[--border] mb-4 shadow-sm">
+      <div class="flex flex-1">
+        <button 
+          v-for="opt in filterOptions" 
+          :key="opt.value"
           @click="chat.filter = opt.value as any"
+          class="flex-1 py-1.5 text-[10px] font-black uppercase tracking-widest transition-all duration-300 rounded-lg"
           :class="[
-            'text-[10px] uppercase font-bold tracking-wider px-3 py-1 rounded-full transition-all duration-300',
-            chat.filter === opt.value ? 'bg-[--accent] text-white shadow-sm scale-105' : 'text-[--text-secondary] hover:text-[--text-primary]'
+            chat.filter === opt.value 
+              ? 'bg-indigo-500 text-white shadow-sm' 
+              : 'text-[--text-muted] hover:text-[--text-primary] hover:bg-[--elevated]'
           ]"
-        >{{ opt.label }}</button>
+        >
+          {{ opt.label }}
+        </button>
       </div>
+      <div class="w-[1px] h-4 bg-[--border] mx-1"></div>
+      <button 
+        @click="emit('close')" 
+        class="w-8 h-8 rounded-lg flex items-center justify-center text-[--text-muted] hover:text-[--text-primary] hover:bg-[--elevated] transition-colors"
+      >
+        ✕
+      </button>
     </div>
 
     <!-- Scrollable Feed -->
