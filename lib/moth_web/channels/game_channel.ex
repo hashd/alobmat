@@ -6,19 +6,22 @@ defmodule MothWeb.GameChannel do
   alias Moth.Game
 
   @impl true
-  def join("game:" <> code, _params, socket) do
+  def join("game:" <> code, params, socket) do
     current_user = socket.assigns.current_user
 
     case Game.game_state(code) do
       {:ok, _state} ->
-        # Ensure player is joined (idempotent — returns ticket or existing ticket)
-        _join_result = Game.join_game(code, current_user.id)
-        # Re-fetch state after join to get the player's ticket
-        {:ok, state} = Game.game_state(code)
+        case Game.join_game(code, current_user.id, params["secret"]) do
+          {:error, :invalid_secret} ->
+            {:error, %{reason: "invalid_secret"}}
 
-        :ok = Phoenix.PubSub.subscribe(Moth.PubSub, "game:#{code}")
-        :ok = Phoenix.PubSub.subscribe(Moth.PubSub, "game:#{code}:presence")
-        send(self(), {:after_join, code})
+          _ ->
+            {:ok, state} = Game.game_state(code)
+
+            # Phoenix automatically subscribes the channel to its own topic ("game:{code}").
+            # We only need to manually subscribe to presence.
+            :ok = Phoenix.PubSub.subscribe(Moth.PubSub, "game:#{code}:presence")
+            send(self(), {:after_join, code})
 
         # Enrich players with names, prizes_won, and bogeys
         user_names = Moth.Auth.get_users_map(state.players)
@@ -35,7 +38,8 @@ defmodule MothWeb.GameChannel do
 
         # state is already sanitized: board is a map, players is a list,
         # tickets and struck are already converted, prize_progress is computed
-        my_ticket = get_in(state, [:tickets, current_user.id])
+        my_ticket_ids = Map.get(state.ticket_owners, current_user.id, [])
+        my_tickets = Enum.map(my_ticket_ids, fn id -> state.tickets[id] end) |> Enum.reject(&is_nil/1)
         my_struck = get_in(state, [:struck, current_user.id]) || []
 
         reply = %{
@@ -48,11 +52,12 @@ defmodule MothWeb.GameChannel do
           players: players,
           prizes: format_prizes(state.prizes),
           prize_progress: Map.get(state, :prize_progress, %{}),
-          my_ticket: my_ticket,
+          my_tickets: my_tickets,
           my_struck: my_struck
         }
 
-        {:ok, reply, assign(socket, :game_code, code)}
+            {:ok, reply, assign(socket, :game_code, code)}
+        end
 
       {:error, _} ->
         {:error, %{reason: "game_not_found"}}
@@ -136,6 +141,16 @@ defmodule MothWeb.GameChannel do
     {:noreply, socket}
   end
 
+  def handle_info({:ticket_count_updated, payload}, socket) do
+    push(socket, "ticket_count_updated", %{user_id: payload.user_id, count: payload.count})
+    {:noreply, socket}
+  end
+
+  def handle_info({:player_tickets_updated, payload}, socket) do
+    push(socket, "player_tickets_updated", %{user_id: payload.user_id, tickets: payload.tickets})
+    {:noreply, socket}
+  end
+
   def handle_info(%Phoenix.Socket.Broadcast{event: "presence_diff", payload: diff}, socket) do
     push(socket, "presence_diff", diff)
     {:noreply, socket}
@@ -169,7 +184,7 @@ defmodule MothWeb.GameChannel do
     {:noreply, socket}
   end
 
-  def handle_in("claim", %{"prize" => prize}, socket) do
+  def handle_in("claim", %{"prize" => prize, "ticket_id" => ticket_id}, socket) do
     valid_prizes = ~w(early_five top_line middle_line bottom_line full_house)
 
     if prize in valid_prizes do
@@ -177,7 +192,7 @@ defmodule MothWeb.GameChannel do
       code = socket.assigns.game_code
       prize_atom = String.to_existing_atom(prize)
 
-      case Game.claim_prize(code, user.id, prize_atom) do
+      case Game.claim_prize(code, user.id, ticket_id, prize_atom) do
         {:ok, _prize} ->
           {:noreply, socket}
 
@@ -214,6 +229,7 @@ defmodule MothWeb.GameChannel do
     %{
       interval: settings.interval,
       bogey_limit: settings.bogey_limit,
+      default_ticket_count: Map.get(settings, :default_ticket_count, 1),
       enabled_prizes: Enum.map(settings.enabled_prizes, &to_string/1)
     }
   end
