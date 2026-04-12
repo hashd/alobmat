@@ -37,6 +37,9 @@ defmodule MothWeb.Router do
     post "/auth/refresh", AuthController, :refresh
     delete "/auth/session", AuthController, :logout
 
+    post "/auth/otp/request", AuthController, :request_otp
+    post "/auth/otp/verify", AuthController, :verify_otp
+
     if Application.compile_env(:moth, :dev_routes) do
       post "/auth/dev", AuthController, :dev_login
     end
