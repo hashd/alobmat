@@ -4,14 +4,17 @@
 
 /* === Theme tokens === */
 :root {
-  --bg: #FFFFFF;
-  --surface: #F9FAFB;
-  --elevated: #F3F4F6;
-  --border: #E5E7EB;
-  --text-primary: #111827;
-  --text-secondary: #6B7280;
-  --text-muted: #9CA3AF;
-  --accent: #6366F1;
+  --bg: #FAFAFA;
+  --bg-gradient-start: #FFFFFF;
+  --bg-gradient-end: #F1F5F9;
+  --surface: rgba(255, 255, 255, 0.7);
+  --elevated: rgba(255, 255, 255, 0.9);
+  --border: rgba(226, 232, 240, 0.6);
+  --text-primary: #0F172A;
+  --text-secondary: #64748B;
+  --text-muted: #94A3B8;
+  --accent: #4F46E5;
+  --accent-glow: rgba(79, 70, 229, 0.3);
   --success: #10B981;
   --warning: #F59E0B;
   --danger: #F43F5E;
@@ -19,18 +22,26 @@
 }
 
 .dark {
-  --bg: #09090B;
-  --surface: #18181B;
-  --elevated: #27272A;
-  --border: #3F3F46;
-  --text-primary: #FAFAFA;
-  --text-secondary: #A1A1AA;
-  --text-muted: #A1A1AA;
+  --bg: #0B0E14;
+  --bg-gradient-start: #0B0E14;
+  --bg-gradient-end: #171025;
+  --surface: rgba(21, 25, 33, 0.6);
+  --elevated: rgba(30, 35, 45, 0.8);
+  --border: rgba(255, 255, 255, 0.08);
+  --text-primary: #F8FAFC;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+  --accent: #818CF8;
+  --accent-glow: rgba(129, 140, 248, 0.25);
 }
 
 body {
-  background-color: var(--bg);
+  background: linear-gradient(135deg, var(--bg-gradient-start), var(--bg-gradient-end));
+  background-attachment: fixed;
   color: var(--text-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
 }
 
 /* === Animations (respect reduced motion) === */
