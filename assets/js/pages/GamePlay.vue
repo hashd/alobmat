@@ -10,6 +10,7 @@ import Board from '@/components/game/Board.vue'
 import CountdownRing from '@/components/game/CountdownRing.vue'
 import ActivityFeed from '@/components/game/ActivityFeed.vue'
 import ReactionOverlay from '@/components/game/ReactionOverlay.vue'
+import NumberCallOverlay from '@/components/game/NumberCallOverlay.vue'
 import ConnectionStatus from '@/components/ui/ConnectionStatus.vue'
 import BottomSheet from '@/components/ui/BottomSheet.vue'
 import Button from '@/components/ui/Button.vue'
@@ -26,8 +27,10 @@ const { gameStore, strike, claim, sendReaction, sendChat, onReaction, connect, c
 const { secondsLeft, start: startCountdown } = useCountdown(() => gameStore.nextPickAt)
 const { fire: fireConfetti } = useConfetti()
 
-const ticketRef = ref<InstanceType<typeof TicketGrid> | null>(null)
+const ticketRefs = ref<(InstanceType<typeof TicketGrid> | null)[]>([])
+function setTicketRef(el: any, index: number) { ticketRefs.value[index] = el as InstanceType<typeof TicketGrid> | null }
 const reactionRef = ref<InstanceType<typeof ReactionOverlay> | null>(null)
+const numberCallRef = ref<InstanceType<typeof NumberCallOverlay> | null>(null)
 const boardOpen = ref(false)
 
 const isDev = import.meta.env.DEV
@@ -52,12 +55,30 @@ const myPrizesWon = computed(() =>
     .map(([p]) => p)
 )
 
-const unsubAction = gameStore.$onAction(({ name, args }) => {
-  if (name === 'onStrikeConfirmed' && ticketRef.value) {
-    ticketRef.value.onStrikeResult(args[0].number, args[0].result)
+function claimPrize(prize: string) {
+  const ticket = gameStore.myTickets.find(t => {
+    const progress = (gameStore.prizeProgress[t.id] as Record<string, { struck: number; required: number }> | undefined)?.[prize]
+    return progress && progress.struck >= progress.required
+  })
+  const ticketId = ticket?.id ?? gameStore.myTickets[0]?.id
+  if (ticketId) claim(prize, ticketId)
+}
+
+const unsubAction = gameStore.$onAction(({ name, args, after }) => {
+  if (name === 'onStrikeConfirmed') {
+    ticketRefs.value.forEach(r => r?.onStrikeResult(args[0].number, args[0].result))
   }
   if (name === 'onPrizeClaimed' && (args[0] as any).winner_id === myId.value) {
     fireConfetti()
+  }
+  if (name === 'onPick') {
+    const event = args[0] as any
+    after(() => {
+      const isOnTicket = gameStore.myTickets.some(t => t.numbers.includes(event.number))
+      const interval = gameStore.settings.interval
+      const durationMs = Math.max(1000, Math.min(3000, (interval - 1) * 1000))
+      numberCallRef.value?.show(event.number, isOnTicket, durationMs)
+    })
   }
 })
 onUnmounted(() => unsubAction())
@@ -129,13 +150,13 @@ async function retryJoin() {
         <p class="text-[--text-secondary]">The game will begin shortly. Hang tight!</p>
       </div>
       
-      <!-- Show their ticket early -->
+      <!-- Show their tickets early -->
       <div class="w-full flex flex-col gap-3">
-        <h3 class="font-bold text-center text-[--text-secondary] uppercase tracking-wider text-sm">Your Ticket for this Game</h3>
-        <div class="relative bg-[--surface]/40 backdrop-blur-xl p-4 md:p-6 rounded-3xl border border-[--border] shadow-[0_8px_40px_rgb(0,0,0,0.04)] mb-4">
+        <h3 class="font-bold text-center text-[--text-secondary] uppercase tracking-wider text-sm">Your Ticket{{ gameStore.myTickets.length > 1 ? 's' : '' }} for this Game</h3>
+        <div v-for="(ticket, i) in gameStore.myTickets" :key="ticket.id" class="relative bg-[--surface]/40 backdrop-blur-xl p-4 md:p-6 rounded-3xl border border-[--border] shadow-[0_8px_40px_rgb(0,0,0,0.04)]">
+          <p v-if="gameStore.myTickets.length > 1" class="text-xs font-bold text-[--text-secondary] uppercase tracking-wider mb-3">Ticket {{ i + 1 }}</p>
           <TicketGrid
-            v-if="gameStore.myTicket"
-            :ticket="gameStore.myTicket"
+            :ticket="ticket"
             :struck="gameStore.myStruck"
             :picked-numbers="gameStore.board.picks"
             :interactive="false"
@@ -185,10 +206,10 @@ async function retryJoin() {
               <div v-else class="text-indigo-500 font-bold px-4 py-2 bg-indigo-500/10 rounded-xl border border-indigo-500/20">PAUSED</div>
             </div>
 
-            <!-- Ticket -->
+            <!-- Tickets -->
             <div class="relative bg-[--surface]/40 backdrop-blur-xl p-4 md:p-6 rounded-3xl border border-[--border] shadow-[0_8px_40px_rgb(0,0,0,0.04)] flex flex-col gap-4">
               <div class="flex items-center justify-between">
-                <span class="text-sm font-bold text-[--text-secondary] uppercase tracking-wider">Your Ticket</span>
+                <span class="text-sm font-bold text-[--text-secondary] uppercase tracking-wider">Your Ticket{{ gameStore.myTickets.length > 1 ? 's' : '' }}</span>
                 <label class="flex items-center gap-2 cursor-pointer group">
                   <span class="text-xs font-bold text-[--text-secondary] uppercase tracking-wider group-hover:text-indigo-500 transition-colors">Auto Strike</span>
                   <div class="relative">
@@ -197,15 +218,17 @@ async function retryJoin() {
                   </div>
                 </label>
               </div>
-              <TicketGrid
-                v-if="gameStore.myTicket"
-                ref="ticketRef"
-                :ticket="gameStore.myTicket"
-                :struck="gameStore.myStruck"
-                :picked-numbers="gameStore.board.picks"
-                :interactive="gameStore.status === 'running'"
-                @strike="strike"
-              />
+              <div v-for="(ticket, i) in gameStore.myTickets" :key="ticket.id" class="flex flex-col gap-2">
+                <p v-if="gameStore.myTickets.length > 1" class="text-xs font-bold text-[--text-secondary] uppercase tracking-wider">Ticket {{ i + 1 }}</p>
+                <TicketGrid
+                  :ref="(el) => setTicketRef(el, i)"
+                  :ticket="ticket"
+                  :struck="gameStore.myStruck"
+                  :picked-numbers="gameStore.board.picks"
+                  :interactive="gameStore.status === 'running'"
+                  @strike="strike"
+                />
+              </div>
             </div>
           </div>
 
@@ -221,7 +244,7 @@ async function retryJoin() {
                 <button
                   v-for="(status, prize) in gameStore.prizes"
                   :key="prize"
-                  @click="!status.claimed && claim(prize)"
+                  @click="!status.claimed && claimPrize(prize)"
                   :disabled="status.claimed"
                   class="relative overflow-hidden w-full text-left px-4 py-3 rounded-xl border transition-all duration-300 font-bold flex items-center justify-between group"
                   :class="[
@@ -310,6 +333,9 @@ async function retryJoin() {
 
     <!-- Reaction overlay -->
     <ReactionOverlay ref="reactionRef" />
+
+    <!-- Number call overlay -->
+    <NumberCallOverlay ref="numberCallRef" />
 
     <!-- Connection status -->
     <ConnectionStatus :connected="gameStore.channelConnected" />

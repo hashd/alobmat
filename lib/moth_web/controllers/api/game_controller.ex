@@ -71,8 +71,11 @@ defmodule MothWeb.API.GameController do
   def join(conn, %{"code" => code} = params) do
     secret = params["secret"]
     case Game.join_game(String.upcase(code), conn.assigns.current_user.id, secret) do
+      {:ok, tickets} when is_list(tickets) ->
+        json(conn, %{tickets: Enum.map(tickets, &Moth.Game.Ticket.to_map/1)})
+
       {:ok, ticket} ->
-        json(conn, %{ticket: ticket})
+        json(conn, %{ticket: Moth.Game.Ticket.to_map(ticket)})
 
       {:error, reason} ->
         conn

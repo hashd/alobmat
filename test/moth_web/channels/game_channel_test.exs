@@ -41,7 +41,9 @@ defmodule MothWeb.GameChannelTest do
     test "claim with no match returns bogey rejection", %{channel_socket: cs, user: user, game_code: gc} do
       {:ok, _} = Moth.Game.join_game(gc, user.id)
       Moth.Game.start_game(gc, user.id)
-      push(cs, "claim", %{"prize" => "early_five"})
+      {:ok, state} = Moth.Game.game_state(gc)
+      ticket_id = state.ticket_owners[user.id] |> List.first()
+      push(cs, "claim", %{"prize" => "early_five", "ticket_id" => ticket_id})
       assert_push "claim_rejection", %{reason: "bogey", bogeys_remaining: _}
     end
 
