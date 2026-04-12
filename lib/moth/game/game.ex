@@ -7,6 +7,7 @@ defmodule Moth.Game do
   @default_settings %{
     interval: 30,
     bogey_limit: 3,
+    default_ticket_count: 1,
     enabled_prizes: [:early_five, :top_line, :middle_line, :bottom_line, :full_house],
     visibility: "public",
     join_secret: nil
@@ -74,8 +75,12 @@ defmodule Moth.Game do
     with_server(code, fn pid -> Server.strike_out(pid, user_id, number) end)
   end
 
-  def claim_prize(code, user_id, prize) do
-    with_server(code, fn pid -> Server.claim_prize(pid, user_id, prize) end)
+  def claim_prize(code, user_id, ticket_id, prize) do
+    with_server(code, fn pid -> Server.claim_prize(pid, user_id, ticket_id, prize) end)
+  end
+
+  def set_ticket_count(code, host_id, user_id, count) do
+    with_server(code, fn pid -> Server.set_ticket_count(pid, host_id, user_id, count) end)
   end
 
   def send_chat(code, user_id, text) do
@@ -167,8 +172,9 @@ defmodule Moth.Game do
 
   defp validate_settings(settings) do
     settings
-    |> Map.update(:interval, 30, &clamp(&1, 10, 120))
+    |> Map.update(:interval, 30, &clamp(&1, 5, 120))
     |> Map.update(:bogey_limit, 3, &clamp(&1, 1, 10))
+    |> Map.update(:default_ticket_count, 1, &clamp(&1, 1, 6))
   end
 
   defp clamp(val, min_val, max_val), do: val |> max(min_val) |> min(max_val)
