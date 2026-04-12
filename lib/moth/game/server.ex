@@ -174,6 +174,30 @@ defmodule Moth.Game.Server do
     {:reply, {:error, :not_host}, state}
   end
 
+  def handle_call({:set_ticket_count, host_id, user_id, count}, _from, %{host_id: host_id, status: :lobby} = state) do
+    cond do
+      count not in 1..6 ->
+        {:reply, {:error, :invalid_count}, state}
+
+      not Map.has_key?(state.ticket_owners, user_id) ->
+        {:reply, {:error, :player_not_found}, state}
+
+      true ->
+        new_state = %{state | player_ticket_counts: Map.put(state.player_ticket_counts, user_id, count)}
+        active_ids = Enum.take(new_state.ticket_owners[user_id], count)
+        active_tickets = Enum.map(active_ids, fn tid -> Ticket.to_map(new_state.tickets[tid]) end)
+
+        broadcast(new_state.code, :ticket_count_updated, %{user_id: user_id, count: count})
+        broadcast(new_state.code, :player_tickets_updated, %{user_id: user_id, tickets: active_tickets})
+
+        {:reply, :ok, new_state}
+    end
+  end
+
+  def handle_call({:set_ticket_count, _, _, _}, _from, state) do
+    {:reply, {:error, :not_host}, state}
+  end
+
   def handle_call({:pause, host_id}, _from, %{host_id: host_id, status: :running} = state) do
     cancel_timer(state.timer_ref)
     state = %{state | status: :paused, timer_ref: nil}
