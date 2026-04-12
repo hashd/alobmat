@@ -36,4 +36,9 @@ if config_env() == :prod do
   config :ueberauth, Ueberauth.Strategy.Google.OAuth,
     client_id: System.get_env("GOOGLE_CLIENT_ID"),
     client_secret: System.get_env("GOOGLE_CLIENT_SECRET")
+
+  config :moth, :sms_provider, Moth.Auth.SMSProvider.MSG91
+  config :moth, :msg91,
+    auth_key: System.get_env("MSG91_AUTH_KEY") || raise("MSG91_AUTH_KEY not set"),
+    template_id: System.get_env("MSG91_TEMPLATE_ID") || raise("MSG91_TEMPLATE_ID not set")
 end

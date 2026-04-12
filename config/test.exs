@@ -19,3 +19,5 @@ config :moth, Moth.Mailer, adapter: Swoosh.Adapters.Test
 config :swoosh, :api_client, false
 
 config :logger, level: :warning
+
+config :moth, :sms_provider, Moth.Auth.SMSProvider.Test
