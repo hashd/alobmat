@@ -39,7 +39,12 @@ defmodule Moth.Game.Ticket do
     {count_matrix, _} =
       Enum.reduce(1..6, {[], col_sizes}, fn _, {rows, col_remaining} ->
         r = 6 - length(rows)
-        lower = Enum.map(col_remaining, &max(0, &1 - 3 * (r - 1)))
+        lower = Enum.map(col_remaining, fn rem ->
+          # Feasibility floor: must take enough so future tickets (max 3 each) can absorb the rest
+          feasibility = max(0, rem - 3 * (r - 1))
+          # Every column with remaining numbers must contribute at least 1
+          if rem > 0, do: max(1, feasibility), else: 0
+        end)
         upper = Enum.map(col_remaining, &min(3, &1))
         counts = random_bounded_sum(lower, upper, 15)
         new_remaining = Enum.zip(col_remaining, counts) |> Enum.map(fn {a, b} -> a - b end)
