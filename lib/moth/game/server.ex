@@ -176,11 +176,11 @@ defmodule Moth.Game.Server do
 
   def handle_call({:set_ticket_count, host_id, user_id, count}, _from, %{host_id: host_id, status: :lobby} = state) do
     cond do
-      count not in 1..6 ->
-        {:reply, {:error, :invalid_count}, state}
-
       not Map.has_key?(state.ticket_owners, user_id) ->
         {:reply, {:error, :player_not_found}, state}
+
+      count not in 1..length(state.ticket_owners[user_id]) ->
+        {:reply, {:error, :invalid_count}, state}
 
       true ->
         new_state = %{state | player_ticket_counts: Map.put(state.player_ticket_counts, user_id, count)}
