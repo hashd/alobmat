@@ -247,32 +247,33 @@ defmodule Moth.Game.Server do
 
   def handle_call({:strike_out, user_id, number}, _from, state) do
     picked_set = MapSet.new(state.board.picks)
+    active_ids = Map.get(state.ticket_owners, user_id, [])
+
+    has_number =
+      Enum.any?(active_ids, fn tid ->
+        case Map.get(state.tickets, tid) do
+          nil -> false
+          ticket -> MapSet.member?(ticket.numbers, number)
+        end
+      end)
 
     cond do
       state.status not in [:running, :paused] ->
         {:reply, {:error, :game_not_running}, state}
 
-      not Map.has_key?(state.tickets, user_id) ->
+      Enum.empty?(active_ids) ->
         {:reply, {:error, :not_in_game}, state}
 
       not MapSet.member?(picked_set, number) ->
         {:reply, {:error, :not_picked}, state}
 
+      not has_number ->
+        {:reply, {:error, :not_on_ticket}, state}
+
       true ->
-        ticket = state.tickets[user_id]
-
-        if MapSet.member?(ticket.numbers, number) do
-          user_struck = Map.get(state.struck, user_id, MapSet.new())
-
-          state = %{
-            state
-            | struck: Map.put(state.struck, user_id, MapSet.put(user_struck, number))
-          }
-
-          {:reply, :ok, state}
-        else
-          {:reply, {:error, :not_on_ticket}, state}
-        end
+        user_struck = Map.get(state.struck, user_id, MapSet.new())
+        new_state = %{state | struck: Map.put(state.struck, user_id, MapSet.put(user_struck, number))}
+        {:reply, :ok, new_state}
     end
   end
 
@@ -371,32 +372,26 @@ defmodule Moth.Game.Server do
 
   def handle_cast({:strike_out, user_id, number}, state) do
     picked_set = MapSet.new(state.board.picks)
+    active_ids = Map.get(state.ticket_owners, user_id, [])
+
+    has_number =
+      Enum.any?(active_ids, fn tid ->
+        case Map.get(state.tickets, tid) do
+          nil -> false
+          ticket -> MapSet.member?(ticket.numbers, number)
+        end
+      end)
 
     cond do
-      state.status not in [:running, :paused] ->
-        {:noreply, state}
-
-      not Map.has_key?(state.tickets, user_id) ->
-        {:noreply, state}
-
-      not MapSet.member?(picked_set, number) ->
-        {:noreply, state}
+      state.status not in [:running, :paused] -> {:noreply, state}
+      Enum.empty?(active_ids) -> {:noreply, state}
+      not MapSet.member?(picked_set, number) -> {:noreply, state}
+      not has_number -> {:noreply, state}
 
       true ->
-        ticket = state.tickets[user_id]
-
-        if MapSet.member?(ticket.numbers, number) do
-          user_struck = Map.get(state.struck, user_id, MapSet.new())
-
-          state = %{
-            state
-            | struck: Map.put(state.struck, user_id, MapSet.put(user_struck, number))
-          }
-
-          {:noreply, state}
-        else
-          {:noreply, state}
-        end
+        user_struck = Map.get(state.struck, user_id, MapSet.new())
+        new_state = %{state | struck: Map.put(state.struck, user_id, MapSet.put(user_struck, number))}
+        {:noreply, new_state}
     end
   end
 
