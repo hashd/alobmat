@@ -206,8 +206,18 @@ defmodule Moth.Auth do
         |> Repo.insert!()
 
         case Moth.Auth.SMSProvider.deliver_otp(normalized, code) do
-          :ok -> :ok
-          {:error, _reason} -> {:error, :sms_delivery_failed}
+          :ok ->
+            :ok
+
+          {:error, _reason} ->
+            # Delete the OTP row so it doesn't count against rate limit
+            Repo.delete_all(
+              from(o in PhoneOtpCode,
+                where: o.phone == ^normalized and o.hashed_code == ^hashed and is_nil(o.used_at)
+              )
+            )
+
+            {:error, :sms_delivery_failed}
         end
       end
     end
@@ -225,47 +235,70 @@ defmodule Moth.Auth do
     with {:ok, normalized} <- Phone.normalize(phone) do
       now = DateTime.utc_now() |> DateTime.truncate(:second)
 
-      # Find the most recent active OTP row
-      otp_record =
-        Repo.one(
-          from(o in PhoneOtpCode,
-            where: o.phone == ^normalized and o.expires_at > ^now and is_nil(o.used_at),
-            order_by: [desc: o.inserted_at],
-            limit: 1
-          )
-        )
+      result =
+        Repo.transaction(fn ->
+          # Global attempt count across all OTP rows in the last 10 minutes
+          ten_min_ago = DateTime.add(now, -@otp_expiry_seconds)
 
-      case otp_record do
-        nil ->
-          {:error, :invalid_otp}
+          total_attempts =
+            Repo.one(
+              from(o in PhoneOtpCode,
+                where: o.phone == ^normalized and o.inserted_at > ^ten_min_ago,
+                select: coalesce(sum(o.attempt_count), 0)
+              )
+            )
 
-        %{attempt_count: attempts} when attempts >= 3 ->
-          {:error, :too_many_attempts}
-
-        record ->
-          hashed_input = :crypto.hash(:sha256, code)
-
-          if hashed_input == record.hashed_code do
-            # Mark as used, create user, generate token — all in one transaction
-            Repo.transaction(fn ->
-              record
-              |> Ecto.Changeset.change(used_at: now)
-              |> Repo.update!()
-
-              {user, needs_name} = find_or_create_phone_user(normalized)
-              {token, _} = generate_api_token(user)
-              %{user: user, token: token, needs_name: needs_name}
-            end)
+          if total_attempts >= 5 do
+            {:error, :too_many_attempts}
           else
-            # Increment attempt count (must persist, so no rollback)
-            new_count = record.attempt_count + 1
+            # Lock the most recent active OTP row
+            otp_record =
+              Repo.one(
+                from(o in PhoneOtpCode,
+                  where: o.phone == ^normalized and o.expires_at > ^now and is_nil(o.used_at),
+                  order_by: [desc: o.inserted_at],
+                  limit: 1,
+                  lock: "FOR UPDATE"
+                )
+              )
 
-            record
-            |> Ecto.Changeset.change(attempt_count: new_count)
-            |> Repo.update!()
+            case otp_record do
+              nil ->
+                {:error, :invalid_otp}
 
-            {:error, :invalid_otp, 3 - new_count}
+              %{attempt_count: attempts} when attempts >= 3 ->
+                {:error, :too_many_attempts}
+
+              record ->
+                hashed_input = :crypto.hash(:sha256, code)
+
+                if Plug.Crypto.secure_compare(hashed_input, record.hashed_code) do
+                  record
+                  |> Ecto.Changeset.change(used_at: now)
+                  |> Repo.update!()
+
+                  {user, needs_name} = find_or_create_phone_user(normalized)
+                  {token, _} = generate_api_token(user)
+                  {:ok, %{user: user, token: token, needs_name: needs_name}}
+                else
+                  new_count = record.attempt_count + 1
+
+                  record
+                  |> Ecto.Changeset.change(attempt_count: new_count)
+                  |> Repo.update!()
+
+                  {:error, :invalid_otp, 3 - new_count}
+                end
+            end
           end
+        end)
+
+      case result do
+        {:ok, {:ok, data}} -> {:ok, data}
+        {:ok, {:error, :invalid_otp}} -> {:error, :invalid_otp}
+        {:ok, {:error, :invalid_otp, remaining}} -> {:error, :invalid_otp, remaining}
+        {:ok, {:error, :too_many_attempts}} -> {:error, :too_many_attempts}
+        {:error, reason} -> {:error, reason}
       end
     end
   end
@@ -276,12 +309,20 @@ defmodule Moth.Auth do
         {user, false}
 
       nil ->
-        {:ok, user} =
-          %User{}
-          |> User.phone_registration_changeset(%{phone: phone, name: phone})
-          |> Repo.insert()
+        case %User{}
+             |> User.phone_registration_changeset(%{phone: phone, name: phone})
+             |> Repo.insert() do
+          {:ok, user} ->
+            {user, true}
 
-        {user, true}
+          {:error, %Ecto.Changeset{errors: errors}} ->
+            # Handle concurrent insert race — another request created this user first
+            if Keyword.has_key?(errors, :phone) do
+              {Repo.get_by!(User, phone: phone), false}
+            else
+              raise "Unexpected error creating phone user: #{inspect(errors)}"
+            end
+        end
     end
   end
 end

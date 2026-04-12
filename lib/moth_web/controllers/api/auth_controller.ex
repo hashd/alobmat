@@ -62,6 +62,12 @@ defmodule MothWeb.API.AuthController do
     end
   end
 
+  def request_otp(conn, _params) do
+    conn
+    |> put_status(422)
+    |> json(%{error: %{code: "invalid_phone", message: "Phone number is required"}})
+  end
+
   def verify_otp(conn, %{"phone" => phone, "code" => code}) do
     case Auth.verify_phone_otp(phone, code) do
       {:ok, %{user: user, token: token, needs_name: needs_name}} ->
@@ -87,6 +93,12 @@ defmodule MothWeb.API.AuthController do
         |> put_status(429)
         |> json(%{error: %{code: "too_many_attempts", message: "Too many wrong attempts. Please request a new code."}})
     end
+  end
+
+  def verify_otp(conn, _params) do
+    conn
+    |> put_status(422)
+    |> json(%{error: %{code: "invalid_request", message: "Phone and code are required"}})
   end
 
   if Application.compile_env(:moth, :dev_routes) do
