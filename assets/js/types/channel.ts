@@ -1,4 +1,4 @@
-import type { Board, GameSettings, Player, PrizeStatus, Ticket } from './domain'
+import type { Board, GameSettings, Player, PrizeProgress, PrizeStatus, Ticket } from './domain'
 
 // ── Initial join reply ────────────────────────────────────────────────────────
 export interface GameJoinReply {
@@ -9,7 +9,7 @@ export interface GameJoinReply {
   board: Board
   players: Player[]
   prizes: Record<string, PrizeStatus>
-  prize_progress: Record<string, Record<string, number>>
+  prize_progress: Record<string, Record<string, PrizeProgress>>
   my_tickets: Ticket[]
   my_struck: number[]
   host_id?: string

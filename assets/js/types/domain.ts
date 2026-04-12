@@ -39,6 +39,11 @@ export interface PrizeStatus {
   winner_id: string | null
 }
 
+export interface PrizeProgress {
+  struck: number
+  required: number
+}
+
 export type GameStatus = 'lobby' | 'running' | 'paused' | 'finished'
 export type Theme = 'light' | 'dark' | 'system'
 
