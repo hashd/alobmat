@@ -491,8 +491,7 @@ defmodule Moth.Game.Server do
   end
 
   defp sanitize_state(state) do
-    # Compute prize_progress while tickets/struck are still raw structs/MapSets
-    prize_progress = compute_prize_progress(state.tickets, state.struck, state.prizes)
+    prize_progress = compute_prize_progress(state.tickets, state.ticket_owners, state.struck, state.prizes)
 
     Map.from_struct(state)
     |> Map.drop([:timer_ref, :host_disconnect_ref, :chat_timestamps, :reaction_timestamps])
@@ -506,21 +505,25 @@ defmodule Moth.Game.Server do
       other -> other
     end)
     |> Map.update(:tickets, %{}, fn tickets ->
-      Map.new(tickets, fn
-        {k, %Ticket{} = t} -> {k, Ticket.to_map(t)}
-        {k, v} -> {k, v}
-      end)
+      Map.new(tickets, fn {k, %Ticket{} = t} -> {k, Ticket.to_map(t)} end)
     end)
   end
 
   defp stringify_prize_progress(progress) do
-    Map.new(progress, fn {user_id, prizes} ->
-      {user_id, Map.new(prizes, fn {prize, val} -> {to_string(prize), val} end)}
+    Map.new(progress, fn {ticket_id, prizes} ->
+      {ticket_id, Map.new(prizes, fn {prize, val} -> {to_string(prize), val} end)}
     end)
   end
 
-  defp compute_prize_progress(tickets, struck, prizes) do
-    Map.new(tickets, fn {user_id, ticket} ->
+  defp compute_prize_progress(tickets, ticket_owners, struck, prizes) do
+    owner_of =
+      Enum.flat_map(ticket_owners, fn {uid, ids} ->
+        Enum.map(ids, fn tid -> {tid, uid} end)
+      end)
+      |> Map.new()
+
+    Map.new(tickets, fn {ticket_id, ticket} ->
+      user_id = Map.get(owner_of, ticket_id)
       user_struck = Map.get(struck, user_id, MapSet.new())
 
       progress =
@@ -529,7 +532,7 @@ defmodule Moth.Game.Server do
           {prize_type, %{struck: struck_count, required: required}}
         end)
 
-      {user_id, progress}
+      {ticket_id, progress}
     end)
   end
 
