@@ -133,41 +133,43 @@ defmodule Moth.Game.Server do
   end
 
   def handle_call({:start_game, host_id}, _from, %{host_id: host_id, status: :lobby} = state) do
-    tickets =
-      state.players
-      |> Enum.reduce(state.tickets, fn player_id, acc ->
-        if Map.has_key?(acc, player_id) do
-          acc
-        else
-          Map.put(acc, player_id, hd(Ticket.generate_strip()))
-        end
+    # Trim each player's ticket_owners to their active count; remove inactive tickets
+    {trimmed_owners, active_ticket_ids} =
+      Enum.reduce(state.ticket_owners, {%{}, MapSet.new()}, fn {uid, ids}, {owners_acc, active_acc} ->
+        count = Map.get(state.player_ticket_counts, uid, 1)
+        active_ids = Enum.take(ids, count)
+        {Map.put(owners_acc, uid, active_ids), MapSet.union(active_acc, MapSet.new(active_ids))}
       end)
+
+    active_tickets = Map.filter(state.tickets, fn {id, _} -> MapSet.member?(active_ticket_ids, id) end)
 
     now = DateTime.utc_now() |> DateTime.truncate(:second)
     interval = Map.get(state.settings, :interval, 30)
     next_pick_at = DateTime.add(now, interval)
     timer_ref = schedule_pick(interval)
 
-    state = %{
-      state
-      | status: :running,
-        tickets: tickets,
-        started_at: now,
-        timer_ref: timer_ref,
-        next_pick_at: next_pick_at
+    new_state = %{state |
+      status: :running,
+      tickets: active_tickets,
+      ticket_owners: trimmed_owners,
+      started_at: now,
+      timer_ref: timer_ref,
+      next_pick_at: next_pick_at
     }
 
-    if state.id do
-      Enum.each(tickets, fn {player_id, ticket} ->
+    if new_state.id do
+      Enum.each(trimmed_owners, fn {player_id, ticket_ids} ->
+        tickets_maps = Enum.map(ticket_ids, fn tid -> Ticket.to_map(active_tickets[tid]) end)
         Moth.Repo.insert!(
-          %Moth.Game.Player{game_id: state.id, user_id: player_id, tickets: [Ticket.to_map(ticket)]},
-          on_conflict: :nothing
+          %Moth.Game.Player{game_id: new_state.id, user_id: player_id, tickets: tickets_maps},
+          on_conflict: [set: [tickets: tickets_maps]],
+          conflict_target: [:game_id, :user_id]
         )
       end)
     end
 
-    broadcast(state.code, :status, %{status: :running, started_at: now})
-    {:reply, :ok, state}
+    broadcast(new_state.code, :status, %{status: :running, started_at: now})
+    {:reply, :ok, new_state}
   end
 
   def handle_call({:start_game, _other_id}, _from, state) do
