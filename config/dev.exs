@@ -40,3 +40,5 @@ config :phoenix, :plug_init_mode, :runtime
 config :ueberauth, Ueberauth.Strategy.Google.OAuth,
   client_id: System.get_env("GOOGLE_CLIENT_ID"),
   client_secret: System.get_env("GOOGLE_CLIENT_SECRET")
+
+config :moth, :sms_provider, Moth.Auth.SMSProvider.Log

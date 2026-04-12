@@ -21,7 +21,6 @@ const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 const code = route.params.code as string
-import { api } from '@/api/client'
 
 const { gameStore, strike, claim, sendReaction, sendChat, onReaction, connect, claimRejection, joinError } = useChannel(code)
 const { secondsLeft, start: startCountdown } = useCountdown(() => gameStore.nextPickAt)
@@ -34,18 +33,7 @@ const numberCallRef = ref<InstanceType<typeof NumberCallOverlay> | null>(null)
 const boardOpen = ref(false)
 const activityOpen = ref(false)
 
-const isDev = import.meta.env.DEV
-
 onMounted(async () => {
-  if (!auth.isAuthenticated && isDev) {
-    try {
-      const { token, user } = await api.auth.devLogin()
-      auth.login(user, token)
-      connect()
-    } catch (e) {
-      console.warn('Dev login failed', e)
-    }
-  }
   startCountdown()
 })
 
