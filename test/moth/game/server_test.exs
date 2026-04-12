@@ -201,7 +201,9 @@ defmodule Moth.Game.ServerTest do
       Server.join(pid, player.id)
       Server.start_game(pid, host.id)
 
-      assert {:error, :bogey, 2} = Server.claim_prize(pid, player.id, :top_line)
+      state = Server.get_state(pid)
+      ticket_id = state.ticket_owners[player.id] |> List.first()
+      assert {:error, :bogey, 2} = Server.claim_prize(pid, player.id, ticket_id, :top_line)
     end
 
     test "already claimed prize returns :already_claimed, not bogey" do
@@ -216,8 +218,10 @@ defmodule Moth.Game.ServerTest do
       Server.join(pid, player.id)
       Server.start_game(pid, host.id)
 
-      {:error, :bogey, 0} = Server.claim_prize(pid, player.id, :top_line)
-      assert {:error, :disqualified} = Server.claim_prize(pid, player.id, :middle_line)
+      state = Server.get_state(pid)
+      ticket_id = state.ticket_owners[player.id] |> List.first()
+      {:error, :bogey, 0} = Server.claim_prize(pid, player.id, ticket_id, :top_line)
+      assert {:error, :disqualified} = Server.claim_prize(pid, player.id, ticket_id, :middle_line)
     end
   end
 
@@ -255,9 +259,13 @@ defmodule Moth.Game.ServerTest do
 
       Process.sleep(150)
 
+      state = Server.get_state(pid)
+      ticket_ids = Map.new(players, fn p -> {p.id, state.ticket_owners[p.id] |> List.first()} end)
+
       tasks =
         Enum.map(players, fn p ->
-          Task.async(fn -> Server.claim_prize(pid, p.id, :early_five) end)
+          ticket_id = ticket_ids[p.id]
+          Task.async(fn -> Server.claim_prize(pid, p.id, ticket_id, :early_five) end)
         end)
 
       results = Enum.map(tasks, &Task.await/1)
