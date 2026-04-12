@@ -30,8 +30,6 @@ export const api = {
       request<{ token: string }>('POST', '/auth/refresh'),
     logout: () =>
       request<void>('DELETE', '/auth/session'),
-    devLogin: (name?: string) =>
-      request<{ token: string; user: User }>('POST', '/auth/dev', { name }),
     requestOtp: (phone: string) =>
       request<{ status: string }>('POST', '/auth/otp/request', { phone }),
     verifyOtp: (phone: string, code: string) =>

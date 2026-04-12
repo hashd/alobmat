@@ -7,10 +7,6 @@ defmodule MothWeb.Router do
     plug :protect_from_forgery
     plug :put_secure_browser_headers
     plug MothWeb.Plugs.Auth
-
-    if Application.compile_env(:moth, :dev_routes) do
-      plug MothWeb.Plugs.DevAuth
-    end
   end
 
   pipeline :api do
@@ -40,9 +36,6 @@ defmodule MothWeb.Router do
     post "/auth/otp/request", AuthController, :request_otp
     post "/auth/otp/verify", AuthController, :verify_otp
 
-    if Application.compile_env(:moth, :dev_routes) do
-      post "/auth/dev", AuthController, :dev_login
-    end
   end
 
   # Mobile API (authenticated)

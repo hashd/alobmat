@@ -27,29 +27,16 @@ onMounted(async () => {
   }
 })
 
-const isDev = import.meta.env.DEV
-
-async function devAuthBypass(prefix: string) {
-  if (!auth.isAuthenticated && isDev) {
-    const randomName = `${prefix}_${Math.floor(Math.random() * 1000)}`
-    const { token, user } = await api.auth.devLogin(randomName)
-    auth.login(token, user)
-  }
-}
-
 async function joinGame() {
   if (!joinCode.value.trim()) return
-  await devAuthBypass('player')
   router.push(`/game/${joinCode.value.toUpperCase()}`)
 }
 
 async function createGame() {
-  await devAuthBypass('host')
   router.push('/game/new')
 }
 
 async function joinPublic(code: string) {
-  await devAuthBypass('player')
   router.push(`/game/${code}`)
 }
 </script>
@@ -135,8 +122,8 @@ async function joinPublic(code: string) {
 
       <!-- Navigation Links & Profile -->
       <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-4 w-full">
-        <template v-if="auth.isAuthenticated || isDev">
-          <button v-if="auth.isAuthenticated" @click="router.push('/profile')" class="flex-1 flex justify-center items-center gap-3 px-6 py-4 rounded-2xl bg-white/60 hover:bg-white/80 border border-white/60 hover:border-white shadow-[0_8px_20px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_20px_rgba(0,0,0,0.06)] transition-all text-slate-700 hover:text-slate-900 font-semibold backdrop-blur-md group relative overflow-hidden">
+        <template v-if="auth.isAuthenticated">
+          <button @click="router.push('/profile')" class="flex-1 flex justify-center items-center gap-3 px-6 py-4 rounded-2xl bg-white/60 hover:bg-white/80 border border-white/60 hover:border-white shadow-[0_8px_20px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_20px_rgba(0,0,0,0.06)] transition-all text-slate-700 hover:text-slate-900 font-semibold backdrop-blur-md group relative overflow-hidden">
             <svg class="w-5 h-5 text-slate-400 group-hover:text-indigo-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
@@ -146,7 +133,7 @@ async function joinPublic(code: string) {
             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
             </svg>
-            {{ isDev && !auth.isAuthenticated ? 'Dev: Create Match' : 'Create Match' }}
+            Create Match
           </button>
         </template>
         <template v-if="!auth.isAuthenticated">
