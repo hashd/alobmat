@@ -30,8 +30,8 @@ export const api = {
       request<{ token: string }>('POST', '/auth/refresh'),
     logout: () =>
       request<void>('DELETE', '/auth/session'),
-    devLogin: () =>
-      request<{ token: string; user: User }>('POST', '/auth/dev'),
+    devLogin: (name?: string) =>
+      request<{ token: string; user: User }>('POST', '/auth/dev', { name }),
   },
   user: {
     me: () => request<{ user: User }>('GET', '/user/me'),
@@ -39,14 +39,17 @@ export const api = {
   },
   games: {
     recent: () => request<{ games: RecentGame[] }>('GET', '/games'),
+    publicGames: () => request<{ games: RecentGame[] }>('GET', '/games/public'),
     get: (code: string) => request<{ game: unknown }>('GET', `/games/${code}`),
-    create: (attrs: { name: string; interval: number; bogey_limit: number; enabled_prizes: string[] }) =>
+    create: (attrs: { name: string; interval: number; bogey_limit: number; default_ticket_count?: number; enabled_prizes: string[], visibility: string, join_secret?: string }) =>
       request<{ code: string }>('POST', '/games', attrs),
-    join: (code: string) => request<{ ticket: unknown }>('POST', `/games/${code}/join`),
+    join: (code: string, secret?: string) => request<{ ticket: unknown }>('POST', `/games/${code}/join`, { secret }),
     start: (code: string) => request<void>('POST', `/games/${code}/start`),
     pause: (code: string) => request<void>('POST', `/games/${code}/pause`),
     resume: (code: string) => request<void>('POST', `/games/${code}/resume`),
     end: (code: string) => request<void>('POST', `/games/${code}/end`),
     clone: (code: string) => request<{ code: string }>('POST', `/games/${code}/clone`),
+    setTicketCount: (code: string, userId: string, count: number) =>
+      request<void>('PUT', `/games/${code}/players/${userId}/ticket_count`, { count }),
   },
 }
