@@ -10,16 +10,19 @@ export interface Player {
   name: string
   prizes_won: string[]
   bogeys: number
+  ticket_count?: number
 }
 
 export interface GameSettings {
   interval: number
   bogey_limit: number
+  default_ticket_count: number
   enabled_prizes: string[]
 }
 
 // Matches Ticket.to_map/1 — rows is 3x9 grid, null = blank cell
 export interface Ticket {
+  id: string
   rows: (number | null)[][]
   numbers: number[]
 }

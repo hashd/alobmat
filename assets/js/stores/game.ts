@@ -11,7 +11,7 @@ export const useGameStore = defineStore('game', () => {
   const name = ref('')
   const hostId = ref<string | null>(null)
   const status = ref<string>('lobby')
-  const settings = ref<GameSettings>({ interval: 30, bogey_limit: 3, enabled_prizes: [] })
+  const settings = ref<GameSettings>({ interval: 30, bogey_limit: 3, default_ticket_count: 1, enabled_prizes: [] })
   const board = ref<Board>({ picks: [], count: 0, finished: false })
   const myTicket = ref<Ticket | null>(null)
   const myStruck = ref<Set<number>>(new Set())
@@ -31,7 +31,7 @@ export const useGameStore = defineStore('game', () => {
     status.value = reply.status
     settings.value = reply.settings
     board.value = reply.board
-    myTicket.value = reply.my_ticket
+    myTicket.value = reply.my_tickets?.[0] ?? null
     myStruck.value = new Set(reply.my_struck)
     players.value = reply.players
     prizes.value = reply.prizes

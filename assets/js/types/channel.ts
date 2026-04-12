@@ -10,7 +10,7 @@ export interface GameJoinReply {
   players: Player[]
   prizes: Record<string, PrizeStatus>
   prize_progress: Record<string, Record<string, number>>
-  my_ticket: Ticket | null
+  my_tickets: Ticket[]
   my_struck: number[]
   host_id?: string
 }
@@ -70,6 +70,16 @@ export interface PlayerLeftEvent {
   user_id: string
 }
 
+export interface TicketCountUpdatedEvent {
+  user_id: string
+  count: number
+}
+
+export interface PlayerTicketsUpdatedEvent {
+  user_id: string
+  tickets: Ticket[]
+}
+
 export interface PresenceMeta {
   name: string
   online_at: string
@@ -82,6 +92,6 @@ export interface PresenceDiff {
 
 // ── Client → Server messages ──────────────────────────────────────────────────
 export interface StrikeMessage { number: number }
-export interface ClaimMessage { prize: string }
+export interface ClaimMessage { prize: string; ticket_id: string }
 export interface ReactionMessage { emoji: string }
 export interface ChatMessage { text: string }
