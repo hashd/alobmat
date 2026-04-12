@@ -12,6 +12,9 @@ const name = ref('')
 const interval = ref(30)
 const bogeyLimit = ref(3)
 const enabledPrizes = ref(['early_five', 'top_line', 'middle_line', 'bottom_line', 'full_house'])
+const defaultTicketCount = ref(1)
+const visibility = ref<'public' | 'private'>('public')
+const joinSecret = ref('')
 const loading = ref(false)
 const error = ref('')
 
@@ -37,7 +40,10 @@ async function create() {
       name: name.value || 'Tambola',
       interval: interval.value,
       bogey_limit: bogeyLimit.value,
+      default_ticket_count: defaultTicketCount.value,
       enabled_prizes: enabledPrizes.value,
+      visibility: visibility.value,
+      join_secret: visibility.value === 'private' ? joinSecret.value : undefined,
     })
     router.push(`/game/${code}/host`)
   } catch (e: any) {
@@ -57,9 +63,18 @@ async function create() {
       <InputField v-model="name" label="Game name" placeholder="Tambola Night" />
 
       <Card>
+        <h3 class="mb-3 text-sm font-semibold">Visibility</h3>
+        <div class="flex gap-2 mb-4">
+          <Button type="button" :variant="visibility === 'public' ? 'primary' : 'secondary'" @click="visibility = 'public'" class="flex-1">Public</Button>
+          <Button type="button" :variant="visibility === 'private' ? 'primary' : 'secondary'" @click="visibility = 'private'" class="flex-1">Private</Button>
+        </div>
+        <InputField v-if="visibility === 'private'" v-model="joinSecret" label="Join Secret" placeholder="Enter a secret code" type="password" />
+      </Card>
+
+      <Card>
         <h3 class="mb-3 text-sm font-semibold">Pick interval</h3>
         <div class="flex gap-2">
-          <Button v-for="s in [15,30,60]" :key="s" type="button" :variant="interval === s ? 'primary' : 'secondary'" @click="interval = s">{{ s }}s</Button>
+          <Button v-for="s in [5,15,30,60]" :key="s" type="button" :variant="interval === s ? 'primary' : 'secondary'" @click="interval = s">{{ s }}s</Button>
         </div>
       </Card>
 
@@ -67,6 +82,13 @@ async function create() {
         <h3 class="mb-3 text-sm font-semibold">Bogey limit</h3>
         <div class="flex gap-2">
           <Button v-for="b in [1,2,3,5]" :key="b" type="button" :variant="bogeyLimit === b ? 'primary' : 'secondary'" @click="bogeyLimit = b">{{ b }}</Button>
+        </div>
+      </Card>
+
+      <Card>
+        <h3 class="mb-3 text-sm font-semibold">Tickets per player</h3>
+        <div class="flex gap-2">
+          <Button v-for="n in [1,2,3,4,5,6]" :key="n" type="button" :variant="defaultTicketCount === n ? 'primary' : 'secondary'" @click="defaultTicketCount = n">{{ n }}</Button>
         </div>
       </Card>
 
