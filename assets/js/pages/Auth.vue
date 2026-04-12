@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { api } from '@/api/client'
@@ -33,6 +33,13 @@ const phoneLoading = ref(false)
 const phoneError = ref('')
 const resendCooldown = ref(0)
 let resendTimer: ReturnType<typeof setInterval> | null = null
+
+onUnmounted(() => {
+  if (resendTimer) {
+    clearInterval(resendTimer)
+    resendTimer = null
+  }
+})
 
 // Handle OAuth callback: /#/auth/callback?token=<t>
 onMounted(async () => {
