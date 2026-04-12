@@ -64,6 +64,7 @@ export interface ReactionEvent {
 export interface PlayerJoinedEvent {
   user_id: string
   name: string
+  ticket_count?: number
 }
 
 export interface PlayerLeftEvent {

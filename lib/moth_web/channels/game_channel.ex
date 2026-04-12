@@ -23,12 +23,14 @@ defmodule MothWeb.GameChannel do
             :ok = Phoenix.PubSub.subscribe(Moth.PubSub, "game:#{code}:presence")
             send(self(), {:after_join, code})
 
-        # Enrich players with names, prizes_won, and bogeys
+        # Enrich players with names, ticket_count, prizes_won, and bogeys
         user_names = Moth.Auth.get_users_map(state.players)
+        default_tc = Map.get(state.settings, :default_ticket_count, 1)
         players = Enum.map(state.players, fn uid ->
           %{
             user_id: uid,
             name: Map.get(user_names, uid, "Unknown"),
+            ticket_count: Map.get(state.player_ticket_counts, uid, default_tc),
             prizes_won: state.prizes
               |> Enum.filter(fn {_p, winner} -> winner == uid end)
               |> Enum.map(fn {p, _} -> to_string(p) end),
@@ -39,7 +41,8 @@ defmodule MothWeb.GameChannel do
         # state is already sanitized: board is a map, players is a list,
         # tickets and struck are already converted, prize_progress is computed
         my_ticket_ids = Map.get(state.ticket_owners, current_user.id, [])
-        my_tickets = Enum.map(my_ticket_ids, fn id -> state.tickets[id] end) |> Enum.reject(&is_nil/1)
+        active_count = Map.get(state.player_ticket_counts, current_user.id, default_tc)
+        my_tickets = my_ticket_ids |> Enum.take(active_count) |> Enum.map(fn id -> state.tickets[id] end) |> Enum.reject(&is_nil/1)
         my_struck = get_in(state, [:struck, current_user.id]) || []
 
         reply = %{
@@ -109,7 +112,16 @@ defmodule MothWeb.GameChannel do
   end
 
   def handle_info({:player_joined, payload}, socket) do
-    push(socket, "player_joined", %{user_id: payload.user_id, name: Map.get(payload, :name)})
+    user_id = payload.user_id
+    name = case Moth.Auth.get_users_map([user_id]) do
+      %{^user_id => n} -> n
+      _ -> "Unknown"
+    end
+    push(socket, "player_joined", %{
+      user_id: user_id,
+      name: name,
+      ticket_count: Map.get(payload, :ticket_count, 1)
+    })
     {:noreply, socket}
   end
 

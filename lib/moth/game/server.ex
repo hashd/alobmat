@@ -126,7 +126,7 @@ defmodule Moth.Game.Server do
           )
         end
 
-        broadcast(new_state.code, :player_joined, %{user_id: user_id})
+        broadcast(new_state.code, :player_joined, %{user_id: user_id, ticket_count: default_count})
         {:reply, {:ok, Enum.take(strip, default_count)}, new_state}
       end
     end

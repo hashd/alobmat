@@ -75,7 +75,7 @@ export const useGameStore = defineStore('game', () => {
 
   function onPlayerJoined(event: PlayerJoinedEvent) {
     if (!players.value.find(p => p.user_id === event.user_id)) {
-      players.value.push({ user_id: event.user_id, name: event.name, prizes_won: [], bogeys: 0 })
+      players.value.push({ user_id: event.user_id, name: event.name, ticket_count: event.ticket_count, prizes_won: [], bogeys: 0 })
     }
   }
 
