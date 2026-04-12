@@ -1,8 +1,8 @@
 defmodule Moth.AuthTest do
-  use Moth.DataCase, async: true
+  use Moth.DataCase, async: false
 
   alias Moth.Auth
-  alias Moth.Auth.{User, UserToken}
+  alias Moth.Auth.{User, UserToken, PhoneOtpCode}
 
   import Moth.AuthFixtures
 
@@ -92,6 +92,120 @@ defmodule Moth.AuthTest do
 
       assert Auth.get_user_by_session_token(session_token) == nil
       assert Auth.get_user_by_api_token(api_token) == :error
+    end
+  end
+
+  describe "request_phone_otp/1" do
+    test "creates OTP record and returns :ok" do
+      assert :ok = Auth.request_phone_otp("+919876543210")
+      assert_received {:otp_sent, "+919876543210", code}
+      assert String.length(code) == 6
+      assert String.match?(code, ~r/^\d{6}$/)
+    end
+
+    test "invalidates previous unexpired OTPs on resend" do
+      assert :ok = Auth.request_phone_otp("+919876543210")
+      assert :ok = Auth.request_phone_otp("+919876543210")
+
+      # Only one active (unused) OTP should exist
+      active =
+        Repo.all(
+          from o in PhoneOtpCode,
+            where: o.phone == "+919876543210" and is_nil(o.used_at)
+        )
+
+      assert length(active) == 1
+    end
+
+    test "rate-limits at 3 requests per 10 minutes" do
+      phone = "+919876543210"
+      assert :ok = Auth.request_phone_otp(phone)
+      assert :ok = Auth.request_phone_otp(phone)
+      assert :ok = Auth.request_phone_otp(phone)
+      assert {:error, :rate_limited} = Auth.request_phone_otp(phone)
+    end
+
+    test "returns :ok even for unknown phones (anti-enumeration)" do
+      assert :ok = Auth.request_phone_otp("+919999999999")
+    end
+  end
+
+  describe "verify_phone_otp/2" do
+    test "correct code for new phone creates user and returns needs_name: true" do
+      phone = "+919876543210"
+      :ok = Auth.request_phone_otp(phone)
+      assert_received {:otp_sent, ^phone, code}
+
+      assert {:ok, %{user: user, token: token, needs_name: true}} =
+               Auth.verify_phone_otp(phone, code)
+
+      assert user.phone == phone
+      assert user.name == phone
+      assert is_binary(token)
+    end
+
+    test "correct code for existing phone user returns needs_name: false" do
+      phone = "+919876543210"
+
+      {:ok, existing} =
+        %User{}
+        |> User.phone_registration_changeset(%{phone: phone, name: "Priya"})
+        |> Repo.insert()
+
+      :ok = Auth.request_phone_otp(phone)
+      assert_received {:otp_sent, ^phone, code}
+
+      assert {:ok, %{user: user, token: _token, needs_name: false}} =
+               Auth.verify_phone_otp(phone, code)
+
+      assert user.id == existing.id
+    end
+
+    test "wrong code returns error with attempts_remaining" do
+      phone = "+919876543210"
+      :ok = Auth.request_phone_otp(phone)
+      assert_received {:otp_sent, ^phone, _code}
+
+      assert {:error, :invalid_otp, 2} = Auth.verify_phone_otp(phone, "000000")
+      assert {:error, :invalid_otp, 1} = Auth.verify_phone_otp(phone, "000000")
+      assert {:error, :invalid_otp, 0} = Auth.verify_phone_otp(phone, "000000")
+    end
+
+    test "exhausted attempts returns too_many_attempts" do
+      phone = "+919876543210"
+      :ok = Auth.request_phone_otp(phone)
+      assert_received {:otp_sent, ^phone, code}
+
+      # Exhaust 3 attempts
+      Auth.verify_phone_otp(phone, "000000")
+      Auth.verify_phone_otp(phone, "000000")
+      Auth.verify_phone_otp(phone, "000000")
+
+      # 4th attempt with correct code still fails
+      assert {:error, :too_many_attempts} = Auth.verify_phone_otp(phone, code)
+    end
+
+    test "expired OTP returns invalid_otp" do
+      phone = "+919876543210"
+      :ok = Auth.request_phone_otp(phone)
+      assert_received {:otp_sent, ^phone, code}
+
+      # Manually expire the OTP
+      Repo.update_all(
+        from(o in PhoneOtpCode, where: o.phone == ^phone),
+        set: [expires_at: DateTime.add(DateTime.utc_now(), -1)]
+      )
+
+      assert {:error, :invalid_otp} = Auth.verify_phone_otp(phone, code)
+    end
+
+    test "already-used OTP returns invalid_otp" do
+      phone = "+919876543210"
+      :ok = Auth.request_phone_otp(phone)
+      assert_received {:otp_sent, ^phone, code}
+
+      assert {:ok, _} = Auth.verify_phone_otp(phone, code)
+      assert {:error, :invalid_otp} = Auth.verify_phone_otp(phone, code)
     end
   end
 end

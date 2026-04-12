@@ -4,6 +4,7 @@ defmodule Moth.Auth do
   import Ecto.Query
   alias Moth.Repo
   alias Moth.Auth.{User, UserIdentity, UserToken}
+  alias Moth.Auth.{Phone, PhoneOtpCode}
 
   ## User management
 
@@ -162,5 +163,125 @@ defmodule Moth.Auth do
     |> List.first()
     |> String.replace(~r/[._]/, " ")
     |> String.capitalize()
+  end
+
+  ## Phone OTP
+
+  @otp_expiry_seconds 600
+  @otp_rate_limit 3
+
+  def request_phone_otp(phone) do
+    with {:ok, normalized} <- Phone.normalize(phone) do
+      now = DateTime.utc_now() |> DateTime.truncate(:second)
+
+      # Invalidate old unexpired OTPs for this phone
+      from(o in PhoneOtpCode,
+        where: o.phone == ^normalized and is_nil(o.used_at) and o.expires_at > ^now
+      )
+      |> Repo.update_all(set: [used_at: now])
+
+      # Rate-limit: count OTPs inserted in last 10 minutes
+      ten_min_ago = DateTime.add(now, -@otp_expiry_seconds)
+
+      count =
+        Repo.one(
+          from o in PhoneOtpCode,
+            where: o.phone == ^normalized and o.inserted_at > ^ten_min_ago,
+            select: count(o.id)
+        )
+
+      if count >= @otp_rate_limit do
+        {:error, :rate_limited}
+      else
+        code = generate_otp_code()
+        hashed = :crypto.hash(:sha256, code)
+        expires_at = DateTime.add(now, @otp_expiry_seconds)
+
+        %PhoneOtpCode{}
+        |> PhoneOtpCode.changeset(%{
+          phone: normalized,
+          hashed_code: hashed,
+          expires_at: expires_at
+        })
+        |> Repo.insert!()
+
+        case Moth.Auth.SMSProvider.deliver_otp(normalized, code) do
+          :ok -> :ok
+          {:error, _reason} -> {:error, :sms_delivery_failed}
+        end
+      end
+    end
+  end
+
+  defp generate_otp_code do
+    :crypto.strong_rand_bytes(4)
+    |> :binary.decode_unsigned()
+    |> rem(900_000)
+    |> Kernel.+(100_000)
+    |> Integer.to_string()
+  end
+
+  def verify_phone_otp(phone, code) do
+    with {:ok, normalized} <- Phone.normalize(phone) do
+      now = DateTime.utc_now() |> DateTime.truncate(:second)
+
+      # Find the most recent active OTP row
+      otp_record =
+        Repo.one(
+          from(o in PhoneOtpCode,
+            where: o.phone == ^normalized and o.expires_at > ^now and is_nil(o.used_at),
+            order_by: [desc: o.inserted_at],
+            limit: 1
+          )
+        )
+
+      case otp_record do
+        nil ->
+          {:error, :invalid_otp}
+
+        %{attempt_count: attempts} when attempts >= 3 ->
+          {:error, :too_many_attempts}
+
+        record ->
+          hashed_input = :crypto.hash(:sha256, code)
+
+          if hashed_input == record.hashed_code do
+            # Mark as used, create user, generate token — all in one transaction
+            Repo.transaction(fn ->
+              record
+              |> Ecto.Changeset.change(used_at: now)
+              |> Repo.update!()
+
+              {user, needs_name} = find_or_create_phone_user(normalized)
+              {token, _} = generate_api_token(user)
+              %{user: user, token: token, needs_name: needs_name}
+            end)
+          else
+            # Increment attempt count (must persist, so no rollback)
+            new_count = record.attempt_count + 1
+
+            record
+            |> Ecto.Changeset.change(attempt_count: new_count)
+            |> Repo.update!()
+
+            {:error, :invalid_otp, 3 - new_count}
+          end
+      end
+    end
+  end
+
+  defp find_or_create_phone_user(phone) do
+    case Repo.get_by(User, phone: phone) do
+      %User{} = user ->
+        {user, false}
+
+      nil ->
+        {:ok, user} =
+          %User{}
+          |> User.phone_registration_changeset(%{phone: phone, name: phone})
+          |> Repo.insert()
+
+        {user, true}
+    end
   end
 end
