@@ -21,6 +21,8 @@ defmodule Moth.Game.Server do
     status: :lobby,
     board: nil,
     tickets: %{},
+    ticket_owners: %{},
+    player_ticket_counts: %{},
     players: MapSet.new(),
     struck: %{},
     prizes: %{},
@@ -42,7 +44,8 @@ defmodule Moth.Game.Server do
   def pause(pid, host_id), do: GenServer.call(pid, {:pause, host_id})
   def resume(pid, host_id), do: GenServer.call(pid, {:resume, host_id})
   def end_game(pid, host_id), do: GenServer.call(pid, {:end_game, host_id})
-  def claim_prize(pid, user_id, prize), do: GenServer.call(pid, {:claim, user_id, prize})
+  def claim_prize(pid, user_id, ticket_id, prize), do: GenServer.call(pid, {:claim, user_id, ticket_id, prize})
+  def set_ticket_count(pid, host_id, user_id, count), do: GenServer.call(pid, {:set_ticket_count, host_id, user_id, count})
   def strike_out(pid, user_id, number), do: GenServer.call(pid, {:strike_out, user_id, number})
   def strike_out_async(pid, user_id, number), do: GenServer.cast(pid, {:strike_out, user_id, number})
   def send_chat(pid, user_id, text), do: GenServer.call(pid, {:chat, user_id, text})
@@ -96,25 +99,37 @@ defmodule Moth.Game.Server do
     if visibility == "private" and user_id != state.host_id and secret != join_secret do
       {:reply, {:error, :invalid_secret}, state}
     else
-      if Map.has_key?(state.tickets, user_id) do
-        {:reply, {:ok, state.tickets[user_id]}, state}
+      if Map.has_key?(state.ticket_owners, user_id) do
+        # Rejoin: return currently active tickets
+        count = Map.get(state.player_ticket_counts, user_id, 1)
+        active_ids = Enum.take(state.ticket_owners[user_id], count)
+        active_tickets = Enum.map(active_ids, fn tid -> state.tickets[tid] end)
+        {:reply, {:ok, active_tickets}, state}
       else
-        state = %{state | players: MapSet.put(state.players, user_id)}
-        
-        ticket = hd(Ticket.generate_strip())
-        state = %{state | tickets: Map.put(state.tickets, user_id, ticket)}
+        default_count = Map.get(state.settings, :default_ticket_count, 1)
+        strip = Ticket.generate_strip()
+        ticket_ids = Enum.map(strip, & &1.id)
+        new_tickets = Map.merge(state.tickets, Map.new(strip, fn t -> {t.id, t} end))
 
-        if state.id && ticket do
-        Moth.Repo.insert!(
-          %Moth.Game.Player{game_id: state.id, user_id: user_id, tickets: [Ticket.to_map(ticket)]},
-          on_conflict: :nothing
-        )
+        new_state = %{state |
+          players: MapSet.put(state.players, user_id),
+          tickets: new_tickets,
+          ticket_owners: Map.put(state.ticket_owners, user_id, ticket_ids),
+          player_ticket_counts: Map.put(state.player_ticket_counts, user_id, default_count)
+        }
+
+        if new_state.id do
+          active_maps = strip |> Enum.take(default_count) |> Enum.map(&Ticket.to_map/1)
+          Moth.Repo.insert!(
+            %Moth.Game.Player{game_id: new_state.id, user_id: user_id, tickets: active_maps},
+            on_conflict: :nothing
+          )
+        end
+
+        broadcast(new_state.code, :player_joined, %{user_id: user_id})
+        {:reply, {:ok, Enum.take(strip, default_count)}, new_state}
       end
-
-      broadcast(state.code, :player_joined, %{user_id: user_id})
-      {:reply, {:ok, ticket}, state}
     end
-  end
   end
 
   def handle_call({:start_game, host_id}, _from, %{host_id: host_id, status: :lobby} = state) do
