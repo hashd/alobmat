@@ -16,8 +16,9 @@ describe('gameStore', () => {
   it('onPick triggers auto-strike for numbers on my ticket', () => {
     const store = useGameStore()
     store.board = { picks: [], count: 0, finished: false }
-    store.myTicket = { id: 'test-ticket', rows: [], numbers: [42] }
+    store.myTickets = [{ id: 'test-ticket', rows: [], numbers: [42] }]
     store.myStruck = new Set()
+    store.autoStrikeEnabled = true
     const struck: number[] = []
     store.onPick({ number: 42, count: 1, next_pick_at: '', server_now: '' }, (n) => struck.push(n))
     expect(struck).toContain(42)

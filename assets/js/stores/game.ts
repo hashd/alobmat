@@ -3,7 +3,8 @@ import { ref } from 'vue'
 import type { Board, GameSettings, Player, PrizeStatus, Ticket } from '@/types/domain'
 import type {
   GameJoinReply, NumberPickedEvent, GameStatusEvent, PrizeClaimedEvent,
-  BogeyEvent, PlayerJoinedEvent, PlayerLeftEvent, StrikeResultEvent
+  BogeyEvent, PlayerJoinedEvent, PlayerLeftEvent, StrikeResultEvent,
+  TicketCountUpdatedEvent, PlayerTicketsUpdatedEvent
 } from '@/types/channel'
 
 export const useGameStore = defineStore('game', () => {
@@ -13,7 +14,7 @@ export const useGameStore = defineStore('game', () => {
   const status = ref<string>('lobby')
   const settings = ref<GameSettings>({ interval: 30, bogey_limit: 3, default_ticket_count: 1, enabled_prizes: [] })
   const board = ref<Board>({ picks: [], count: 0, finished: false })
-  const myTicket = ref<Ticket | null>(null)
+  const myTickets = ref<Ticket[]>([])
   const myStruck = ref<Set<number>>(new Set())
   const players = ref<Player[]>([])
   const prizes = ref<Record<string, PrizeStatus>>({})
@@ -31,7 +32,7 @@ export const useGameStore = defineStore('game', () => {
     status.value = reply.status
     settings.value = reply.settings
     board.value = reply.board
-    myTicket.value = reply.my_tickets?.[0] ?? null
+    myTickets.value = reply.my_tickets ?? []
     myStruck.value = new Set(reply.my_struck)
     players.value = reply.players
     prizes.value = reply.prizes
@@ -48,8 +49,9 @@ export const useGameStore = defineStore('game', () => {
     }
     nextPickAt.value = event.next_pick_at
 
-    // Auto-strike if number is on my ticket and not yet struck and auto-strike is enabled
-    if (autoStrikeEnabled.value && myTicket.value?.numbers.includes(event.number) && !myStruck.value.has(event.number)) {
+    // Auto-strike if number is on any of my tickets and not yet struck and auto-strike is enabled
+    const onMyTicket = myTickets.value.some(t => t.numbers.includes(event.number))
+    if (autoStrikeEnabled.value && onMyTicket && !myStruck.value.has(event.number)) {
       autoStrike?.(event.number)
     }
   }
@@ -87,12 +89,23 @@ export const useGameStore = defineStore('game', () => {
     }
   }
 
+  function onTicketCountUpdated(event: TicketCountUpdatedEvent) {
+    const player = players.value.find(p => p.user_id === event.user_id)
+    if (player) {
+      player.ticket_count = event.count
+    }
+  }
+
+  function onMyTicketsUpdated(event: PlayerTicketsUpdatedEvent) {
+    myTickets.value = event.tickets
+  }
+
   function reset() {
     code.value = ''
     hostId.value = null
     status.value = 'lobby'
     board.value = { picks: [], count: 0, finished: false }
-    myTicket.value = null
+    myTickets.value = []
     myStruck.value = new Set()
     players.value = []
     prizes.value = {}
@@ -102,9 +115,10 @@ export const useGameStore = defineStore('game', () => {
   }
 
   return {
-    code, name, hostId, status, settings, board, myTicket, myStruck,
+    code, name, hostId, status, settings, board, myTickets, myStruck,
     players, prizes, prizeProgress, nextPickAt, channelConnected, hydrated,
     autoStrikeEnabled, hydrate, onPick, onStatusChange, onPrizeClaimed, onBogey,
-    onPlayerJoined, onPlayerLeft, onStrikeConfirmed, reset,
+    onPlayerJoined, onPlayerLeft, onStrikeConfirmed, onTicketCountUpdated,
+    onMyTicketsUpdated, reset,
   }
 })

@@ -3,6 +3,7 @@ import { mount } from '@vue/test-utils'
 import TicketGrid from '@/components/game/TicketGrid.vue'
 
 const ticket = {
+  id: 'test-ticket',
   rows: [[1, null, 20, null, 30, null, 40, null, 90], [5, null, 15, null, 35, null, 50, null, 80], [8, null, 19, null, 38, null, 60, null, 85]],
   numbers: [1, 5, 8, 15, 19, 20, 30, 35, 38, 40, 50, 60, 80, 85, 90]
 }
@@ -15,8 +16,8 @@ describe('TicketGrid', () => {
   })
 
   it('emits strike on number click', async () => {
-    const wrapper = mount(TicketGrid, { props: { ticket, struck: new Set(), pickedNumbers: [], interactive: true } })
-    await wrapper.find('[data-number]').trigger('click')
+    const wrapper = mount(TicketGrid, { props: { ticket, struck: new Set(), pickedNumbers: [1], interactive: true } })
+    await wrapper.find('[data-number="1"]').trigger('click')
     expect(wrapper.emitted('strike')).toBeTruthy()
   })
 
