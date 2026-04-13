@@ -23,40 +23,71 @@ defmodule MochaWeb.API.GameController do
 
   def create(conn, params) do
     user = conn.assigns.current_user
+    name = (is_binary(params["name"]) && params["name"]) || "Untitled"
+    visibility = params["visibility"] || "public"
 
-    valid_prizes = ~w(early_five top_line middle_line bottom_line full_house)
-    enabled_prizes = case params["enabled_prizes"] do
-      list when is_list(list) ->
-        list
-        |> Enum.filter(&(&1 in valid_prizes))
-        |> Enum.map(&String.to_existing_atom/1)
-      _ ->
-        [:early_five, :top_line, :middle_line, :bottom_line, :full_house]
-    end
+    cond do
+      byte_size(name) > 100 ->
+        conn |> put_status(422) |> json(%{error: %{code: "invalid_name", message: "Name must be under 100 characters"}})
 
-    settings = %{
-      interval: params["interval"] || 30,
-      bogey_limit: params["bogey_limit"] || 3,
-      enabled_prizes: enabled_prizes,
-      visibility: params["visibility"] || "public",
-      join_secret: params["join_secret"]
-    }
+      visibility not in ["public", "private"] ->
+        conn |> put_status(422) |> json(%{error: %{code: "invalid_visibility", message: "Visibility must be public or private"}})
 
-    case Game.create_game(user.id, %{name: params["name"] || "Untitled", settings: settings}) do
-      {:ok, code} ->
-        conn |> put_status(201) |> json(%{code: code})
+      visibility == "private" and (not is_binary(params["join_secret"]) or String.trim(params["join_secret"]) == "") ->
+        conn |> put_status(422) |> json(%{error: %{code: "missing_secret", message: "Private games require a join secret"}})
 
-      {:error, reason} ->
-        conn
-        |> put_status(422)
-        |> json(%{error: %{code: "create_failed", message: inspect(reason)}})
+      true ->
+        valid_prizes = ~w(early_five top_line middle_line bottom_line full_house)
+        enabled_prizes = case params["enabled_prizes"] do
+          list when is_list(list) ->
+            list
+            |> Enum.filter(&(&1 in valid_prizes))
+            |> Enum.map(&String.to_existing_atom/1)
+          _ ->
+            [:early_five, :top_line, :middle_line, :bottom_line, :full_house]
+        end
+
+        settings = %{
+          interval: params["interval"] || 30,
+          bogey_limit: params["bogey_limit"] || 3,
+          enabled_prizes: enabled_prizes,
+          visibility: visibility,
+          join_secret: params["join_secret"]
+        }
+
+        case Game.create_game(user.id, %{name: name, settings: settings}) do
+          {:ok, code} ->
+            conn |> put_status(201) |> json(%{code: code})
+
+          {:error, _reason} ->
+            conn
+            |> put_status(422)
+            |> json(%{error: %{code: "create_failed", message: "Could not create game"}})
+        end
     end
   end
 
   def show(conn, %{"code" => code}) do
+    user_id = conn.assigns.current_user.id
+
     case Game.game_state(String.upcase(code)) do
       {:ok, state} ->
-        json(conn, %{game: state})
+        # Filter: only return the requesting user's tickets, struck, and prize progress
+        my_ticket_ids = Map.get(state.ticket_owners, user_id, [])
+        my_tickets = Map.take(state.tickets, my_ticket_ids)
+        my_struck = case Map.get(state.struck, user_id) do
+          nil -> %{}
+          s -> %{user_id => s}
+        end
+        my_progress = Map.take(state.prize_progress || %{}, my_ticket_ids)
+
+        filtered = state
+          |> Map.put(:tickets, my_tickets)
+          |> Map.put(:struck, my_struck)
+          |> Map.put(:prize_progress, my_progress)
+          |> Map.drop([:ticket_owners, :player_ticket_counts])
+
+        json(conn, %{game: filtered})
 
       {:error, :game_not_found} ->
         conn |> put_status(404) |> json(%{error: %{code: "not_found", message: "Game not found"}})

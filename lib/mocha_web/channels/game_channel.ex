@@ -159,7 +159,10 @@ defmodule MochaWeb.GameChannel do
   end
 
   def handle_info({:player_tickets_updated, payload}, socket) do
-    push(socket, "player_tickets_updated", %{user_id: payload.user_id, tickets: payload.tickets})
+    # Only send ticket data to the player who owns them — prevent other players from seeing tickets
+    if payload.user_id == socket.assigns.current_user.id do
+      push(socket, "player_tickets_updated", %{user_id: payload.user_id, tickets: payload.tickets})
+    end
     {:noreply, socket}
   end
 

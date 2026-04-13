@@ -9,6 +9,10 @@ defmodule Mocha.Game.Server do
 
   alias Mocha.Game.{Board, Ticket, Prize}
 
+  @max_chat_length 500
+  @max_players_per_game 100
+  @allowed_emojis ~w(👏 🎉 😂 😮 😢 ❤️ 🔥 👍 👎 🤔)
+
   defstruct [
     :id,
     :code,
@@ -64,6 +68,10 @@ defmodule Mocha.Game.Server do
       }) do
     Registry.register(Mocha.Game.Registry, code, %{
       name: name,
+      host_id: host_id,
+      visibility: Map.get(settings, :visibility, "public"),
+      status: :lobby,
+      player_count: 0,
       started_at: System.monotonic_time(:millisecond)
     })
 
@@ -96,16 +104,21 @@ defmodule Mocha.Game.Server do
     visibility = Map.get(state.settings, :visibility) || Map.get(state.settings, "visibility", "public")
     join_secret = Map.get(state.settings, :join_secret) || Map.get(state.settings, "join_secret")
 
-    if visibility == "private" and user_id != state.host_id and secret != join_secret do
-      {:reply, {:error, :invalid_secret}, state}
-    else
-      if Map.has_key?(state.ticket_owners, user_id) do
+    cond do
+      visibility == "private" and user_id != state.host_id and secret != join_secret ->
+        {:reply, {:error, :invalid_secret}, state}
+
+      MapSet.size(state.players) >= @max_players_per_game and not MapSet.member?(state.players, user_id) ->
+        {:reply, {:error, :game_full}, state}
+
+      Map.has_key?(state.ticket_owners, user_id) ->
         # Rejoin: return currently active tickets
         count = Map.get(state.player_ticket_counts, user_id, 1)
         active_ids = Enum.take(state.ticket_owners[user_id], count)
         active_tickets = Enum.map(active_ids, fn tid -> state.tickets[tid] end)
         {:reply, {:ok, active_tickets}, state}
-      else
+
+      true ->
         default_count = Map.get(state.settings, :default_ticket_count, 1)
         strip = Ticket.generate_strip()
         ticket_ids = Enum.map(strip, & &1.id)
@@ -126,9 +139,9 @@ defmodule Mocha.Game.Server do
           )
         end
 
+        update_registry(new_state.code, %{player_count: MapSet.size(new_state.players)})
         broadcast(new_state.code, :player_joined, %{user_id: user_id, ticket_count: default_count})
         {:reply, {:ok, Enum.take(strip, default_count)}, new_state}
-      end
     end
   end
 
@@ -168,6 +181,7 @@ defmodule Mocha.Game.Server do
       end)
     end
 
+    update_registry(new_state.code, %{status: :running})
     broadcast(new_state.code, :status, %{status: :running, started_at: now})
     {:reply, :ok, new_state}
   end
@@ -203,6 +217,7 @@ defmodule Mocha.Game.Server do
   def handle_call({:pause, host_id}, _from, %{host_id: host_id, status: :running} = state) do
     cancel_timer(state.timer_ref)
     state = %{state | status: :paused, timer_ref: nil}
+    update_registry(state.code, %{status: :paused})
     broadcast(state.code, :status, %{status: :paused, by: host_id})
     {:reply, :ok, state}
   end
@@ -224,6 +239,7 @@ defmodule Mocha.Game.Server do
         host_disconnect_ref: cancel_and_nil(state.host_disconnect_ref)
     }
 
+    update_registry(state.code, %{status: :running})
     broadcast(state.code, :status, %{status: :running, by: host_id})
     {:reply, :ok, state}
   end
@@ -303,9 +319,11 @@ defmodule Mocha.Game.Server do
 
       true ->
         ticket = state.tickets[ticket_id]
-        struck = Map.get(state.struck, user_id, MapSet.new())
+        user_struck = Map.get(state.struck, user_id, MapSet.new())
+        # Only count numbers that exist on THIS ticket to prevent cross-ticket fraud
+        ticket_struck = MapSet.intersection(user_struck, ticket.numbers)
 
-        case Prize.check_claim(prize_type, ticket, struck) do
+        case Prize.check_claim(prize_type, ticket, ticket_struck) do
           :valid ->
             new_state = %{state | prizes: Map.put(state.prizes, prize_type, user_id)}
 
@@ -341,12 +359,21 @@ defmodule Mocha.Game.Server do
     now = System.monotonic_time(:millisecond)
     last = Map.get(state.chat_timestamps, user_id, now - 1_000)
 
-    if now - last < 1_000 do
-      {:reply, {:error, :rate_limited}, state}
-    else
-      state = %{state | chat_timestamps: Map.put(state.chat_timestamps, user_id, now)}
-      broadcast(state.code, :chat, %{user_id: user_id, text: text})
-      {:reply, :ok, state}
+    cond do
+      now - last < 1_000 ->
+        {:reply, {:error, :rate_limited}, state}
+
+      not is_binary(text) or String.trim(text) == "" ->
+        {:reply, {:error, :invalid_text}, state}
+
+      byte_size(text) > @max_chat_length ->
+        {:reply, {:error, :text_too_long}, state}
+
+      true ->
+        sanitized = text |> String.trim() |> String.slice(0, @max_chat_length)
+        state = %{state | chat_timestamps: Map.put(state.chat_timestamps, user_id, now)}
+        broadcast(state.code, :chat, %{user_id: user_id, text: sanitized})
+        {:reply, :ok, state}
     end
   end
 
@@ -354,12 +381,17 @@ defmodule Mocha.Game.Server do
     now = System.monotonic_time(:millisecond)
     last = Map.get(state.reaction_timestamps, user_id, now - 1_000)
 
-    if now - last < 1_000 do
-      {:reply, {:error, :rate_limited}, state}
-    else
-      state = %{state | reaction_timestamps: Map.put(state.reaction_timestamps, user_id, now)}
-      broadcast(state.code, :reaction, %{user_id: user_id, emoji: emoji})
-      {:reply, :ok, state}
+    cond do
+      now - last < 1_000 ->
+        {:reply, {:error, :rate_limited}, state}
+
+      emoji not in @allowed_emojis ->
+        {:reply, {:error, :invalid_emoji}, state}
+
+      true ->
+        state = %{state | reaction_timestamps: Map.put(state.reaction_timestamps, user_id, now)}
+        broadcast(state.code, :reaction, %{user_id: user_id, emoji: emoji})
+        {:reply, :ok, state}
     end
   end
 
@@ -434,6 +466,7 @@ defmodule Mocha.Game.Server do
 
     state = %{state | status: :paused, timer_ref: nil, host_disconnect_ref: nil}
 
+    update_registry(state.code, %{status: :paused})
     broadcast(state.code, :status, %{status: :paused, by: :system, reason: :host_disconnected})
     {:noreply, state}
   end
@@ -452,6 +485,7 @@ defmodule Mocha.Game.Server do
 
     state = %{state | status: :finished, timer_ref: nil, finished_at: now}
 
+    update_registry(state.code, %{status: :finished})
     broadcast(state.code, :status, %{status: :finished})
     snapshot(state)
     state
@@ -469,6 +503,12 @@ defmodule Mocha.Game.Server do
   defp cancel_and_nil(ref) do
     Process.cancel_timer(ref)
     nil
+  end
+
+  defp update_registry(code, updates) do
+    Registry.update_value(Mocha.Game.Registry, code, fn meta ->
+      Map.merge(meta, updates)
+    end)
   end
 
   defp broadcast(code, event, payload) do
@@ -495,6 +535,7 @@ defmodule Mocha.Game.Server do
 
     Map.from_struct(state)
     |> Map.drop([:timer_ref, :host_disconnect_ref, :chat_timestamps, :reaction_timestamps])
+    |> Map.update(:settings, %{}, fn s -> Map.drop(s, [:join_secret, "join_secret"]) end)
     |> Map.put(:prize_progress, stringify_prize_progress(prize_progress))
     |> Map.update(:players, [], &MapSet.to_list/1)
     |> Map.update(:struck, %{}, fn struck ->
@@ -525,10 +566,12 @@ defmodule Mocha.Game.Server do
     Map.new(tickets, fn {ticket_id, ticket} ->
       user_id = Map.get(owner_of, ticket_id)
       user_struck = Map.get(struck, user_id, MapSet.new())
+      # Only count numbers on THIS ticket to prevent cross-ticket information leak
+      ticket_struck = MapSet.intersection(user_struck, ticket.numbers)
 
       progress =
         Map.new(prizes, fn {prize_type, _winner} ->
-          {required, struck_count} = prize_requirement(prize_type, ticket, user_struck)
+          {required, struck_count} = prize_requirement(prize_type, ticket, ticket_struck)
           {prize_type, %{struck: struck_count, required: required}}
         end)
 
