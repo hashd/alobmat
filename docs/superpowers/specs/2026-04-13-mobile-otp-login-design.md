@@ -6,7 +6,7 @@
 
 ## Context
 
-Moth is a mobile-first Tambola game. Most players access it on their phones, where entering an email address is friction-heavy. This design adds SMS OTP as a first-class login and sign-up method so players can authenticate using only their mobile number.
+Mocha is a mobile-first Tambola game. Most players access it on their phones, where entering an email address is friction-heavy. This design adds SMS OTP as a first-class login and sign-up method so players can authenticate using only their mobile number.
 
 ## Goals
 
@@ -44,7 +44,7 @@ ALTER TABLE users ALTER COLUMN email DROP NOT NULL;
 
 **Invariant (enforced in context, not DB):** every user must have at least one of `phone` or `email`.
 
-#### `User` schema changes (`lib/moth/auth/user.ex`)
+#### `User` schema changes (`lib/mocha/auth/user.ex`)
 
 - Add `field :phone, :string` to schema
 - Add `:phone` to `@derive {Jason.Encoder, only: [...]}` so it appears in API responses
@@ -90,7 +90,7 @@ All phone inputs are normalized server-side before any DB operation:
 4. Validate result matches `+91[6-9]\d{9}` (exactly 13 characters)
 5. Reject with `422 invalid_phone` if validation fails
 
-Non-Indian numbers are rejected. This logic lives in a pure function `Moth.Auth.Phone.normalize/1` for easy unit testing.
+Non-Indian numbers are rejected. This logic lives in a pure function `Mocha.Auth.Phone.normalize/1` for easy unit testing.
 
 ---
 
@@ -160,35 +160,35 @@ Content-Type: application/json
 
 **DLT template (to be registered with MSG91):**
 
-> `Your Moth game sign-in OTP is {#var#}. Valid for 10 minutes. Do not share it with anyone.`
+> `Your Mocha game sign-in OTP is {#var#}. Valid for 10 minutes. Do not share it with anyone.`
 
 ### SMS delivery architecture: behaviour + adapters
 
-Define a behaviour `Moth.Auth.SMSProvider`:
+Define a behaviour `Mocha.Auth.SMSProvider`:
 
 ```elixir
 @callback deliver_otp(phone :: String.t(), code :: String.t()) :: :ok | {:error, term()}
 ```
 
 Three implementations:
-- **`Moth.Auth.SMSProvider.MSG91`** — production adapter, makes HTTP POST to MSG91 API
-- **`Moth.Auth.SMSProvider.Log`** — dev adapter, logs OTP to console: `[dev] OTP for +919876543210: 482931`
-- **`Moth.Auth.SMSProvider.Test`** — test adapter, sends `{:otp_sent, phone, code}` to the calling process (same pattern as Swoosh test adapter)
+- **`Mocha.Auth.SMSProvider.MSG91`** — production adapter, makes HTTP POST to MSG91 API
+- **`Mocha.Auth.SMSProvider.Log`** — dev adapter, logs OTP to console: `[dev] OTP for +919876543210: 482931`
+- **`Mocha.Auth.SMSProvider.Test`** — test adapter, sends `{:otp_sent, phone, code}` to the calling process (same pattern as Swoosh test adapter)
 
 ### Config
 
 ```elixir
 # config/runtime.exs (production)
-config :moth, :sms_provider, Moth.Auth.SMSProvider.MSG91
-config :moth, :msg91,
+config :mocha, :sms_provider, Mocha.Auth.SMSProvider.MSG91
+config :mocha, :msg91,
   auth_key: System.get_env("MSG91_AUTH_KEY"),
   template_id: System.get_env("MSG91_TEMPLATE_ID")
 
 # config/dev.exs
-config :moth, :sms_provider, Moth.Auth.SMSProvider.Log
+config :mocha, :sms_provider, Mocha.Auth.SMSProvider.Log
 
 # config/test.exs
-config :moth, :sms_provider, Moth.Auth.SMSProvider.Test
+config :mocha, :sms_provider, Mocha.Auth.SMSProvider.Test
 ```
 
 ---
@@ -281,18 +281,18 @@ api.auth.verifyOtp(phone: string, code: string): Promise<{ token: string; user: 
 
 **Backend — new files:**
 - `priv/repo/migrations/<ts>_add_phone_otp.exs` — add `phone` to users (nullable), drop `NOT NULL` on email, create `phone_otp_codes`
-- `lib/moth/auth/phone_otp_code.ex` — Ecto schema for `phone_otp_codes`
-- `lib/moth/auth/phone.ex` — `normalize/1` pure function for phone validation + E.164 normalization
-- `lib/moth/auth/sms_provider.ex` — behaviour definition
-- `lib/moth/auth/sms_provider/msg91.ex` — production MSG91 adapter
-- `lib/moth/auth/sms_provider/log.ex` — dev adapter (console log)
-- `lib/moth/auth/sms_provider/test.ex` — test adapter (process message)
+- `lib/mocha/auth/phone_otp_code.ex` — Ecto schema for `phone_otp_codes`
+- `lib/mocha/auth/phone.ex` — `normalize/1` pure function for phone validation + E.164 normalization
+- `lib/mocha/auth/sms_provider.ex` — behaviour definition
+- `lib/mocha/auth/sms_provider/msg91.ex` — production MSG91 adapter
+- `lib/mocha/auth/sms_provider/log.ex` — dev adapter (console log)
+- `lib/mocha/auth/sms_provider/test.ex` — test adapter (process message)
 
 **Backend — modified files:**
-- `lib/moth/auth/user.ex` — add `phone` field, add to `Jason.Encoder`, add `phone_registration_changeset/2`, relax `email` requirement in `changeset/2`
-- `lib/moth/auth/auth.ex` — add `request_phone_otp/1`, `verify_phone_otp/2`
-- `lib/moth_web/controllers/api/auth_controller.ex` — add `request_otp/2`, `verify_otp/2`
-- `lib/moth_web/router.ex` — add two new routes
+- `lib/mocha/auth/user.ex` — add `phone` field, add to `Jason.Encoder`, add `phone_registration_changeset/2`, relax `email` requirement in `changeset/2`
+- `lib/mocha/auth/auth.ex` — add `request_phone_otp/1`, `verify_phone_otp/2`
+- `lib/mocha_web/controllers/api/auth_controller.ex` — add `request_otp/2`, `verify_otp/2`
+- `lib/mocha_web/router.ex` — add two new routes
 - `config/runtime.exs` — MSG91 config keys + SMS provider config
 - `config/dev.exs` — SMS provider: Log
 - `config/test.exs` — SMS provider: Test
@@ -308,7 +308,7 @@ api.auth.verifyOtp(phone: string, code: string): Promise<{ token: string; user: 
 
 ### Backend unit tests
 
-**`test/moth/auth/phone_test.exs`** — phone normalization:
+**`test/mocha/auth/phone_test.exs`** — phone normalization:
 - Bare 10-digit number → E.164 (`9876543210` → `+919876543210`)
 - Already E.164 → pass through
 - With spaces/dashes → normalized
@@ -316,16 +316,16 @@ api.auth.verifyOtp(phone: string, code: string): Promise<{ token: string; user: 
 - Invalid: too short, too long, starts with 0-5, alphabetic → error
 - Non-Indian country codes → rejected
 
-**`test/moth/auth/phone_otp_code_test.exs`** — schema/changeset:
+**`test/mocha/auth/phone_otp_code_test.exs`** — schema/changeset:
 - Valid attrs produce valid changeset
 - Missing phone → invalid
 - Missing hashed_code → invalid
 
-**`test/moth/auth/sms_notifier_test.exs`** — test adapter:
+**`test/mocha/auth/sms_notifier_test.exs`** — test adapter:
 - `SMSProvider.Test.deliver_otp/2` sends message to calling process
 - Can assert on `{:otp_sent, phone, code}` in tests
 
-**`test/moth/auth/auth_test.exs`** — OTP context functions:
+**`test/mocha/auth/auth_test.exs`** — OTP context functions:
 - `request_phone_otp/1`: creates OTP record, returns `:ok`
 - `request_phone_otp/1`: invalidates previous unexpired OTPs for same phone
 - `request_phone_otp/1`: rate-limits at 3 requests per 10 min
@@ -338,7 +338,7 @@ api.auth.verifyOtp(phone: string, code: string): Promise<{ token: string; user: 
 - `verify_phone_otp/2`: existing phone user returns `needs_name: false`
 - Anti-enumeration: `request_phone_otp/1` returns `:ok` for unknown phones
 
-**`test/moth/auth/user_test.exs`** — changeset changes:
+**`test/mocha/auth/user_test.exs`** — changeset changes:
 - `phone_registration_changeset/2` accepts phone + name
 - `phone_registration_changeset/2` rejects invalid Indian number
 - `changeset/2` accepts email-only user (regression)
@@ -347,7 +347,7 @@ api.auth.verifyOtp(phone: string, code: string): Promise<{ token: string; user: 
 
 ### Backend integration tests
 
-**`test/moth_web/controllers/api/auth_controller_test.exs`**:
+**`test/mocha_web/controllers/api/auth_controller_test.exs`**:
 - `POST /api/auth/otp/request` — happy path (200)
 - `POST /api/auth/otp/request` — invalid phone (422)
 - `POST /api/auth/otp/request` — rate limited (429)

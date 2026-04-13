@@ -1,4 +1,4 @@
-# Adversarial Review: Moth v2 Tambola Server Spec
+# Adversarial Review: Mocha v2 Tambola Server Spec
 
 While the document is exceptionally well-structured and the core architecture (context-separated monolith, GenServer-per-game, write-through vs. snapshot persistence) is idiomatically suited for Elixir/OTP, there are several critical flaws, race conditions, and DoS vectors that need to be addressed before this is production-ready.
 
@@ -17,7 +17,7 @@ While the document is exceptionally well-structured and the core architecture (c
 * **The Fix:** Rate limits for high-frequency events MUST be enforced at the edge (inside the `LiveView` process and the `Channel` process) *before* forwarding the message to the shared `GameServer`.
 
 #### 3. The "Thundering Herd" Database Nuke
-* **The Flaw:** The `Moth.Game.Supervisor` uses `rest_for_one` for `[Registry, DynSup, Monitor]`.
+* **The Flaw:** The `Mocha.Game.Supervisor` uses `rest_for_one` for `[Registry, DynSup, Monitor]`.
 * **The Risk:** If the `Registry` crashes for any unforeseen reason, the supervisor will terminate the `DynamicSupervisor`, which will ruthlessly kill all 10,000 active `GameServer` processes simultaneously.
 * **The Impact:** When the `DynamicSupervisor` restarts, it will boot up 10,000 GameServers at the exact same time. Every single one will execute `init/1` and immediately query Postgres to load their snapshot and `game_players` state. This will instantly exhaust your Ecto connection pool, spike Postgres CPU to 100%, and likely cause cascading timeouts that prevent the cluster from ever recovering.
 * **The Fix:** Introduce random jitter (e.g., `Process.sleep(:rand.uniform(3000))`) inside the `GameServer.init/1` database recovery phase to stagger the load during massive supervisor restarts.

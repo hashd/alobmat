@@ -15,17 +15,17 @@
 ### Phase 1 — Backend
 
 **Create:**
-- `lib/moth_web/user_socket.ex`
-- `lib/moth_web/channels/game_channel.ex`
-- `test/moth_web/channels/game_channel_test.exs`
+- `lib/mocha_web/user_socket.ex`
+- `lib/mocha_web/channels/game_channel.ex`
+- `test/mocha_web/channels/game_channel_test.exs`
 
 **Modify:**
-- `lib/moth_web/endpoint.ex` — add UserSocket
-- `lib/moth_web/router.ex` — add SPA catch-all + new API routes
-- `lib/moth_web/controllers/auth_controller.ex` — OAuth callback returns token redirect
-- `lib/moth_web/controllers/api/game_controller.ex` — add `recent` and `clone` actions
-- `lib/moth_web/presence.ex` — accept channel socket (remove `self()` dependency)
-- `lib/moth_web/controllers/page_controller.ex` — add `spa` action
+- `lib/mocha_web/endpoint.ex` — add UserSocket
+- `lib/mocha_web/router.ex` — add SPA catch-all + new API routes
+- `lib/mocha_web/controllers/auth_controller.ex` — OAuth callback returns token redirect
+- `lib/mocha_web/controllers/api/game_controller.ex` — add `recent` and `clone` actions
+- `lib/mocha_web/presence.ex` — accept channel socket (remove `self()` dependency)
+- `lib/mocha_web/controllers/page_controller.ex` — add `spa` action
 - `config/dev.exs` — Vite watcher replaces esbuild
 - `mix.exs` — remove esbuild dep
 - `tailwind.config.js` — update content paths for `.vue` files
@@ -78,10 +78,10 @@
 - `assets/js/test/components/TicketGrid.test.ts`
 
 **Delete** (Phase 2 cleanup task):
-- `lib/moth_web/live/` (entire directory)
-- `lib/moth_web/components/ui.ex`
-- `lib/moth_web/components/game.ex`
-- `lib/moth_web/components/layouts/` (except `root.html.heex` if kept)
+- `lib/mocha_web/live/` (entire directory)
+- `lib/mocha_web/components/ui.ex`
+- `lib/mocha_web/components/game.ex`
+- `lib/mocha_web/components/layouts/` (except `root.html.heex` if kept)
 - `assets/js/hooks/` (all hooks)
 - `assets/js/app.js`
 
@@ -92,20 +92,20 @@
 ### Task 1: UserSocket
 
 **Files:**
-- Create: `lib/moth_web/user_socket.ex`
-- Modify: `lib/moth_web/endpoint.ex`
+- Create: `lib/mocha_web/user_socket.ex`
+- Modify: `lib/mocha_web/endpoint.ex`
 
-- [ ] **Step 1: Create `lib/moth_web/user_socket.ex`**
+- [ ] **Step 1: Create `lib/mocha_web/user_socket.ex`**
 
 ```elixir
-defmodule MothWeb.UserSocket do
+defmodule MochaWeb.UserSocket do
   use Phoenix.Socket
 
-  channel "game:*", MothWeb.GameChannel
+  channel "game:*", MochaWeb.GameChannel
 
   @impl true
   def connect(%{"token" => token}, socket, _connect_info) do
-    case Moth.Auth.get_user_by_api_token(token) do
+    case Mocha.Auth.get_user_by_api_token(token) do
       nil -> :error
       user -> {:ok, assign(socket, :current_user, user)}
     end
@@ -118,12 +118,12 @@ defmodule MothWeb.UserSocket do
 end
 ```
 
-- [ ] **Step 2: Wire UserSocket into `lib/moth_web/endpoint.ex`**
+- [ ] **Step 2: Wire UserSocket into `lib/mocha_web/endpoint.ex`**
 
 Add before the existing LiveView socket line:
 
 ```elixir
-socket "/socket", MothWeb.UserSocket,
+socket "/socket", MochaWeb.UserSocket,
   websocket: true,
   longpoll: false
 ```
@@ -139,7 +139,7 @@ Expected: no errors.
 - [ ] **Step 4: Commit**
 
 ```bash
-git add lib/moth_web/user_socket.ex lib/moth_web/endpoint.ex
+git add lib/mocha_web/user_socket.ex lib/mocha_web/endpoint.ex
 git commit -m "feat: add UserSocket for Vue SPA channel auth"
 ```
 
@@ -148,28 +148,28 @@ git commit -m "feat: add UserSocket for Vue SPA channel auth"
 ### Task 2: GameChannel — join and initial state reply
 
 **Files:**
-- Create: `lib/moth_web/channels/game_channel.ex`
-- Create: `test/moth_web/channels/game_channel_test.exs`
+- Create: `lib/mocha_web/channels/game_channel.ex`
+- Create: `test/mocha_web/channels/game_channel_test.exs`
 
 - [ ] **Step 1: Create test file**
 
 ```elixir
-# test/moth_web/channels/game_channel_test.exs
-defmodule MothWeb.GameChannelTest do
-  use MothWeb.ChannelCase
+# test/mocha_web/channels/game_channel_test.exs
+defmodule MochaWeb.GameChannelTest do
+  use MochaWeb.ChannelCase
 
-  import Moth.AuthFixtures
-  import Moth.GameFixtures
+  import Mocha.AuthFixtures
+  import Mocha.GameFixtures
 
   setup do
     user = user_fixture()
-    {:ok, api_token} = Moth.Auth.create_api_token(user)
-    {:ok, socket} = connect(MothWeb.UserSocket, %{"token" => api_token})
+    {:ok, api_token} = Mocha.Auth.create_api_token(user)
+    {:ok, socket} = connect(MochaWeb.UserSocket, %{"token" => api_token})
     %{socket: socket, user: user}
   end
 
   test "joins game and receives initial state", %{socket: socket, user: user} do
-    {:ok, game_code} = Moth.Game.create_game(user.id, %{name: "Test"})
+    {:ok, game_code} = Mocha.Game.create_game(user.id, %{name: "Test"})
     {:ok, reply, _socket} = subscribe_and_join(socket, "game:#{game_code}")
 
     assert reply.code == game_code
@@ -189,19 +189,19 @@ end
 - [ ] **Step 2: Run test to confirm it fails**
 
 ```bash
-mix test test/moth_web/channels/game_channel_test.exs
+mix test test/mocha_web/channels/game_channel_test.exs
 ```
 
-Expected: error — `MothWeb.GameChannel` not found.
+Expected: error — `MochaWeb.GameChannel` not found.
 
-- [ ] **Step 3: Create `lib/moth_web/channels/game_channel.ex`**
+- [ ] **Step 3: Create `lib/mocha_web/channels/game_channel.ex`**
 
 ```elixir
-defmodule MothWeb.GameChannel do
+defmodule MochaWeb.GameChannel do
   use Phoenix.Channel
 
-  alias Moth.Game
-  alias Moth.Game.{Board, Ticket}
+  alias Mocha.Game
+  alias Mocha.Game.{Board, Ticket}
 
   @impl true
   def join("game:" <> code, _params, socket) do
@@ -209,7 +209,7 @@ defmodule MothWeb.GameChannel do
 
     case Game.game_state(code) do
       {:ok, state} ->
-        :ok = Phoenix.PubSub.subscribe(Moth.PubSub, "game:#{code}")
+        :ok = Phoenix.PubSub.subscribe(Mocha.PubSub, "game:#{code}")
 
         # Track presence — must be done after join succeeds
         send(self(), {:after_join, code})
@@ -239,7 +239,7 @@ defmodule MothWeb.GameChannel do
 
   @impl true
   def handle_info({:after_join, code}, socket) do
-    MothWeb.Presence.track_player(socket, code, socket.assigns.current_user)
+    MochaWeb.Presence.track_player(socket, code, socket.assigns.current_user)
     {:noreply, socket}
   end
 
@@ -374,7 +374,7 @@ end
 - [ ] **Step 4: Run tests**
 
 ```bash
-mix test test/moth_web/channels/game_channel_test.exs
+mix test test/mocha_web/channels/game_channel_test.exs
 ```
 
 Expected: PASS.
@@ -382,7 +382,7 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add lib/moth_web/channels/game_channel.ex test/moth_web/channels/game_channel_test.exs
+git add lib/mocha_web/channels/game_channel.ex test/mocha_web/channels/game_channel_test.exs
 git commit -m "feat: add GameChannel with join, PubSub translation, inbound messages"
 ```
 
@@ -391,16 +391,16 @@ git commit -m "feat: add GameChannel with join, PubSub translation, inbound mess
 ### Task 3: GameChannel — full inbound test coverage
 
 **Files:**
-- Modify: `test/moth_web/channels/game_channel_test.exs`
+- Modify: `test/mocha_web/channels/game_channel_test.exs`
 
 - [ ] **Step 1: Add inbound message tests**
 
-Append to `test/moth_web/channels/game_channel_test.exs`:
+Append to `test/mocha_web/channels/game_channel_test.exs`:
 
 ```elixir
   describe "inbound messages" do
     setup %{socket: socket, user: user} do
-      {:ok, game_code} = Moth.Game.create_game(user.id, %{name: "Test"})
+      {:ok, game_code} = Mocha.Game.create_game(user.id, %{name: "Test"})
       {:ok, _reply, channel_socket} = subscribe_and_join(socket, "game:#{game_code}")
       %{game_code: game_code, channel_socket: channel_socket}
     end
@@ -414,7 +414,7 @@ Append to `test/moth_web/channels/game_channel_test.exs`:
 
     test "claim with no match returns bogey rejection", %{channel_socket: cs, user: user, game_code: gc} do
       # start game
-      Moth.Game.start_game(gc, user.id)
+      Mocha.Game.start_game(gc, user.id)
       ref = push(cs, "claim", %{"prize" => "early_five"})
       assert_push "claim_rejection", %{reason: reason}
       assert reason in ["bogey", "invalid"]
@@ -435,7 +435,7 @@ Append to `test/moth_web/channels/game_channel_test.exs`:
 - [ ] **Step 2: Run tests**
 
 ```bash
-mix test test/moth_web/channels/game_channel_test.exs
+mix test test/mocha_web/channels/game_channel_test.exs
 ```
 
 Expected: PASS.
@@ -443,7 +443,7 @@ Expected: PASS.
 - [ ] **Step 3: Commit**
 
 ```bash
-git add test/moth_web/channels/game_channel_test.exs
+git add test/mocha_web/channels/game_channel_test.exs
 git commit -m "test: add GameChannel inbound message coverage"
 ```
 
@@ -451,15 +451,15 @@ git commit -m "test: add GameChannel inbound message coverage"
 
 ### Task 4: Adapt Presence for channel sockets
 
-The existing `MothWeb.Presence.track_player/3` calls `track(self(), ...)` which works for LiveView PIDs. Phoenix Channels track presence differently — pass the socket directly.
+The existing `MochaWeb.Presence.track_player/3` calls `track(self(), ...)` which works for LiveView PIDs. Phoenix Channels track presence differently — pass the socket directly.
 
 **Files:**
-- Modify: `lib/moth_web/presence.ex`
+- Modify: `lib/mocha_web/presence.ex`
 
 - [ ] **Step 1: Read current presence.ex**
 
 ```bash
-cat lib/moth_web/presence.ex
+cat lib/mocha_web/presence.ex
 ```
 
 - [ ] **Step 2: Update `track_player` to accept a socket**
@@ -495,7 +495,7 @@ Expected: all existing tests still pass.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add lib/moth_web/presence.ex
+git add lib/mocha_web/presence.ex
 git commit -m "fix: adapt Presence.track_player to accept channel socket"
 ```
 
@@ -504,12 +504,12 @@ git commit -m "fix: adapt Presence.track_player to accept channel socket"
 ### Task 5: OAuth callback — return token instead of session cookie
 
 **Files:**
-- Modify: `lib/moth_web/controllers/auth_controller.ex`
+- Modify: `lib/mocha_web/controllers/auth_controller.ex`
 
 - [ ] **Step 1: Read current callback action**
 
 ```bash
-grep -n "def callback" lib/moth_web/controllers/auth_controller.ex
+grep -n "def callback" lib/mocha_web/controllers/auth_controller.ex
 ```
 
 - [ ] **Step 2: Replace `callback/2` to redirect with token**
@@ -518,9 +518,9 @@ Find the `callback` function that handles `ueberauth_auth` and replace the respo
 
 ```elixir
 def callback(%{assigns: %{ueberauth_auth: auth}} = conn, _params) do
-  case Moth.Auth.authenticate_oauth(auth.provider, auth.info) do
+  case Mocha.Auth.authenticate_oauth(auth.provider, auth.info) do
     {:ok, user} ->
-      {:ok, token} = Moth.Auth.create_api_token(user)
+      {:ok, token} = Mocha.Auth.create_api_token(user)
       redirect(conn, to: "/#/auth/callback?token=#{token}")
 
     {:error, _reason} ->
@@ -531,7 +531,7 @@ def callback(%{assigns: %{ueberauth_auth: auth}} = conn, _params) do
 end
 ```
 
-Note: `Moth.Auth.create_api_token/1` wraps `UserToken.build_api_token/1` and persists the record. If the function name differs, check `lib/moth/auth.ex` for the actual wrapper.
+Note: `Mocha.Auth.create_api_token/1` wraps `UserToken.build_api_token/1` and persists the record. If the function name differs, check `lib/mocha/auth.ex` for the actual wrapper.
 
 - [ ] **Step 3: Verify compile**
 
@@ -542,7 +542,7 @@ mix compile
 - [ ] **Step 4: Commit**
 
 ```bash
-git add lib/moth_web/controllers/auth_controller.ex
+git add lib/mocha_web/controllers/auth_controller.ex
 git commit -m "fix: OAuth callback redirects with bearer token for Vue SPA"
 ```
 
@@ -551,17 +551,17 @@ git commit -m "fix: OAuth callback redirects with bearer token for Vue SPA"
 ### Task 6: Add missing API endpoints — recent games + clone
 
 **Files:**
-- Modify: `lib/moth_web/controllers/api/game_controller.ex`
-- Modify: `lib/moth_web/router.ex`
+- Modify: `lib/mocha_web/controllers/api/game_controller.ex`
+- Modify: `lib/mocha_web/router.ex`
 
 - [ ] **Step 1: Add `recent` and `clone` actions to `game_controller.ex`**
 
-Append to `lib/moth_web/controllers/api/game_controller.ex`:
+Append to `lib/mocha_web/controllers/api/game_controller.ex`:
 
 ```elixir
 def recent(conn, _params) do
   user = conn.assigns.current_user
-  games = Moth.Game.recent_games(user.id, 10)
+  games = Mocha.Game.recent_games(user.id, 10)
 
   render(conn, :recent, games: games)
 end
@@ -569,7 +569,7 @@ end
 def clone(conn, %{"code" => code}) do
   user = conn.assigns.current_user
 
-  case Moth.Game.clone_game(code, user.id) do
+  case Mocha.Game.clone_game(code, user.id) do
     {:ok, new_code} -> render(conn, :clone, code: new_code)
     {:error, reason} -> conn |> put_status(422) |> render(:error, reason: reason)
   end
@@ -578,7 +578,7 @@ end
 
 - [ ] **Step 2: Add JSON views for the new actions**
 
-If the project uses `Phoenix.Controller.render/3` with a JSON view, add to the game JSON view (likely `lib/moth_web/controllers/api/game_json.ex` or similar):
+If the project uses `Phoenix.Controller.render/3` with a JSON view, add to the game JSON view (likely `lib/mocha_web/controllers/api/game_json.ex` or similar):
 
 ```elixir
 def render("recent.json", %{games: games}) do
@@ -601,7 +601,7 @@ defp game_summary(game) do
 end
 ```
 
-- [ ] **Step 3: Add routes to `lib/moth_web/router.ex`**
+- [ ] **Step 3: Add routes to `lib/mocha_web/router.ex`**
 
 Inside the authenticated API scope, add:
 
@@ -619,7 +619,7 @@ mix compile && mix test
 - [ ] **Step 5: Commit**
 
 ```bash
-git add lib/moth_web/controllers/api/game_controller.ex lib/moth_web/router.ex
+git add lib/mocha_web/controllers/api/game_controller.ex lib/mocha_web/router.ex
 git commit -m "feat: add GET /api/games and POST /api/games/:code/clone endpoints"
 ```
 
@@ -628,8 +628,8 @@ git commit -m "feat: add GET /api/games and POST /api/games/:code/clone endpoint
 ### Task 7: SPA catch-all route + page controller
 
 **Files:**
-- Modify: `lib/moth_web/controllers/page_controller.ex`
-- Modify: `lib/moth_web/router.ex`
+- Modify: `lib/mocha_web/controllers/page_controller.ex`
+- Modify: `lib/mocha_web/router.ex`
 
 - [ ] **Step 1: Add `spa` action to `page_controller.ex`**
 
@@ -664,7 +664,7 @@ mix compile
 - [ ] **Step 5: Commit**
 
 ```bash
-git add lib/moth_web/controllers/page_controller.ex lib/moth_web/router.ex
+git add lib/mocha_web/controllers/page_controller.ex lib/mocha_web/router.ex
 git commit -m "feat: add SPA catch-all route, remove LiveView routes"
 ```
 
@@ -837,7 +837,7 @@ CSS is imported in `app.ts` (not linked here — Vite processes it through PostC
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Moth</title>
+    <title>Mocha</title>
   </head>
   <body>
     <div id="app"></div>
@@ -2429,7 +2429,7 @@ async function requestLink() {
 <template>
   <div class="flex min-h-screen items-center justify-center p-4">
     <div class="w-full max-w-sm">
-      <h1 class="mb-8 text-center text-3xl font-bold">Moth</h1>
+      <h1 class="mb-8 text-center text-3xl font-bold">Mocha</h1>
       <div v-if="sent" class="text-center text-[--text-secondary]">
         Check your email for a sign-in link.
       </div>
@@ -2478,7 +2478,7 @@ async function joinGame() {
 <template>
   <div class="mx-auto max-w-lg p-6">
     <div class="mb-8 flex items-center justify-between">
-      <h1 class="text-2xl font-bold">Moth</h1>
+      <h1 class="text-2xl font-bold">Mocha</h1>
       <div class="flex gap-2">
         <Button v-if="auth.isAuthenticated" variant="ghost" @click="router.push('/profile')">Profile</Button>
         <Button v-if="auth.isAuthenticated" @click="router.push('/game/new')">New Game</Button>
@@ -3040,25 +3040,25 @@ git commit -m "feat: add HostDashboard page"
 ### Task 22: Remove LiveView code + final cleanup
 
 **Files:**
-- Delete: `lib/moth_web/live/` (all)
-- Delete: `lib/moth_web/components/ui.ex`
-- Delete: `lib/moth_web/components/game.ex`
-- Delete: `lib/moth_web/components/layouts/*.heex` (non-root)
+- Delete: `lib/mocha_web/live/` (all)
+- Delete: `lib/mocha_web/components/ui.ex`
+- Delete: `lib/mocha_web/components/game.ex`
+- Delete: `lib/mocha_web/components/layouts/*.heex` (non-root)
 - Delete: `assets/js/hooks/`
 - Delete: `assets/js/app.js`
 
 - [ ] **Step 1: Remove LiveView modules**
 
 ```bash
-rm -rf lib/moth_web/live/
-rm lib/moth_web/components/ui.ex
-rm lib/moth_web/components/game.ex
+rm -rf lib/mocha_web/live/
+rm lib/mocha_web/components/ui.ex
+rm lib/mocha_web/components/game.ex
 ```
 
 - [ ] **Step 2: Remove HEEX layouts (keep root if still used)**
 
 ```bash
-ls lib/moth_web/components/layouts/
+ls lib/mocha_web/components/layouts/
 # Remove app.html.heex and any others that were LiveView-specific
 # Keep root.html.heex only if it's still referenced by page_controller
 ```
@@ -3066,7 +3066,7 @@ ls lib/moth_web/components/layouts/
 Check `page_controller.ex` — if `spa` action uses `send_file` directly (it does), the HEEX layouts are unused. Remove them all:
 
 ```bash
-rm -rf lib/moth_web/components/layouts/
+rm -rf lib/mocha_web/components/layouts/
 ```
 
 - [ ] **Step 3: Remove JS hooks and old app.js**
@@ -3168,7 +3168,7 @@ mix test
 
 **Channel tests only:**
 ```bash
-mix test test/moth_web/channels/game_channel_test.exs
+mix test test/mocha_web/channels/game_channel_test.exs
 ```
 
 **Frontend unit tests:**

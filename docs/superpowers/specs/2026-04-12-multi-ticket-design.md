@@ -13,7 +13,7 @@ Allow hosts to assign multiple Tambola tickets to players before a game starts. 
 
 ### Ticket struct
 
-Add a UUID field to `Moth.Game.Ticket`:
+Add a UUID field to `Mocha.Game.Ticket`:
 
 ```elixir
 defstruct id: nil, rows: [], numbers: MapSet.new()

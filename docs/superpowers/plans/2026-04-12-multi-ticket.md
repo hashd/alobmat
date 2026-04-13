@@ -14,16 +14,16 @@
 
 **Create:**
 - `priv/repo/migrations/<timestamp>_update_game_players_tickets.exs`
-- `test/moth/game/ticket_test.exs` (if not already present)
+- `test/mocha/game/ticket_test.exs` (if not already present)
 
 **Modify:**
-- `lib/moth/game/ticket.ex` — add `id` field, add `generate_strip/0`, private helpers
-- `lib/moth/game/player.ex` — rename field `ticket` → `tickets`, change type to `{:array, :map}`
-- `lib/moth/game/server.ex` — struct, join, set_ticket_count, start_game, strike_out, claim, sanitize_state, compute_prize_progress
-- `lib/moth/game/game.ex` — add `set_ticket_count/4`, update `claim_prize/3` → `claim_prize/4`, update `@default_settings` and `validate_settings`
-- `lib/moth_web/channels/game_channel.ex` — join reply, claim handler, new push events
-- `lib/moth_web/controllers/api/game_controller.ex` — add `set_ticket_count`, update `claim`, update `create`
-- `lib/moth_web/router.ex` — add PUT route
+- `lib/mocha/game/ticket.ex` — add `id` field, add `generate_strip/0`, private helpers
+- `lib/mocha/game/player.ex` — rename field `ticket` → `tickets`, change type to `{:array, :map}`
+- `lib/mocha/game/server.ex` — struct, join, set_ticket_count, start_game, strike_out, claim, sanitize_state, compute_prize_progress
+- `lib/mocha/game/game.ex` — add `set_ticket_count/4`, update `claim_prize/3` → `claim_prize/4`, update `@default_settings` and `validate_settings`
+- `lib/mocha_web/channels/game_channel.ex` — join reply, claim handler, new push events
+- `lib/mocha_web/controllers/api/game_controller.ex` — add `set_ticket_count`, update `claim`, update `create`
+- `lib/mocha_web/router.ex` — add PUT route
 - `assets/js/types/domain.ts` — add `id` to `Ticket`, add `ticket_count` to `Player`, add `default_ticket_count` to `GameSettings`
 - `assets/js/types/channel.ts` — update `GameJoinReply`, add new event types
 - `assets/js/api/client.ts` — add `setTicketCount`, update `create`
@@ -52,7 +52,7 @@ Expected output: `* creating priv/repo/migrations/YYYYMMDDHHMMSS_update_game_pla
 - [ ] **Step 2: Write the migration** (replace generated file content)
 
 ```elixir
-defmodule Moth.Repo.Migrations.UpdateGamePlayersTickets do
+defmodule Mocha.Repo.Migrations.UpdateGamePlayersTickets do
   use Ecto.Migration
 
   def change do
@@ -84,11 +84,11 @@ git commit -m "feat: migrate game_players.ticket -> tickets array"
 ## Task 2: Update Player Schema
 
 **Files:**
-- Modify: `lib/moth/game/player.ex`
+- Modify: `lib/mocha/game/player.ex`
 
 - [ ] **Step 1: Update the field**
 
-In `lib/moth/game/player.ex`, replace:
+In `lib/mocha/game/player.ex`, replace:
 ```elixir
 field :ticket, :map
 ```
@@ -120,7 +120,7 @@ Expected: no errors.
 - [ ] **Step 3: Commit**
 
 ```bash
-git add lib/moth/game/player.ex
+git add lib/mocha/game/player.ex
 git commit -m "feat: update Player schema to use tickets array"
 ```
 
@@ -129,18 +129,18 @@ git commit -m "feat: update Player schema to use tickets array"
 ## Task 3: Ticket Module — UUID + generate_strip/0
 
 **Files:**
-- Modify: `lib/moth/game/ticket.ex`
-- Create (or modify): `test/moth/game/ticket_test.exs`
+- Modify: `lib/mocha/game/ticket.ex`
+- Create (or modify): `test/mocha/game/ticket_test.exs`
 
 - [ ] **Step 1: Write failing tests**
 
-Create `test/moth/game/ticket_test.exs`:
+Create `test/mocha/game/ticket_test.exs`:
 
 ```elixir
-defmodule Moth.Game.TicketTest do
+defmodule Mocha.Game.TicketTest do
   use ExUnit.Case, async: true
 
-  alias Moth.Game.Ticket
+  alias Mocha.Game.Ticket
 
   describe "generate_strip/0" do
     test "returns exactly 6 tickets" do
@@ -226,17 +226,17 @@ end
 - [ ] **Step 2: Run tests to verify they fail**
 
 ```bash
-mix test test/moth/game/ticket_test.exs
+mix test test/mocha/game/ticket_test.exs
 ```
 
 Expected: multiple failures (`generate_strip/0 is undefined`).
 
 - [ ] **Step 3: Update the Ticket struct and implement generate_strip/0**
 
-Replace the full content of `lib/moth/game/ticket.ex`:
+Replace the full content of `lib/mocha/game/ticket.ex`:
 
 ```elixir
-defmodule Moth.Game.Ticket do
+defmodule Mocha.Game.Ticket do
   @moduledoc """
   Pure functions for generating valid Tambola tickets and strips.
 
@@ -389,7 +389,7 @@ end
 - [ ] **Step 4: Run tests to verify they pass**
 
 ```bash
-mix test test/moth/game/ticket_test.exs
+mix test test/mocha/game/ticket_test.exs
 ```
 
 Expected: all 8 tests pass.
@@ -397,7 +397,7 @@ Expected: all 8 tests pass.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add lib/moth/game/ticket.ex test/moth/game/ticket_test.exs
+git add lib/mocha/game/ticket.ex test/mocha/game/ticket_test.exs
 git commit -m "feat: add UUID to Ticket, implement generate_strip/0 for full 1-90 coverage"
 ```
 
@@ -406,11 +406,11 @@ git commit -m "feat: add UUID to Ticket, implement generate_strip/0 for full 1-9
 ## Task 4: Server Struct + Join Handler
 
 **Files:**
-- Modify: `lib/moth/game/server.ex`
+- Modify: `lib/mocha/game/server.ex`
 
 - [ ] **Step 1: Update defstruct** — add `ticket_owners` and `player_ticket_counts`, remove old `tickets` default comment
 
-In `lib/moth/game/server.ex`, replace the `defstruct` block:
+In `lib/mocha/game/server.ex`, replace the `defstruct` block:
 
 ```elixir
 defstruct [
@@ -485,8 +485,8 @@ def handle_call({:join, user_id, secret}, _from, state) do
 
       if new_state.id do
         active_maps = strip |> Enum.take(default_count) |> Enum.map(&Ticket.to_map/1)
-        Moth.Repo.insert!(
-          %Moth.Game.Player{game_id: new_state.id, user_id: user_id, tickets: active_maps},
+        Mocha.Repo.insert!(
+          %Mocha.Game.Player{game_id: new_state.id, user_id: user_id, tickets: active_maps},
           on_conflict: :nothing
         )
       end
@@ -509,7 +509,7 @@ Expected: no errors (some warnings about unreferenced clauses are ok at this sta
 - [ ] **Step 5: Commit**
 
 ```bash
-git add lib/moth/game/server.ex
+git add lib/mocha/game/server.ex
 git commit -m "feat: update Server struct and join handler for multi-ticket strips"
 ```
 
@@ -518,7 +518,7 @@ git commit -m "feat: update Server struct and join handler for multi-ticket stri
 ## Task 5: Server — set_ticket_count Handler
 
 **Files:**
-- Modify: `lib/moth/game/server.ex`
+- Modify: `lib/mocha/game/server.ex`
 
 - [ ] **Step 1: Add the handler** — insert after the `handle_call({:start_game, _other_id}, ...)` fallthrough clause
 
@@ -559,7 +559,7 @@ Expected: no errors.
 - [ ] **Step 3: Commit**
 
 ```bash
-git add lib/moth/game/server.ex
+git add lib/mocha/game/server.ex
 git commit -m "feat: add set_ticket_count handler to Server"
 ```
 
@@ -568,7 +568,7 @@ git commit -m "feat: add set_ticket_count handler to Server"
 ## Task 6: Server — start_game Update
 
 **Files:**
-- Modify: `lib/moth/game/server.ex`
+- Modify: `lib/mocha/game/server.ex`
 
 - [ ] **Step 1: Replace the start_game handler**
 
@@ -603,8 +603,8 @@ def handle_call({:start_game, host_id}, _from, %{host_id: host_id, status: :lobb
   if new_state.id do
     Enum.each(trimmed_owners, fn {player_id, ticket_ids} ->
       tickets_maps = Enum.map(ticket_ids, fn tid -> Ticket.to_map(active_tickets[tid]) end)
-      Moth.Repo.insert!(
-        %Moth.Game.Player{game_id: new_state.id, user_id: player_id, tickets: tickets_maps},
+      Mocha.Repo.insert!(
+        %Mocha.Game.Player{game_id: new_state.id, user_id: player_id, tickets: tickets_maps},
         on_conflict: [set: [tickets: tickets_maps]],
         conflict_target: [:game_id, :user_id]
       )
@@ -627,7 +627,7 @@ Expected: no errors.
 - [ ] **Step 3: Commit**
 
 ```bash
-git add lib/moth/game/server.ex
+git add lib/mocha/game/server.ex
 git commit -m "feat: trim inactive tickets at game start"
 ```
 
@@ -636,7 +636,7 @@ git commit -m "feat: trim inactive tickets at game start"
 ## Task 7: Server — strike_out Update (call + cast)
 
 **Files:**
-- Modify: `lib/moth/game/server.ex`
+- Modify: `lib/mocha/game/server.ex`
 
 - [ ] **Step 1: Replace the call-based strike_out handler** (was checking `state.tickets[user_id]`, now checks across all active ticket IDs)
 
@@ -718,7 +718,7 @@ Expected: no errors.
 - [ ] **Step 4: Commit**
 
 ```bash
-git add lib/moth/game/server.ex
+git add lib/mocha/game/server.ex
 git commit -m "feat: update strike_out to check across all active tickets"
 ```
 
@@ -727,7 +727,7 @@ git commit -m "feat: update strike_out to check across all active tickets"
 ## Task 8: Server — claim Handler Update
 
 **Files:**
-- Modify: `lib/moth/game/server.ex`
+- Modify: `lib/mocha/game/server.ex`
 
 - [ ] **Step 1: Replace the claim handler** — now takes `ticket_id`, validates it belongs to the user
 
@@ -767,8 +767,8 @@ def handle_call({:claim, user_id, ticket_id, prize_type}, _from, state) do
           new_state = %{state | prizes: Map.put(state.prizes, prize_type, user_id)}
 
           if new_state.id do
-            Moth.Repo.update_all(
-              from(p in Moth.Game.Player,
+            Mocha.Repo.update_all(
+              from(p in Mocha.Game.Player,
                 where: p.game_id == ^new_state.id and p.user_id == ^user_id
               ),
               push: [prizes_won: to_string(prize_type)]
@@ -806,7 +806,7 @@ Expected: no errors.
 - [ ] **Step 3: Commit**
 
 ```bash
-git add lib/moth/game/server.ex
+git add lib/mocha/game/server.ex
 git commit -m "feat: update claim handler to require ticket_id"
 ```
 
@@ -815,7 +815,7 @@ git commit -m "feat: update claim handler to require ticket_id"
 ## Task 9: Server — sanitize_state + compute_prize_progress
 
 **Files:**
-- Modify: `lib/moth/game/server.ex`
+- Modify: `lib/mocha/game/server.ex`
 
 - [ ] **Step 1: Replace sanitize_state**
 
@@ -886,7 +886,7 @@ Expected: all tests pass (or pre-existing failures only).
 - [ ] **Step 5: Commit**
 
 ```bash
-git add lib/moth/game/server.ex
+git add lib/mocha/game/server.ex
 git commit -m "feat: update sanitize_state and compute_prize_progress for ticket_id keying"
 ```
 
@@ -895,7 +895,7 @@ git commit -m "feat: update sanitize_state and compute_prize_progress for ticket
 ## Task 10: Game Context + validate_settings
 
 **Files:**
-- Modify: `lib/moth/game/game.ex`
+- Modify: `lib/mocha/game/game.ex`
 
 - [ ] **Step 1: Add `default_ticket_count` to @default_settings**
 
@@ -956,7 +956,7 @@ Expected: no errors.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add lib/moth/game/game.ex
+git add lib/mocha/game/game.ex
 git commit -m "feat: update Game context for multi-ticket (claim_prize/4, set_ticket_count/4)"
 ```
 
@@ -965,8 +965,8 @@ git commit -m "feat: update Game context for multi-ticket (claim_prize/4, set_ti
 ## Task 11: GameController + Router
 
 **Files:**
-- Modify: `lib/moth_web/controllers/api/game_controller.ex`
-- Modify: `lib/moth_web/router.ex`
+- Modify: `lib/mocha_web/controllers/api/game_controller.ex`
+- Modify: `lib/mocha_web/router.ex`
 
 - [ ] **Step 1: Add `default_ticket_count` to create action**
 
@@ -1091,7 +1091,7 @@ Expected: all tests pass.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add lib/moth_web/controllers/api/game_controller.ex lib/moth_web/router.ex
+git add lib/mocha_web/controllers/api/game_controller.ex lib/mocha_web/router.ex
 git commit -m "feat: add set_ticket_count endpoint, update claim and create for multi-ticket"
 ```
 
@@ -1100,14 +1100,14 @@ git commit -m "feat: add set_ticket_count endpoint, update claim and create for 
 ## Task 12: GameChannel Update
 
 **Files:**
-- Modify: `lib/moth_web/channels/game_channel.ex`
+- Modify: `lib/mocha_web/channels/game_channel.ex`
 
 - [ ] **Step 1: Update the join handler to send my_tickets, include ticket_count per player**
 
 Replace the inner join logic (from `# Enrich players` comment to `{:ok, reply, ...}`):
 
 ```elixir
-user_names = Moth.Auth.get_users_map(state.players)
+user_names = Mocha.Auth.get_users_map(state.players)
 
 players =
   Enum.map(state.players, fn uid ->
@@ -1228,7 +1228,7 @@ Expected: all tests pass.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add lib/moth_web/channels/game_channel.ex
+git add lib/mocha_web/channels/game_channel.ex
 git commit -m "feat: update GameChannel for multi-ticket (my_tickets, ticket_count_updated, claim with ticket_id)"
 ```
 

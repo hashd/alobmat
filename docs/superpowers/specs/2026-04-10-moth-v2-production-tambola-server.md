@@ -1,8 +1,8 @@
-# Moth v2 — Production Tambola Server
+# Mocha v2 — Production Tambola Server
 
 > **Date:** 2026-04-10
 > **Status:** Approved (revised after adversarial review)
-> **Scope:** Full rewrite of the Moth POC into a production-grade, single-node (cluster-ready) Tambola/Housie game server.
+> **Scope:** Full rewrite of the Mocha POC into a production-grade, single-node (cluster-ready) Tambola/Housie game server.
 
 ---
 
@@ -43,16 +43,16 @@ A production-grade Tambola (Housie/Bingo) game server that can reliably host tho
 ### Supervision Tree
 
 ```
-Moth.Application (top-level supervisor, strategy: rest_for_one)
-├── Moth.Repo (Ecto)
-├── Phoenix.PubSub (name: Moth.PubSub)
-├── MothWeb.Telemetry
-├── Moth.Game.Supervisor (top-level game subtree, strategy: rest_for_one)
-│   ├── {Registry, keys: :unique, name: Moth.Game.Registry}
-│   ├── {DynamicSupervisor, name: Moth.Game.DynSup, strategy: :one_for_one}
-│   └── Moth.Game.Monitor (GenServer — reconstructs tracking state from Registry on init)
-├── MothWeb.Presence
-└── MothWeb.Endpoint
+Mocha.Application (top-level supervisor, strategy: rest_for_one)
+├── Mocha.Repo (Ecto)
+├── Phoenix.PubSub (name: Mocha.PubSub)
+├── MochaWeb.Telemetry
+├── Mocha.Game.Supervisor (top-level game subtree, strategy: rest_for_one)
+│   ├── {Registry, keys: :unique, name: Mocha.Game.Registry}
+│   ├── {DynamicSupervisor, name: Mocha.Game.DynSup, strategy: :one_for_one}
+│   └── Mocha.Game.Monitor (GenServer — reconstructs tracking state from Registry on init)
+├── MochaWeb.Presence
+└── MochaWeb.Endpoint
 ```
 
 **Why `rest_for_one` for the game subtree:** Monitor depends on Registry and DynamicSupervisor. If either crashes and restarts, Monitor must also restart to rebuild its tracking state from the new Registry. `rest_for_one` guarantees this ordering — children after the crashed child are restarted in order.
@@ -67,15 +67,15 @@ Moth.Application (top-level supervisor, strategy: rest_for_one)
 
 | Context | Owns | Public API |
 |---------|------|------------|
-| `Moth.Auth` | Users, identities, tokens, magic links, OAuth | `register/1`, `authenticate_magic_link/1`, `authenticate_oauth/2`, `get_user!/1`, `get_user_by_api_token/1`, `generate_user_session_token/1`, `generate_api_token/1`, `revoke_all_tokens/1` |
-| `Moth.Game` | GameServer, Board, Tickets, Prizes, Room codes, game persistence | `create_game/2`, `join_game/2`, `game_state/1`, `start_game/2`, `pause/2`, `resume/2`, `end_game/2`, `claim_prize/3`, `send_chat/3` |
-| `MothWeb` | LiveView, API controllers, Channels, Auth flows, Plugs | Consumes `Moth.Auth` + `Moth.Game` — never touches GenServers or DB directly |
+| `Mocha.Auth` | Users, identities, tokens, magic links, OAuth | `register/1`, `authenticate_magic_link/1`, `authenticate_oauth/2`, `get_user!/1`, `get_user_by_api_token/1`, `generate_user_session_token/1`, `generate_api_token/1`, `revoke_all_tokens/1` |
+| `Mocha.Game` | GameServer, Board, Tickets, Prizes, Room codes, game persistence | `create_game/2`, `join_game/2`, `game_state/1`, `start_game/2`, `pause/2`, `resume/2`, `end_game/2`, `claim_prize/3`, `send_chat/3` |
+| `MochaWeb` | LiveView, API controllers, Channels, Auth flows, Plugs | Consumes `Mocha.Auth` + `Mocha.Game` — never touches GenServers or DB directly |
 
-**The key rule:** `MothWeb` never calls a GenServer directly or queries the DB. Everything goes through context APIs. The game engine publishes events to PubSub; LiveView and Channels subscribe.
+**The key rule:** `MochaWeb` never calls a GenServer directly or queries the DB. Everything goes through context APIs. The game engine publishes events to PubSub; LiveView and Channels subscribe.
 
 ---
 
-## 3. Game Engine (`Moth.Game`)
+## 3. Game Engine (`Mocha.Game`)
 
 ### GameServer — One GenServer Per Game
 
@@ -84,7 +84,7 @@ Each game is a single GenServer under a DynamicSupervisor. Board state is embedd
 **GenServer state:**
 
 ```elixir
-%Moth.Game.Server{
+%Mocha.Game.Server{
   id: "abc123",
   code: "TIGER-42",        # human-friendly join code
   host_id: 1,              # user who created the game
@@ -147,7 +147,7 @@ GameServer crashes
   → Broadcasts "game:CODE:status" with {:recovered, last_pick_count}
 ```
 
-**Restart gap handling:** Between crash and re-registration, `Registry.lookup` returns `[]`. The `Moth.Game` context API returns `{:error, :game_unavailable}` in this case. LiveView and Channel clients show a "Reconnecting..." state and retry with exponential backoff (max 5 seconds).
+**Restart gap handling:** Between crash and re-registration, `Registry.lookup` returns `[]`. The `Mocha.Game` context API returns `{:error, :game_unavailable}` in this case. LiveView and Channel clients show a "Reconnecting..." state and retry with exponential backoff (max 5 seconds).
 
 ### PubSub Events
 
@@ -216,7 +216,7 @@ Host configures which prizes are active at game creation time.
 
 ---
 
-## 5. Authentication (`Moth.Auth`)
+## 5. Authentication (`Mocha.Auth`)
 
 ### Auth Methods
 
@@ -263,7 +263,7 @@ Swoosh with configurable adapter. Dev: `Swoosh.Adapters.Local` + mailbox viewer 
 
 When the host's LiveView or Channel process terminates (browser closed, phone dies, network drop):
 
-1. `MothWeb.Presence` detects the host left.
+1. `MochaWeb.Presence` detects the host left.
 2. GameServer receives `player_left` for the host's user_id.
 3. GameServer starts a 60-second auto-pause timer (`host_disconnect_ref`).
 4. If the host reconnects within 60 seconds: timer cancelled, game continues.
@@ -288,7 +288,7 @@ A player can connect from multiple devices (two browser tabs, phone + laptop). T
 
 ---
 
-## 7. Web Interface (`MothWeb` — LiveView)
+## 7. Web Interface (`MochaWeb` — LiveView)
 
 ### Routes
 
@@ -335,7 +335,7 @@ LiveView processes subscribe to `game:CODE:*` PubSub topics on mount. Each game 
 
 **Countdown timer:** Implemented client-side via a JS hook. On each `pick` event, LiveView pushes `next_pick_at` to the hook, which runs `setInterval` locally. No server-side timer broadcasts.
 
-**Reconnecting state:** If `Moth.Game.game_state/1` returns `{:error, :game_unavailable}`, the LiveView shows "Reconnecting..." and retries with backoff.
+**Reconnecting state:** If `Mocha.Game.game_state/1` returns `{:error, :game_unavailable}`, the LiveView shows "Reconnecting..." and retries with backoff.
 
 ### Mobile-Friendly
 
@@ -461,7 +461,7 @@ Index: on `token` for lookup. Index: on `(user_id, context)` for revocation.
 
 Indexes: on `status`, on `host_id`, unique on `code`.
 
-**Status enum mapping:** GenServer uses atoms (`:lobby`, `:running`, `:paused`, `:finished`). DB stores strings (`"lobby"`, `"running"`, `"paused"`, `"finished"`). An Ecto custom type `Moth.Game.StatusEnum` handles the conversion at the persistence boundary.
+**Status enum mapping:** GenServer uses atoms (`:lobby`, `:running`, `:paused`, `:finished`). DB stores strings (`"lobby"`, `"running"`, `"paused"`, `"finished"`). An Ecto custom type `Mocha.Game.StatusEnum` handles the conversion at the persistence boundary.
 
 **game_players**
 
@@ -504,7 +504,7 @@ Chat is ephemeral — messages are broadcast via PubSub and not persisted to the
 
 **Moderation:** No automated moderation in v1. The host can end the game if chat becomes problematic. Chat moderation (word filters, mute, etc.) is a future enhancement.
 
-**Transport:** Chat messages go through the GameServer (via `Moth.Game.send_chat/3`) which broadcasts on the `game:CODE:chat` PubSub topic. For web, LiveView handles the event. For mobile, the Channel relays it. This ensures rate limiting is applied uniformly regardless of transport.
+**Transport:** Chat messages go through the GameServer (via `Mocha.Game.send_chat/3`) which broadcasts on the `game:CODE:chat` PubSub topic. For web, LiveView handles the event. For mobile, the Channel relays it. This ensures rate limiting is applied uniformly regardless of transport.
 
 ---
 
@@ -534,7 +534,7 @@ The architecture is designed to make future clustering feasible, not to make it 
 | DB | Single Postgres | Same — Ecto pools per node. |
 | Load balancing | N/A | Sticky sessions by game code (WebSocket affinity). |
 
-`Moth.Game` context wraps Registry and DynamicSupervisor calls through its own functions, so the game logic doesn't depend on the backing implementation. But clustering is a design project, not a flag flip.
+`Mocha.Game` context wraps Registry and DynamicSupervisor calls through its own functions, so the game logic doesn't depend on the backing implementation. But clustering is a design project, not a flag flip.
 
 ### Graceful Shutdown
 
@@ -567,7 +567,7 @@ On SIGTERM:
 
 ```
 lib/
-├── moth/
+├── mocha/
 │   ├── application.ex
 │   ├── repo.ex
 │   ├── mailer.ex
@@ -589,7 +589,7 @@ lib/
 │       ├── status_enum.ex       # Ecto custom type for status atom ↔ string
 │       ├── monitor.ex           # GenServer for tracking/reaping
 │       └── supervisor.ex        # Supervisor (rest_for_one) wrapping Registry + DynSup + Monitor
-├── moth_web/
+├── mocha_web/
 │   ├── endpoint.ex
 │   ├── router.ex
 │   ├── telemetry.ex
@@ -631,7 +631,7 @@ lib/
 |-------|------|-----|
 | **Pure functions** | Board, Ticket, Prize, Code | ExUnit. Property-based tests (StreamData) for ticket validity and board exhaustion. |
 | **GenServer** | Server lifecycle, state transitions, crash recovery | ExUnit with `start_supervised`. Full lifecycle: lobby → running → pause → resume → finish. Crash + restart from snapshot. |
-| **Context integration** | `Moth.Auth`, `Moth.Game` public APIs | ExUnit with Ecto sandbox. Auth flows, game creation, player join, prize claims. |
+| **Context integration** | `Mocha.Auth`, `Mocha.Game` public APIs | ExUnit with Ecto sandbox. Auth flows, game creation, player join, prize claims. |
 | **LiveView / API** | Web and mobile interfaces | `Phoenix.LiveViewTest` for web, `Phoenix.ConnTest` for API. |
 | **Concurrency** | Prize claim races | Spawn N tasks calling `claim_prize/3` concurrently against one GameServer. Assert exactly one winner. |
 
@@ -669,7 +669,7 @@ Real context APIs, real GenServers (`start_supervised`), real DB (Ecto sandbox).
 
 ### Load Testing
 
-Not part of the automated test suite. Manual load testing with a custom Mix task (`mix moth.load_test`) that:
+Not part of the automated test suite. Manual load testing with a custom Mix task (`mix mocha.load_test`) that:
 - Spawns N game servers
 - Simulates M players per game via WebSocket connections
 - Measures: pick broadcast latency (p99 < 100ms), claim response time (p99 < 200ms), memory per game, snapshot write throughput
@@ -716,6 +716,6 @@ Codes follow the format `WORD-NN` (e.g., `TIGER-42`, `OCEAN-17`).
 
 **Word list:** ~2,000 common, easy-to-spell English words (no offensive words, no homophones that cause confusion). Total code space: 2,000 x 100 = 200,000 unique codes. At 10K concurrent games, collision probability is low.
 
-**Generation:** `Moth.Game.Code.generate/0` picks a random word + random 2-digit number, checks uniqueness against the Registry (in-memory, fast), retries on collision (max 10 attempts). If all attempts fail (extremely unlikely), falls back to a random 8-character alphanumeric code.
+**Generation:** `Mocha.Game.Code.generate/0` picks a random word + random 2-digit number, checks uniqueness against the Registry (in-memory, fast), retries on collision (max 10 attempts). If all attempts fail (extremely unlikely), falls back to a random 8-character alphanumeric code.
 
 **Failed join rate limiting:** 10 failed join attempts per minute per IP (Section 8 rate limits). This prevents brute-force code enumeration. With 200K code space and 10K active codes, an attacker has a ~5% hit rate per guess — rate limiting makes systematic enumeration impractical.

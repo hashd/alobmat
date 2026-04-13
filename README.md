@@ -1,4 +1,4 @@
-# Moth (Alobmat)
+# MOCHA — Massively Online Collaborative Housie App
 
 A real-time multiplayer Tambola (Indian bingo/housie) game server. One GenServer process per active game, capable of hosting 100k+ concurrent games on a single machine.
 
@@ -16,7 +16,7 @@ A real-time multiplayer Tambola (Indian bingo/housie) game server. One GenServer
 
 ```bash
 # Clone and setup
-git clone <repo-url> && cd alobmat
+git clone <repo-url> && cd mocha
 mix setup                          # deps.get + ecto.setup + assets.setup
 
 # Start development server
@@ -60,7 +60,7 @@ iex -S mix phx.server              # with interactive shell
 
 # Backend tests
 mix test                           # 79 tests + property tests
-mix test test/moth/game/server_test.exs     # single file
+mix test test/mocha/game/server_test.exs     # single file
 
 # Frontend tests
 cd assets && npx vitest run        # unit tests
@@ -79,4 +79,4 @@ GOOGLE_CLIENT_ID=your-client-id
 GOOGLE_CLIENT_SECRET=your-client-secret
 ```
 
-Database config is in `config/dev.exs` (defaults to `postgres:postgres@localhost/moth_dev`).
+Database config is in `config/dev.exs` (defaults to `postgres:postgres@localhost/mocha_dev`).
