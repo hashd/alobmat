@@ -133,10 +133,13 @@ defmodule Mocha.Game.Server do
 
         if new_state.id do
           active_maps = strip |> Enum.take(default_count) |> Enum.map(&Ticket.to_map/1)
-          Mocha.Repo.insert!(
-            %Mocha.Game.Player{game_id: new_state.id, user_id: user_id, tickets: active_maps},
-            on_conflict: :nothing
-          )
+          game_id = new_state.id
+          Task.start(fn ->
+            Mocha.Repo.insert!(
+              %Mocha.Game.Player{game_id: game_id, user_id: user_id, tickets: active_maps},
+              on_conflict: :nothing
+            )
+          end)
         end
 
         update_registry(new_state.code, %{player_count: MapSet.size(new_state.players)})
@@ -146,6 +149,9 @@ defmodule Mocha.Game.Server do
   end
 
   def handle_call({:start_game, host_id}, _from, %{host_id: host_id, status: :lobby} = state) do
+    if MapSet.size(state.players) == 0 do
+      {:reply, {:error, :no_players}, state}
+    else
     # Trim each player's ticket_owners to their active count; remove inactive tickets
     {trimmed_owners, active_ticket_ids} =
       Enum.reduce(state.ticket_owners, {%{}, MapSet.new()}, fn {uid, ids}, {owners_acc, active_acc} ->
@@ -171,19 +177,23 @@ defmodule Mocha.Game.Server do
     }
 
     if new_state.id do
-      Enum.each(trimmed_owners, fn {player_id, ticket_ids} ->
-        tickets_maps = Enum.map(ticket_ids, fn tid -> Ticket.to_map(active_tickets[tid]) end)
-        Mocha.Repo.insert!(
-          %Mocha.Game.Player{game_id: new_state.id, user_id: player_id, tickets: tickets_maps},
-          on_conflict: [set: [tickets: tickets_maps]],
-          conflict_target: [:game_id, :user_id]
-        )
+      game_id = new_state.id
+      Task.start(fn ->
+        Enum.each(trimmed_owners, fn {player_id, ticket_ids} ->
+          tickets_maps = Enum.map(ticket_ids, fn tid -> Ticket.to_map(active_tickets[tid]) end)
+          Mocha.Repo.insert!(
+            %Mocha.Game.Player{game_id: game_id, user_id: player_id, tickets: tickets_maps},
+            on_conflict: [set: [tickets: tickets_maps]],
+            conflict_target: [:game_id, :user_id]
+          )
+        end)
       end)
     end
 
     update_registry(new_state.code, %{status: :running})
     broadcast(new_state.code, :status, %{status: :running, started_at: now})
     {:reply, :ok, new_state}
+    end
   end
 
   def handle_call({:start_game, _other_id}, _from, state) do
@@ -328,12 +338,16 @@ defmodule Mocha.Game.Server do
             new_state = %{state | prizes: Map.put(state.prizes, prize_type, user_id)}
 
             if new_state.id do
-              Mocha.Repo.update_all(
-                from(p in Mocha.Game.Player,
-                  where: p.game_id == ^new_state.id and p.user_id == ^user_id
-                ),
-                push: [prizes_won: to_string(prize_type)]
-              )
+              game_id = new_state.id
+              prize_str = to_string(prize_type)
+              Task.start(fn ->
+                Mocha.Repo.update_all(
+                  from(p in Mocha.Game.Player,
+                    where: p.game_id == ^game_id and p.user_id == ^user_id
+                  ),
+                  push: [prizes_won: prize_str]
+                )
+              end)
             end
 
             broadcast(new_state.code, :prize_claimed, %{prize: prize_type, winner_id: user_id})
@@ -397,6 +411,8 @@ defmodule Mocha.Game.Server do
 
   @impl true
   def handle_cast({:player_left, user_id}, %{host_id: host_id} = state) when user_id == host_id do
+    # Cancel any existing disconnect timer before setting a new one
+    cancel_timer(state.host_disconnect_ref)
     ref = Process.send_after(self(), :host_disconnect_timeout, :timer.seconds(60))
     {:noreply, %{state | host_disconnect_ref: ref}}
   end
@@ -518,14 +534,16 @@ defmodule Mocha.Game.Server do
   defp snapshot(%{id: nil}), do: :ok
 
   defp snapshot(%{id: id, board: board, status: status}) do
-    Mocha.Repo.update_all(
-      from(g in Mocha.Game.Record, where: g.id == ^id),
-      set: [
-        snapshot: Board.to_map(board),
-        status: to_string(status),
-        updated_at: DateTime.utc_now()
-      ]
-    )
+    board_map = Board.to_map(board)
+    status_str = to_string(status)
+    now = DateTime.utc_now()
+
+    Task.start(fn ->
+      Mocha.Repo.update_all(
+        from(g in Mocha.Game.Record, where: g.id == ^id),
+        set: [snapshot: board_map, status: status_str, updated_at: now]
+      )
+    end)
 
     :ok
   end
