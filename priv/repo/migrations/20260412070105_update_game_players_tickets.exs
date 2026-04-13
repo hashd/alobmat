@@ -1,4 +1,4 @@
-defmodule Moth.Repo.Migrations.UpdateGamePlayersTickets do
+defmodule Mocha.Repo.Migrations.UpdateGamePlayersTickets do
   use Ecto.Migration
 
   def change do

@@ -1,4 +1,4 @@
-defmodule Moth.Repo.Migrations.AddStatusToGame do
+defmodule Mocha.Repo.Migrations.AddStatusToGame do
   use Ecto.Migration
 
   def change do

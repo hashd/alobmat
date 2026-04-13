@@ -1,4 +1,4 @@
-defmodule Moth.Repo.Migrations.CreateUsers do
+defmodule Mocha.Repo.Migrations.CreateUsers do
   use Ecto.Migration
 
   def change do

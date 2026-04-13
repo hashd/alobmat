@@ -1,6 +1,6 @@
 import Config
 
-config :moth, MothWeb.Endpoint,
+config :mocha, MochaWeb.Endpoint,
   http: [ip: {127, 0, 0, 1}, port: 4000],
   check_origin: false,
   code_reloader: true,
@@ -16,20 +16,20 @@ config :moth, MothWeb.Endpoint,
     patterns: [
       ~r"priv/static/.*(js|css|png|jpeg|jpg|gif|svg)$",
       ~r"priv/gettext/.*(po)$",
-      ~r"lib/moth_web/(controllers|channels)/.*(ex)$"
+      ~r"lib/mocha_web/(controllers|channels)/.*(ex)$"
     ]
   ]
 
-config :moth, Moth.Repo,
+config :mocha, Mocha.Repo,
   username: "postgres",
   password: "postgres",
   hostname: "localhost",
-  database: "moth_dev",
+  database: "mocha_dev",
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
   pool_size: 10
 
-config :moth, dev_routes: true
+config :mocha, dev_routes: true
 
 config :swoosh, :api_client, false
 
@@ -41,4 +41,4 @@ config :ueberauth, Ueberauth.Strategy.Google.OAuth,
   client_id: System.get_env("GOOGLE_CLIENT_ID"),
   client_secret: System.get_env("GOOGLE_CLIENT_SECRET")
 
-config :moth, :sms_provider, Moth.Auth.SMSProvider.Log
+config :mocha, :sms_provider, Mocha.Auth.SMSProvider.Log

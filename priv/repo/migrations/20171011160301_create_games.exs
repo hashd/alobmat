@@ -1,4 +1,4 @@
-defmodule Moth.Repo.Migrations.CreateGames do
+defmodule Mocha.Repo.Migrations.CreateGames do
   use Ecto.Migration
 
   def change do

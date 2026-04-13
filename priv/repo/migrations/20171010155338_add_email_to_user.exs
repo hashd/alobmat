@@ -1,4 +1,4 @@
-defmodule Moth.Repo.Migrations.AddEmailToUser do
+defmodule Mocha.Repo.Migrations.AddEmailToUser do
   use Ecto.Migration
 
   def change do

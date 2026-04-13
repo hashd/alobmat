@@ -40,4 +40,4 @@ dev_env.sh
 .idea
 .vscode
 /.elixir_ls
-moth.iml
+mocha.iml

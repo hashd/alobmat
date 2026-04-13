@@ -1,4 +1,4 @@
-defmodule Moth.DataCase do
+defmodule Mocha.DataCase do
   @moduledoc """
   This module defines the setup for tests requiring
   access to the application's data layer.
@@ -16,12 +16,12 @@ defmodule Moth.DataCase do
 
   using do
     quote do
-      alias Moth.Repo
+      alias Mocha.Repo
 
       import Ecto
       import Ecto.Changeset
       import Ecto.Query
-      import Moth.DataCase
+      import Mocha.DataCase
     end
   end
 
@@ -34,7 +34,7 @@ defmodule Moth.DataCase do
   Sets up the sandbox based on the test tags.
   """
   def setup_sandbox(tags) do
-    pid = Ecto.Adapters.SQL.Sandbox.start_owner!(Moth.Repo, shared: !tags[:async])
+    pid = Ecto.Adapters.SQL.Sandbox.start_owner!(Mocha.Repo, shared: !tags[:async])
     on_exit(fn -> Ecto.Adapters.SQL.Sandbox.stop_owner(pid) end)
   end
 

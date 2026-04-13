@@ -1,9 +1,9 @@
-defmodule Moth.GameFixtures do
+defmodule Mocha.GameFixtures do
   @moduledoc "Test helpers for creating game entities."
 
-  alias Moth.Game
+  alias Mocha.Game
 
-  import Moth.AuthFixtures
+  import Mocha.AuthFixtures
 
   @default_settings %{
     interval: 10,

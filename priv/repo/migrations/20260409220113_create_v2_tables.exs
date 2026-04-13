@@ -1,4 +1,4 @@
-defmodule Moth.Repo.Migrations.CreateV2Tables do
+defmodule Mocha.Repo.Migrations.CreateV2Tables do
   use Ecto.Migration
 
   def change do

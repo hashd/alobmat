@@ -1,4 +1,4 @@
-defmodule MothWeb.ChannelCase do
+defmodule MochaWeb.ChannelCase do
   @moduledoc """
   This module defines the test case to be used by
   tests that require setting up a channel connection.
@@ -18,15 +18,15 @@ defmodule MothWeb.ChannelCase do
   using do
     quote do
       import Phoenix.ChannelTest
-      @endpoint MothWeb.Endpoint
+      @endpoint MochaWeb.Endpoint
     end
   end
 
   setup tags do
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(Moth.Repo)
+    :ok = Ecto.Adapters.SQL.Sandbox.checkout(Mocha.Repo)
 
     unless tags[:async] do
-      Ecto.Adapters.SQL.Sandbox.mode(Moth.Repo, {:shared, self()})
+      Ecto.Adapters.SQL.Sandbox.mode(Mocha.Repo, {:shared, self()})
     end
 
     :ok

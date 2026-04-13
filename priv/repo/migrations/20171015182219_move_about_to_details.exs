@@ -1,4 +1,4 @@
-defmodule Moth.Repo.Migrations.MoveAboutToDetails do
+defmodule Mocha.Repo.Migrations.MoveAboutToDetails do
   use Ecto.Migration
 
   def change do

@@ -1,4 +1,4 @@
-defmodule Moth.Repo.Migrations.CreateCredentials do
+defmodule Mocha.Repo.Migrations.CreateCredentials do
   use Ecto.Migration
 
   def change do

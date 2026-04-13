@@ -1,6 +1,6 @@
 import Config
 
-config :moth, MothWeb.Endpoint, cache_static_manifest: "priv/static/cache_manifest.json"
+config :mocha, MochaWeb.Endpoint, cache_static_manifest: "priv/static/cache_manifest.json"
 
 config :logger, level: :info
 

@@ -1,4 +1,4 @@
-defmodule Moth.Repo.Migrations.CreatePrizes do
+defmodule Mocha.Repo.Migrations.CreatePrizes do
   use Ecto.Migration
 
   def change do
