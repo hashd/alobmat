@@ -74,20 +74,17 @@ defmodule Mocha.Auth do
   ## Magic link tokens
 
   def build_magic_link_token(email) when is_binary(email) do
-    {token, token_record} =
-      case get_user_by_email(email) do
-        %User{} = user ->
-          {t, rec} = UserToken.build_magic_link_token(email)
-          {t, %{rec | user_id: user.id}}
+    case get_user_by_email(email) do
+      %User{} = user ->
+        {t, rec} = UserToken.build_magic_link_token(email)
+        token_record = %{rec | user_id: user.id}
+        Repo.insert!(token_record)
+        {:ok, t, token_record}
 
-        nil ->
-          {:ok, user} = register(%{email: email, name: email_to_name(email)})
-          {t, rec} = UserToken.build_magic_link_token(email)
-          {t, %{rec | user_id: user.id}}
-      end
-
-    Repo.insert!(token_record)
-    {token, token_record}
+      nil ->
+        # Don't auto-register unknown emails — prevents account creation spam
+        {:error, :user_not_found}
+    end
   end
 
   def verify_magic_link(token) when is_binary(token) do
@@ -95,11 +92,12 @@ defmodule Mocha.Auth do
       {:ok, query} ->
         case Repo.one(query) do
           {user, token_record} ->
-            token_record
-            |> Ecto.Changeset.change(used_at: DateTime.truncate(DateTime.utc_now(), :second))
-            |> Repo.update!()
+            # Atomic delete prevents replay — concurrent requests can't both succeed
+            {deleted, _} = Repo.delete_all(
+              from(t in UserToken, where: t.id == ^token_record.id and is_nil(t.used_at))
+            )
 
-            {:ok, user}
+            if deleted == 1, do: {:ok, user}, else: :error
 
           nil ->
             :error
@@ -143,6 +141,21 @@ defmodule Mocha.Auth do
 
   ## Token management
 
+  def delete_api_token(raw_token) when is_binary(raw_token) do
+    case UserToken.verify_token_query(raw_token, "api") do
+      {:ok, query} ->
+        case Repo.one(query) do
+          {_user, token_record} -> Repo.delete(token_record)
+          nil -> :ok
+        end
+
+      :error ->
+        :ok
+    end
+
+    :ok
+  end
+
   def revoke_all_tokens(%User{} = user) do
     Repo.delete_all(from t in UserToken, where: t.user_id == ^user.id)
     :ok
@@ -153,16 +166,6 @@ defmodule Mocha.Auth do
   def get_users_map(ids) when is_list(ids) do
     Repo.all(from u in User, where: u.id in ^ids, select: {u.id, u.name})
     |> Map.new()
-  end
-
-  ## Helpers
-
-  defp email_to_name(email) do
-    email
-    |> String.split("@")
-    |> List.first()
-    |> String.replace(~r/[._]/, " ")
-    |> String.capitalize()
   end
 
   ## Phone OTP
