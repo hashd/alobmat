@@ -66,7 +66,7 @@ defmodule Mocha.AuthTest do
   describe "magic link tokens" do
     test "build and verify magic link" do
       user = user_fixture()
-      {token, _token_record} = Auth.build_magic_link_token(user.email)
+      {:ok, token, _token_record} = Auth.build_magic_link_token(user.email)
       assert is_binary(token)
 
       assert {:ok, found_user} = Auth.verify_magic_link(token)
@@ -75,7 +75,7 @@ defmodule Mocha.AuthTest do
 
     test "magic link is single-use" do
       user = user_fixture()
-      {token, _} = Auth.build_magic_link_token(user.email)
+      {:ok, token, _} = Auth.build_magic_link_token(user.email)
 
       assert {:ok, _} = Auth.verify_magic_link(token)
       assert Auth.verify_magic_link(token) == :error

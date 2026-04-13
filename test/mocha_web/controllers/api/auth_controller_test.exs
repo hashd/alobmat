@@ -14,7 +14,7 @@ defmodule MochaWeb.API.AuthControllerTest do
   describe "POST /api/auth/verify" do
     test "verifies magic link and returns token", %{conn: conn} do
       user = user_fixture()
-      {token, _} = Mocha.Auth.build_magic_link_token(user.email)
+      {:ok, token, _} = Mocha.Auth.build_magic_link_token(user.email)
 
       conn = post(conn, ~p"/api/auth/verify", %{token: token})
       assert %{"token" => api_token, "user" => _} = json_response(conn, 200)
