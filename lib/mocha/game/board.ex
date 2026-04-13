@@ -36,7 +36,7 @@ defmodule Mocha.Game.Board do
   @doc "Restores a board from a snapshot map."
   def from_snapshot(%{"picks" => picks, "count" => count}) do
     picked_set = MapSet.new(picks)
-    remaining = Enum.reject(1..90, &MapSet.member?(picked_set, &1)) |> Enum.shuffle()
+    remaining = Enum.reject(1..90, &MapSet.member?(picked_set, &1)) |> Enum.sort()
     %__MODULE__{bag: remaining, picks: picks, count: count}
   end
 end

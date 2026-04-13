@@ -3,7 +3,7 @@ import type { User, RecentGame } from '@/types/domain'
 const BASE = '/api'
 
 function authHeader(): Record<string, string> {
-  const token = localStorage.getItem('auth_token')
+  const token = sessionStorage.getItem('auth_token')
   return token ? { Authorization: `Bearer ${token}` } : {}
 }
 

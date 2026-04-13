@@ -42,4 +42,24 @@ router.beforeEach(async (to) => {
   if (to.meta.requiresAuth && !auth.isAuthenticated) {
     return { path: '/auth', query: { redirect: to.fullPath } }
   }
+
+  // Enforce host-only routes — redirect non-hosts to the player view
+  if (to.meta.requiresHost && auth.user) {
+    const code = to.params.code as string
+    if (code) {
+      try {
+        const res = await fetch(`/api/games/${code}`, {
+          headers: { Authorization: `Bearer ${auth.token}` },
+        })
+        if (res.ok) {
+          const { game } = await res.json()
+          if (game.host_id !== auth.user.id) {
+            return { path: `/game/${code}` }
+          }
+        }
+      } catch {
+        // If we can't verify, let the page handle it
+      }
+    }
+  }
 })

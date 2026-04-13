@@ -48,7 +48,7 @@ onMounted(async () => {
     window.history.replaceState({}, '', window.location.pathname)
     try {
       auth.token = token
-      localStorage.setItem('auth_token', token)
+      sessionStorage.setItem('auth_token', token)
       const { user: u } = await api.user.me()
       auth.login(u, token)
       router.replace((route.query.redirect as string) ?? '/')
@@ -103,7 +103,7 @@ async function verifyOtp() {
     const { token, user, needs_name } = await api.auth.verifyOtp(phone.value, otpCode.value)
     if (needs_name) {
       auth.token = token
-      localStorage.setItem('auth_token', token)
+      sessionStorage.setItem('auth_token', token)
       auth.login(user, token)
       phoneStep.value = 'name'
     } else {

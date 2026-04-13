@@ -13,7 +13,24 @@ defmodule Mocha.Game do
     join_secret: nil
   }
 
+  @max_active_games_per_user 5
+
   def create_game(host_id, attrs) do
+    # Limit active games per host using Registry metadata
+    active_host_games =
+      Registry.select(Mocha.Game.Registry, [{{:_, :_, :"$1"}, [], [:"$1"]}])
+      |> Enum.count(fn meta ->
+        meta.host_id == host_id and meta.status in [:lobby, :running, :paused]
+      end)
+
+    if active_host_games >= @max_active_games_per_user do
+      {:error, :too_many_games}
+    else
+      do_create_game(host_id, attrs)
+    end
+  end
+
+  defp do_create_game(host_id, attrs) do
     settings = Map.merge(@default_settings, Map.get(attrs, :settings, %{}))
     settings = validate_settings(settings)
 
@@ -22,28 +39,37 @@ defmodule Mocha.Game do
       |> MapSet.new()
 
     code = Code.generate(existing_codes)
+    name = non_empty(attrs[:name]) || non_empty(attrs["name"]) || "Untitled Game"
 
-    with {:ok, record} <-
-           %Record{}
-           |> Record.changeset(%{
-             code: code,
-             name: non_empty(attrs[:name]) || non_empty(attrs["name"]) || "Untitled Game",
-             host_id: host_id,
-             settings: settings
-           })
-           |> Repo.insert(),
-         {:ok, _pid} <-
-           DynamicSupervisor.start_child(Mocha.Game.DynSup, {
-             Server,
-             %{
-               code: code,
-               name: record.name,
-               host_id: host_id,
-               settings: settings,
-               game_record_id: record.id
-             }
-           }) do
-      {:ok, code}
+    # Use transaction to ensure DB record and GenServer are created atomically
+    result =
+      Repo.transaction(fn ->
+        case %Record{}
+             |> Record.changeset(%{code: code, name: name, host_id: host_id, settings: settings})
+             |> Repo.insert() do
+          {:ok, record} ->
+            case DynamicSupervisor.start_child(Mocha.Game.DynSup, {
+                   Server,
+                   %{
+                     code: code,
+                     name: record.name,
+                     host_id: host_id,
+                     settings: settings,
+                     game_record_id: record.id
+                   }
+                 }) do
+              {:ok, _pid} -> code
+              {:error, reason} -> Repo.rollback(reason)
+            end
+
+          {:error, changeset} ->
+            Repo.rollback(changeset)
+        end
+      end)
+
+    case result do
+      {:ok, code} -> {:ok, code}
+      {:error, _} -> {:error, :create_failed}
     end
   end
 
@@ -123,27 +149,20 @@ defmodule Mocha.Game do
   end
 
   def list_public_games do
-    Registry.select(Mocha.Game.Registry, [{{:"$1", :"$2", :_}, [], [{{:"$1", :"$2"}}]}])
-    |> Enum.map(fn {_code, pid} ->
-      try do
-        state = Server.get_state(pid)
-        vis = Map.get(state.settings, :visibility) || Map.get(state.settings, "visibility", "public")
-        if vis == "public" and state.status in [:lobby, :running] do
-          %{
-            code: state.code,
-            name: state.name,
-            status: state.status,
-            host_id: state.host_id,
-            players_count: MapSet.size(state.players)
-          }
-        else
-          nil
-        end
-      catch
-        :exit, _ -> nil
-      end
+    # Read from Registry metadata — no GenServer calls needed
+    Registry.select(Mocha.Game.Registry, [{{:"$1", :_, :"$3"}, [], [{{:"$1", :"$3"}}]}])
+    |> Enum.filter(fn {_code, meta} ->
+      meta.visibility == "public" and meta.status in [:lobby, :running]
     end)
-    |> Enum.reject(&is_nil/1)
+    |> Enum.map(fn {code, meta} ->
+      %{
+        code: code,
+        name: meta.name,
+        status: meta.status,
+        host_id: meta.host_id,
+        players_count: meta.player_count
+      }
+    end)
   end
 
   def clone_game(old_code, host_id) do

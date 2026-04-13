@@ -43,16 +43,21 @@ defmodule MochaWeb.Plugs.RateLimit do
   defp check_rate(key, limit, window) do
     now = System.monotonic_time(:millisecond)
 
-    case :ets.lookup(@table, key) do
-      [{^key, count, window_start}] when now - window_start < window ->
-        if count >= limit do
-          :rate_limited
-        else
-          :ets.update_counter(@table, key, {2, 1})
-          :ok
-        end
+    # Atomic increment-then-check to avoid TOCTOU race
+    try do
+      new_count = :ets.update_counter(@table, key, {2, 1})
+      [{^key, ^new_count, window_start}] = :ets.lookup(@table, key)
 
-      _ ->
+      if now - window_start >= window do
+        # Window expired — reset counter
+        :ets.insert(@table, {key, 1, now})
+        :ok
+      else
+        if new_count > limit, do: :rate_limited, else: :ok
+      end
+    catch
+      :error, :badarg ->
+        # Key doesn't exist yet — create it
         :ets.insert(@table, {key, 1, now})
         :ok
     end

@@ -45,23 +45,19 @@ defmodule Mocha.Game.Monitor do
     now = System.monotonic_time(:millisecond)
 
     Enum.each(games, fn {code, pid, meta} ->
-      try do
-        state = GenServer.call(pid, :state, 5_000)
+      status = Map.get(meta, :status, :lobby)
 
-        cond do
-          state.status == :lobby and stale?(meta, now, @lobby_timeout) ->
-            Logger.info("Reaping stale lobby game: #{code}")
-            DynamicSupervisor.terminate_child(Mocha.Game.DynSup, pid)
+      cond do
+        status == :lobby and stale?(meta, now, @lobby_timeout) ->
+          Logger.info("Reaping stale lobby game: #{code}")
+          DynamicSupervisor.terminate_child(Mocha.Game.DynSup, pid)
 
-          state.status == :finished and stale?(meta, now, @finished_cooldown) ->
-            Logger.info("Reaping finished game: #{code}")
-            DynamicSupervisor.terminate_child(Mocha.Game.DynSup, pid)
+        status == :finished and stale?(meta, now, @finished_cooldown) ->
+          Logger.info("Reaping finished game: #{code}")
+          DynamicSupervisor.terminate_child(Mocha.Game.DynSup, pid)
 
-          true ->
-            :ok
-        end
-      catch
-        :exit, _ -> :ok
+        true ->
+          :ok
       end
     end)
   end

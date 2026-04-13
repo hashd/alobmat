@@ -6,10 +6,18 @@ defmodule MochaWeb.API.AuthController do
 
   def request_magic_link(conn, %{"email" => email}) do
     email = String.downcase(String.trim(email))
-    {token, _} = Auth.build_magic_link_token(email)
-    url = url(~p"/auth/magic/verify?token=#{token}")
-    UserNotifier.deliver_magic_link(email, url)
-    json(conn, %{status: "ok", message: "Magic link sent"})
+
+    case Auth.build_magic_link_token(email) do
+      {:ok, token, _record} ->
+        url = url(~p"/auth/magic/verify?token=#{token}")
+        UserNotifier.deliver_magic_link(email, url)
+
+      {:error, :user_not_found} ->
+        # Don't reveal whether the email exists
+        :ok
+    end
+
+    json(conn, %{status: "ok", message: "If an account exists, a magic link has been sent"})
   end
 
   def verify_magic_link(conn, %{"token" => token}) do
@@ -37,6 +45,10 @@ defmodule MochaWeb.API.AuthController do
   end
 
   def logout(conn, _params) do
+    with ["Bearer " <> token] <- get_req_header(conn, "authorization") do
+      Auth.delete_api_token(token)
+    end
+
     json(conn, %{status: "ok"})
   end
 

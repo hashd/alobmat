@@ -5,9 +5,9 @@ defmodule Mocha.Game.CodeTest do
   alias Mocha.Game.Code
 
   describe "generate/0" do
-    test "returns a string matching WORD-NN format" do
+    test "returns a string matching WORD-NNN format" do
       code = Code.generate()
-      assert Regex.match?(~r/^[A-Z]+-\d{2}$/, code)
+      assert Regex.match?(~r/^[A-Z]+-\d{3}$/, code)
     end
 
     test "generates different codes on successive calls" do
@@ -26,10 +26,10 @@ defmodule Mocha.Game.CodeTest do
   end
 
   describe "property: codes always match format" do
-    property "all generated codes match WORD-NN" do
+    property "all generated codes match WORD-NNN" do
       check all(_ <- constant(:ok), max_runs: 100) do
         code = Code.generate()
-        assert Regex.match?(~r/^[A-Z]+-\d{2}$/, code)
+        assert Regex.match?(~r/^[A-Z]+-\d{3}$/, code)
       end
     end
   end
