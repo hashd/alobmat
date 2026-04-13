@@ -100,7 +100,14 @@ export const useGameStore = defineStore('game', () => {
       picks: [...board.value.picks, event.number],
       count: event.count,
     }
-    nextPickAt.value = event.next_pick_at
+    // Compensate for clock skew between server and client
+    if (event.server_now) {
+      const serverNow = new Date(event.server_now).getTime()
+      const offset = Date.now() - serverNow
+      nextPickAt.value = new Date(new Date(event.next_pick_at).getTime() + offset).toISOString()
+    } else {
+      nextPickAt.value = event.next_pick_at
+    }
 
     // Auto-strike if number is on any of my tickets and not yet struck and auto-strike is enabled
     const onMyTicket = myTickets.value.some(t => t.numbers.includes(event.number))
