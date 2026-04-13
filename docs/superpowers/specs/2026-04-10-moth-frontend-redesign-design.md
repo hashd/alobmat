@@ -1,4 +1,4 @@
-# Moth Frontend Redesign — Design Spec
+# Mocha Frontend Redesign — Design Spec
 
 **Date**: 2026-04-10
 **Status**: Revised (post-adversarial review)
@@ -79,7 +79,7 @@ CSS custom properties (`--color-bg`, `--color-surface`, `--color-text`, etc.) to
 
 ### 2.4 Component Primitives
 
-All built as Phoenix function components in `MothWeb.Components.UI` (general primitives) and `MothWeb.Components.Game` (game-specific). Use LiveComponents for sections that update independently at high frequency (activity feed, picked numbers).
+All built as Phoenix function components in `MochaWeb.Components.UI` (general primitives) and `MochaWeb.Components.Game` (game-specific). Use LiveComponents for sections that update independently at high frequency (activity feed, picked numbers).
 
 | Component | Description |
 |-----------|-------------|
@@ -133,7 +133,7 @@ Minimal, targeted hooks for things CSS/LiveView can't handle:
 
 **Unauthenticated:**
 - Centered single column, generous whitespace, no navbar
-- Logo wordmark "moth" with subtle geometric icon at top
+- Logo wordmark "mocha" with subtle geometric icon at top
 - **Join-first layout**: Game code input is the primary action (above auth). Large, monospace, auto-uppercase. Join button slides from arrow icon to "Join" label on valid code entry.
 - **Unauthenticated join flow**: When a user enters a code without being logged in, the code is stored in the session. They are redirected to auth (magic link or Google). After successful login, they are automatically redirected to `/game/:code`.
 - Auth buttons below with secondary visual weight (outlined pills): "Continue with Google", "Continue with Email"
@@ -432,15 +432,15 @@ Scoped to what v1 needs. Prize registry, custom prizes, and near-prize server br
 | **Prize progress in state** | Add `prize_progress` to `sanitize_state/1` — computes `%{prize_type => {struck_count, required_count}}` per player from their ticket rows + struck set. Returned as part of game state. | Small |
 | **Reactions handler** | Add `handle_call({:reaction, user_id, emoji})` to GameServer. Rate-limited 1/sec per user via `reaction_timestamps` map. Broadcasts `{:reaction, payload}`. | Small |
 | **Auto-strike as cast** | Change auto-strike from `GenServer.call` to `GenServer.cast` in PlayLive to prevent thundering-herd on picks. The GameServer already handles the state update correctly regardless of call/cast. | Trivial |
-| **Presence integration** | Add `Presence.track/3` calls in PlayLive and HostLive `mount/3`. Handle `presence_diff` events for player online/away/offline status. The `MothWeb.Presence` module already exists (5 lines). | Small |
+| **Presence integration** | Add `Presence.track/3` calls in PlayLive and HostLive `mount/3`. Handle `presence_diff` events for player online/away/offline status. The `MochaWeb.Presence` module already exists (5 lines). | Small |
 | **Play Again / Clone** | `Game.clone_game(old_code, host_id)` — reads finished game's settings, calls `create_game/2`. Broadcasts `{:new_game, %{new_code: code}}` on old game's topic. | Small |
 | **Server time in pick payload** | Add `server_now: DateTime.utc_now()` to the `:pick` broadcast payload alongside `next_pick_at`. Allows Countdown hook to compute drift-free deltas. | Trivial |
-| **Unauthenticated join redirect** | In `MothWeb.Plugs.Auth.require_authenticated_user/2`, store `conn.request_path` in session as `:return_to` before redirecting. After login, redirect to `:return_to` if present. | Small |
+| **Unauthenticated join redirect** | In `MochaWeb.Plugs.Auth.require_authenticated_user/2`, store `conn.request_path` in session as `:return_to` before redirecting. After login, redirect to `:return_to` if present. | Small |
 
 ## 7. Technical Implementation Notes
 
 - **All styling**: Tailwind CSS with custom properties for theme tokens. One CSS file with custom property definitions + Tailwind imports.
-- **Components**: Split into `MothWeb.Components.UI` (button, card, badge, etc.) and `MothWeb.Components.Game` (ticket_grid, prize_chip, board, etc.).
+- **Components**: Split into `MochaWeb.Components.UI` (button, card, badge, etc.) and `MochaWeb.Components.Game` (ticket_grid, prize_chip, board, etc.).
 - **LiveComponents**: Use for independently-updating sections — activity feed (stream), picked numbers, player leaderboard. This minimizes re-render scope when PubSub events arrive.
 - **Responsive**: Phone-first with `md:` breakpoint (768px) for desktop layouts. Ticket grid, host dashboard, and player view get multi-column layouts on desktop.
 - **JS bundle**: app.js + hooks module. canvas-confetti loaded async only when needed (~6KB gzipped).

@@ -1,19 +1,19 @@
 import Config
 
-config :moth,
-  ecto_repos: [Moth.Repo]
+config :mocha,
+  ecto_repos: [Mocha.Repo]
 
-config :moth, MothWeb.Endpoint,
+config :mocha, MochaWeb.Endpoint,
   url: [host: "localhost"],
   adapter: Bandit.PhoenixAdapter,
   render_errors: [
-    formats: [html: MothWeb.ErrorHTML, json: MothWeb.ErrorJSON],
+    formats: [html: MochaWeb.ErrorHTML, json: MochaWeb.ErrorJSON],
     layout: false
   ],
-  pubsub_server: Moth.PubSub,
+  pubsub_server: Mocha.PubSub,
   live_view: [signing_salt: "tambola_lv"]
 
-config :moth, Moth.Mailer, adapter: Swoosh.Adapters.Local
+config :mocha, Mocha.Mailer, adapter: Swoosh.Adapters.Local
 
 config :logger, :console,
   format: "$time $metadata[$level] $message\n",

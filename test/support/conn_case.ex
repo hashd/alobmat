@@ -1,4 +1,4 @@
-defmodule MothWeb.ConnCase do
+defmodule MochaWeb.ConnCase do
   @moduledoc """
   This module defines the test case to be used by
   tests that require setting up a connection.
@@ -19,24 +19,24 @@ defmodule MothWeb.ConnCase do
     quote do
       import Plug.Conn
       import Phoenix.ConnTest
-      import MothWeb.ConnCase
+      import MochaWeb.ConnCase
 
       use Phoenix.VerifiedRoutes,
-        endpoint: MothWeb.Endpoint,
-        router: MothWeb.Router,
-        statics: MothWeb.static_paths()
+        endpoint: MochaWeb.Endpoint,
+        router: MochaWeb.Router,
+        statics: MochaWeb.static_paths()
 
-      @endpoint MothWeb.Endpoint
+      @endpoint MochaWeb.Endpoint
 
-      use MothWeb, :verified_routes
+      use MochaWeb, :verified_routes
     end
   end
 
   setup tags do
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(Moth.Repo)
+    :ok = Ecto.Adapters.SQL.Sandbox.checkout(Mocha.Repo)
 
     unless tags[:async] do
-      Ecto.Adapters.SQL.Sandbox.mode(Moth.Repo, {:shared, self()})
+      Ecto.Adapters.SQL.Sandbox.mode(Mocha.Repo, {:shared, self()})
     end
 
     {:ok, conn: Phoenix.ConnTest.build_conn()}

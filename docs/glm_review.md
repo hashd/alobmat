@@ -1,4 +1,4 @@
-# Moth — GLM Codebase Review
+# Mocha — GLM Codebase Review
 
 > **Date:** 2026-04-10
 > **Scope:** Full codebase review — architecture, security, gameplay, code quality
@@ -11,7 +11,7 @@
 The v2 rewrite is a **massive improvement** over v1. The architecture is idiomatic Elixir/OTP:
 - GenServer-per-game under DynamicSupervisor with Registry is the right model
 - Write-through for player joins + periodic snapshots for board state is a reasonable persistence strategy
-- Context separation (`Moth.Game`, `Moth.Auth`) is clean
+- Context separation (`Mocha.Game`, `Mocha.Auth`) is clean
 - The codebase is small, readable, and focused
 
 ---
@@ -19,7 +19,7 @@ The v2 rewrite is a **massive improvement** over v1. The architecture is idiomat
 ## Critical Issues
 
 ### 1. Late-joiner exploit remains unfixed
-`Server.join/2` allows players to join *after* the game starts (`lib/moth/game/server.ex:87-103`). The `agent_spec_review.md` already flags this — a sniper can wait until 70 numbers are picked, then join with throwaway accounts to claim unclaimed prizes with high statistical probability. **Fix: disallow joins after `:running`.**
+`Server.join/2` allows players to join *after* the game starts (`lib/mocha/game/server.ex:87-103`). The `agent_spec_review.md` already flags this — a sniper can wait until 70 numbers are picked, then join with throwaway accounts to claim unclaimed prizes with high statistical probability. **Fix: disallow joins after `:running`.**
 
 ### 2. GenServer mailbox exhaustion (DoS)
 Chat rate-limiting (1/sec) is enforced *inside* the GameServer (`server.ex:162-170`), not at the edge. A bot sending 10K chat messages/sec fills the GenServer mailbox before the rate limit ever fires, blocking prize claims and game actions. **Fix: rate-limit in LiveView/Channel before forwarding to GameServer.**
@@ -77,7 +77,7 @@ Prize validation (`prize.ex:15-17`) pattern matches on `rows` as a list of 3 ele
 
 - **README is stale**: Still references npm/brunch, says nothing about the v2 stack (esbuild, tailwind, LiveView).
 - **`api.md` is entirely outdated**: Documents v1 routes that no longer exist.
-- **Empty `Moth` module**: `lib/moth.ex` is just a docstring placeholder.
+- **Empty `Mocha` module**: `lib/mocha.ex` is just a docstring placeholder.
 - **No `phx.gen.auth`**: Custom auth is fine, but it misses standard features like password reset, email confirmation.
 - **Test coverage gaps**: No LiveView tests, no Channel tests, no integration tests for the full game lifecycle (create → join → start → pick → claim → finish).
 - **Old migrations left in tree**: 8 v1 migrations from 2017 coexist with the v2 drop-and-recreate migration. Clean migration history would be better for a fresh start.

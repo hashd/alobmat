@@ -1,4 +1,4 @@
-defmodule Moth.Repo.Migrations.DropTimestampsFromGameModerators do
+defmodule Mocha.Repo.Migrations.DropTimestampsFromGameModerators do
   use Ecto.Migration
 
   def change do

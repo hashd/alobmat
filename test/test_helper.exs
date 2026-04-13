@@ -1,2 +1,2 @@
 ExUnit.start()
-Ecto.Adapters.SQL.Sandbox.mode(Moth.Repo, :manual)
+Ecto.Adapters.SQL.Sandbox.mode(Mocha.Repo, :manual)

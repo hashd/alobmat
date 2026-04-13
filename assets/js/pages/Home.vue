@@ -72,7 +72,7 @@ async function joinPublic(code: string) {
         
         <div class="space-y-1">
           <h1 class="text-6xl md:text-7xl font-extrabold tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-slate-900 via-indigo-900 to-slate-700 drop-shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-            Moth
+            Mocha
           </h1>
           <p class="text-lg md:text-xl text-slate-600 font-medium tracking-wide">The ultimate modern bingo experience</p>
         </div>

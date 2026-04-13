@@ -1,4 +1,4 @@
-defmodule Moth.Repo.Migrations.AddPhoneOtp do
+defmodule Mocha.Repo.Migrations.AddPhoneOtp do
   use Ecto.Migration
 
   def change do

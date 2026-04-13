@@ -1,20 +1,20 @@
-# Moth v2 — Production Tambola Server Implementation Plan
+# Mocha v2 — Production Tambola Server Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Rewrite the Moth POC into a production-grade Tambola/Housie game server with LiveView web UI, REST API + Channels for native mobile, supervised game engine, magic link + Google OAuth auth, and player-initiated prize claims.
+**Goal:** Rewrite the Mocha POC into a production-grade Tambola/Housie game server with LiveView web UI, REST API + Channels for native mobile, supervised game engine, magic link + Google OAuth auth, and player-initiated prize claims.
 
-**Architecture:** Context-separated monolith with three contexts: `Moth.Auth` (users, tokens, OAuth), `Moth.Game` (game engine, board, tickets, prizes), and `MothWeb` (LiveView, API, Channels). Game state lives in supervised GenServers; critical mutations write-through to DB; board state is periodically snapshotted.
+**Architecture:** Context-separated monolith with three contexts: `Mocha.Auth` (users, tokens, OAuth), `Mocha.Game` (game engine, board, tickets, prizes), and `MochaWeb` (LiveView, API, Channels). Game state lives in supervised GenServers; critical mutations write-through to DB; board state is periodically snapshotted.
 
 **Tech Stack:** Elixir 1.14+, Phoenix 1.7, LiveView 0.20, Ecto 3.10, PostgreSQL, Bandit, Swoosh, Ueberauth (Google), Tailwind CSS, StreamData (test).
 
-**Spec:** `docs/superpowers/specs/2026-04-10-moth-v2-production-tambola-server.md`
+**Spec:** `docs/superpowers/specs/2026-04-10-mocha-v2-production-tambola-server.md`
 
 ---
 
 ## File Map
 
-### `lib/moth/` — Core Domain
+### `lib/mocha/` — Core Domain
 
 | File | Responsibility |
 |------|---------------|
@@ -38,7 +38,7 @@
 | `game/monitor.ex` | GenServer — tracks games, reaps stale ones |
 | `game/supervisor.ex` | Supervisor (rest_for_one) — Registry + DynSup + Monitor |
 
-### `lib/moth_web/` — Web Layer
+### `lib/mocha_web/` — Web Layer
 
 | File | Responsibility |
 |------|---------------|
@@ -69,18 +69,18 @@
 
 | File | Tests |
 |------|-------|
-| `test/moth/game/board_test.exs` | Board pure functions + property tests |
-| `test/moth/game/ticket_test.exs` | Ticket generation + property tests |
-| `test/moth/game/prize_test.exs` | Claim validation + property tests |
-| `test/moth/game/code_test.exs` | Code generation + property tests |
-| `test/moth/game/server_test.exs` | GenServer lifecycle, crash recovery, concurrency |
-| `test/moth/game/game_test.exs` | Game context integration tests |
-| `test/moth/auth/auth_test.exs` | Auth context integration tests |
-| `test/moth_web/live/game/play_live_test.exs` | PlayLive integration tests |
-| `test/moth_web/live/game/host_live_test.exs` | HostLive integration tests |
-| `test/moth_web/controllers/api/game_controller_test.exs` | API game endpoints |
-| `test/moth_web/controllers/api/auth_controller_test.exs` | API auth endpoints |
-| `test/moth_web/channels/game_channel_test.exs` | Channel tests |
+| `test/mocha/game/board_test.exs` | Board pure functions + property tests |
+| `test/mocha/game/ticket_test.exs` | Ticket generation + property tests |
+| `test/mocha/game/prize_test.exs` | Claim validation + property tests |
+| `test/mocha/game/code_test.exs` | Code generation + property tests |
+| `test/mocha/game/server_test.exs` | GenServer lifecycle, crash recovery, concurrency |
+| `test/mocha/game/game_test.exs` | Game context integration tests |
+| `test/mocha/auth/auth_test.exs` | Auth context integration tests |
+| `test/mocha_web/live/game/play_live_test.exs` | PlayLive integration tests |
+| `test/mocha_web/live/game/host_live_test.exs` | HostLive integration tests |
+| `test/mocha_web/controllers/api/game_controller_test.exs` | API game endpoints |
+| `test/mocha_web/controllers/api/auth_controller_test.exs` | API auth endpoints |
+| `test/mocha_web/channels/game_channel_test.exs` | Channel tests |
 | `test/support/fixtures/auth_fixtures.ex` | User/token factory helpers |
 | `test/support/fixtures/game_fixtures.ex` | Game/player factory helpers |
 
@@ -95,19 +95,19 @@
 - Modify: `config/test.exs`
 - Modify: `config/runtime.exs`
 - Modify: `config/prod.exs`
-- Remove: all files under `lib/moth/housie/`, `lib/moth/accounts/`, `lib/moth_web/channels/`, `lib/moth_web/controllers/`, `lib/moth_web/helpers/`, `lib/moth_web/plug/`
-- Remove: all files under `test/moth/`, `test/moth_web/`
-- Create: `lib/moth/mailer.ex`
+- Remove: all files under `lib/mocha/housie/`, `lib/mocha/accounts/`, `lib/mocha_web/channels/`, `lib/mocha_web/controllers/`, `lib/mocha_web/helpers/`, `lib/mocha_web/plug/`
+- Remove: all files under `test/mocha/`, `test/mocha_web/`
+- Create: `lib/mocha/mailer.ex`
 - Create: `test/support/fixtures/auth_fixtures.ex`
 - Create: `test/support/fixtures/game_fixtures.ex`
 
 - [ ] **Step 1: Remove old POC source files**
 
 ```bash
-rm -rf lib/moth/housie lib/moth/accounts lib/moth/token.ex
-rm -rf lib/moth_web/channels lib/moth_web/controllers lib/moth_web/helpers lib/moth_web/plug
-rm -rf test/moth test/moth_web/channels test/moth_web/controllers test/moth_web/views
-rm -f lib/moth_web/components/layouts/app.html.heex lib/moth_web/components/layouts/root.html.heex
+rm -rf lib/mocha/housie lib/mocha/accounts lib/mocha/token.ex
+rm -rf lib/mocha_web/channels lib/mocha_web/controllers lib/mocha_web/helpers lib/mocha_web/plug
+rm -rf test/mocha test/mocha_web/channels test/mocha_web/controllers test/mocha_web/views
+rm -f lib/mocha_web/components/layouts/app.html.heex lib/mocha_web/components/layouts/root.html.heex
 ```
 
 - [ ] **Step 2: Update `mix.exs` dependencies**
@@ -148,7 +148,7 @@ Also update the `extra_applications` in `application/0`:
 ```elixir
 def application do
   [
-    mod: {Moth.Application, []},
+    mod: {Mocha.Application, []},
     extra_applications: [:logger, :runtime_tools]
   ]
 end
@@ -159,20 +159,20 @@ end
 ```elixir
 import Config
 
-config :moth,
-  ecto_repos: [Moth.Repo]
+config :mocha,
+  ecto_repos: [Mocha.Repo]
 
-config :moth, MothWeb.Endpoint,
+config :mocha, MochaWeb.Endpoint,
   url: [host: "localhost"],
   adapter: Bandit.PhoenixAdapter,
   render_errors: [
-    formats: [html: MothWeb.ErrorHTML, json: MothWeb.ErrorJSON],
+    formats: [html: MochaWeb.ErrorHTML, json: MochaWeb.ErrorJSON],
     layout: false
   ],
-  pubsub_server: Moth.PubSub,
+  pubsub_server: Mocha.PubSub,
   live_view: [signing_salt: "tambola_lv"]
 
-config :moth, Moth.Mailer, adapter: Swoosh.Adapters.Local
+config :mocha, Mocha.Mailer, adapter: Swoosh.Adapters.Local
 
 config :logger, :console,
   format: "$time $metadata[$level] $message\n",
@@ -190,7 +190,7 @@ config :esbuild,
 
 config :tailwind,
   version: "3.4.0",
-  moth: [
+  mocha: [
     args: ~w(
       --config=tailwind.config.js
       --input=css/app.css
@@ -215,7 +215,7 @@ import_config "#{config_env()}.exs"
 ```elixir
 import Config
 
-config :moth, MothWeb.Endpoint,
+config :mocha, MochaWeb.Endpoint,
   http: [ip: {127, 0, 0, 1}, port: 4000],
   check_origin: false,
   code_reloader: true,
@@ -223,28 +223,28 @@ config :moth, MothWeb.Endpoint,
   secret_key_base: "wD/QryEz4g+gbBX07rcqlOSa+1noaIinDCeuOlZRplMvuE9qx4NYRf6hNfPHPJMk",
   watchers: [
     esbuild: {Esbuild, :install_and_run, [:default, ~w(--sourcemap=inline --watch)]},
-    tailwind: {Tailwind, :install_and_run, [:moth, ~w(--watch)]}
+    tailwind: {Tailwind, :install_and_run, [:mocha, ~w(--watch)]}
   ]
 
-config :moth, MothWeb.Endpoint,
+config :mocha, MochaWeb.Endpoint,
   live_reload: [
     patterns: [
       ~r"priv/static/.*(js|css|png|jpeg|jpg|gif|svg)$",
       ~r"priv/gettext/.*(po)$",
-      ~r"lib/moth_web/(controllers|live|components)/.*(ex|heex)$"
+      ~r"lib/mocha_web/(controllers|live|components)/.*(ex|heex)$"
     ]
   ]
 
-config :moth, Moth.Repo,
+config :mocha, Mocha.Repo,
   username: "postgres",
   password: "postgres",
   hostname: "localhost",
-  database: "moth_dev",
+  database: "mocha_dev",
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
   pool_size: 10
 
-config :moth, dev_routes: true
+config :mocha, dev_routes: true
 
 config :swoosh, :api_client, false
 
@@ -262,20 +262,20 @@ config :ueberauth, Ueberauth.Strategy.Google.OAuth,
 ```elixir
 import Config
 
-config :moth, MothWeb.Endpoint,
+config :mocha, MochaWeb.Endpoint,
   http: [ip: {127, 0, 0, 1}, port: 4002],
   secret_key_base: "test_secret_key_base_that_is_at_least_64_bytes_long_for_testing_purposes_only",
   server: false
 
-config :moth, Moth.Repo,
+config :mocha, Mocha.Repo,
   username: "postgres",
   password: "postgres",
   hostname: "localhost",
-  database: "moth_test#{System.get_env("MIX_TEST_PARTITION")}",
+  database: "mocha_test#{System.get_env("MIX_TEST_PARTITION")}",
   pool: Ecto.Adapters.SQL.Sandbox,
   pool_size: 10
 
-config :moth, Moth.Mailer, adapter: Swoosh.Adapters.Test
+config :mocha, Mocha.Mailer, adapter: Swoosh.Adapters.Test
 
 config :swoosh, :api_client, false
 
@@ -295,7 +295,7 @@ if config_env() == :prod do
       For example: ecto://USER:PASS@HOST/DATABASE
       """
 
-  config :moth, Moth.Repo,
+  config :mocha, Mocha.Repo,
     url: database_url,
     pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10")
 
@@ -309,13 +309,13 @@ if config_env() == :prod do
   host = System.get_env("PHX_HOST") || "example.com"
   port = String.to_integer(System.get_env("PORT") || "4000")
 
-  config :moth, MothWeb.Endpoint,
+  config :mocha, MochaWeb.Endpoint,
     url: [host: host, port: 443, scheme: "https"],
     http: [ip: {0, 0, 0, 0, 0, 0, 0, 0}, port: port],
     secret_key_base: secret_key_base,
     server: true
 
-  config :moth, Moth.Mailer,
+  config :mocha, Mocha.Mailer,
     adapter: Swoosh.Adapters.Mailgun,
     api_key: System.get_env("MAILGUN_API_KEY"),
     domain: System.get_env("MAILGUN_DOMAIN")
@@ -326,11 +326,11 @@ config :ueberauth, Ueberauth.Strategy.Google.OAuth,
   client_secret: System.get_env("GOOGLE_CLIENT_SECRET")
 ```
 
-- [ ] **Step 7: Create `lib/moth/mailer.ex`**
+- [ ] **Step 7: Create `lib/mocha/mailer.ex`**
 
 ```elixir
-defmodule Moth.Mailer do
-  use Swoosh.Mailer, otp_app: :moth
+defmodule Mocha.Mailer do
+  use Swoosh.Mailer, otp_app: :mocha
 end
 ```
 
@@ -339,7 +339,7 @@ end
 Create `test/support/fixtures/auth_fixtures.ex`:
 
 ```elixir
-defmodule Moth.AuthFixtures do
+defmodule Mocha.AuthFixtures do
   @moduledoc "Test helpers for creating auth entities."
 
   def unique_user_email, do: "user#{System.unique_integer()}@example.com"
@@ -357,7 +357,7 @@ end
 Create `test/support/fixtures/game_fixtures.ex`:
 
 ```elixir
-defmodule Moth.GameFixtures do
+defmodule Mocha.GameFixtures do
   @moduledoc "Test helpers for creating game entities."
 end
 ```
@@ -375,7 +375,7 @@ Expected: Compilation succeeds (possibly with warnings about missing modules ref
 
 ```bash
 git add -A
-git commit -m "Strip POC code, update deps for Moth v2 rewrite
+git commit -m "Strip POC code, update deps for Mocha v2 rewrite
 
 Replace plug_cowboy with bandit, add swoosh, tailwind, cors_plug,
 stream_data. Remove all old housie/accounts/channel/controller code.
@@ -402,7 +402,7 @@ mix ecto.gen.migration create_v2_tables
 Edit the generated migration file:
 
 ```elixir
-defmodule Moth.Repo.Migrations.CreateV2Tables do
+defmodule Mocha.Repo.Migrations.CreateV2Tables do
   use Ecto.Migration
 
   def change do
@@ -500,17 +500,17 @@ git commit -m "Add v2 database schema: users, identities, tokens, games, players
 ## Task 3: Ecto Schemas & StatusEnum
 
 **Files:**
-- Create: `lib/moth/game/status_enum.ex`
-- Create: `lib/moth/auth/user.ex`
-- Create: `lib/moth/auth/user_identity.ex`
-- Create: `lib/moth/auth/user_token.ex`
-- Create: `lib/moth/game/record.ex`
-- Create: `lib/moth/game/player.ex`
+- Create: `lib/mocha/game/status_enum.ex`
+- Create: `lib/mocha/auth/user.ex`
+- Create: `lib/mocha/auth/user_identity.ex`
+- Create: `lib/mocha/auth/user_token.ex`
+- Create: `lib/mocha/game/record.ex`
+- Create: `lib/mocha/game/player.ex`
 
-- [ ] **Step 1: Create `lib/moth/game/status_enum.ex`**
+- [ ] **Step 1: Create `lib/mocha/game/status_enum.ex`**
 
 ```elixir
-defmodule Moth.Game.StatusEnum do
+defmodule Mocha.Game.StatusEnum do
   @moduledoc "Ecto custom type for game status atom <-> string conversion."
   use Ecto.Type
 
@@ -532,10 +532,10 @@ defmodule Moth.Game.StatusEnum do
 end
 ```
 
-- [ ] **Step 2: Create `lib/moth/auth/user.ex`**
+- [ ] **Step 2: Create `lib/mocha/auth/user.ex`**
 
 ```elixir
-defmodule Moth.Auth.User do
+defmodule Mocha.Auth.User do
   use Ecto.Schema
   import Ecto.Changeset
 
@@ -545,8 +545,8 @@ defmodule Moth.Auth.User do
     field :name, :string
     field :avatar_url, :string
 
-    has_many :identities, Moth.Auth.UserIdentity
-    has_many :tokens, Moth.Auth.UserToken
+    has_many :identities, Mocha.Auth.UserIdentity
+    has_many :tokens, Mocha.Auth.UserToken
 
     timestamps()
   end
@@ -561,10 +561,10 @@ defmodule Moth.Auth.User do
 end
 ```
 
-- [ ] **Step 3: Create `lib/moth/auth/user_identity.ex`**
+- [ ] **Step 3: Create `lib/mocha/auth/user_identity.ex`**
 
 ```elixir
-defmodule Moth.Auth.UserIdentity do
+defmodule Mocha.Auth.UserIdentity do
   use Ecto.Schema
   import Ecto.Changeset
 
@@ -572,7 +572,7 @@ defmodule Moth.Auth.UserIdentity do
     field :provider, :string
     field :provider_uid, :string
 
-    belongs_to :user, Moth.Auth.User
+    belongs_to :user, Mocha.Auth.User
 
     timestamps()
   end
@@ -587,10 +587,10 @@ defmodule Moth.Auth.UserIdentity do
 end
 ```
 
-- [ ] **Step 4: Create `lib/moth/auth/user_token.ex`**
+- [ ] **Step 4: Create `lib/mocha/auth/user_token.ex`**
 
 ```elixir
-defmodule Moth.Auth.UserToken do
+defmodule Mocha.Auth.UserToken do
   use Ecto.Schema
   import Ecto.Changeset
 
@@ -609,7 +609,7 @@ defmodule Moth.Auth.UserToken do
     field :expires_at, :utc_datetime
     field :used_at, :utc_datetime
 
-    belongs_to :user, Moth.Auth.User
+    belongs_to :user, Mocha.Auth.User
 
     timestamps(updated_at: false)
   end
@@ -702,15 +702,15 @@ defmodule Moth.Auth.UserToken do
 end
 ```
 
-- [ ] **Step 5: Create `lib/moth/game/record.ex`**
+- [ ] **Step 5: Create `lib/mocha/game/record.ex`**
 
 ```elixir
-defmodule Moth.Game.Record do
+defmodule Mocha.Game.Record do
   @moduledoc "Ecto schema for the games table."
   use Ecto.Schema
   import Ecto.Changeset
 
-  alias Moth.Game.StatusEnum
+  alias Mocha.Game.StatusEnum
 
   @derive {Jason.Encoder, only: [:id, :code, :name, :host_id, :status, :settings, :started_at, :finished_at]}
   schema "games" do
@@ -722,8 +722,8 @@ defmodule Moth.Game.Record do
     field :finished_at, :utc_datetime
     field :snapshot, :map
 
-    belongs_to :host, Moth.Auth.User
-    has_many :players, Moth.Game.Player
+    belongs_to :host, Mocha.Auth.User
+    has_many :players, Mocha.Game.Player
 
     timestamps()
   end
@@ -737,10 +737,10 @@ defmodule Moth.Game.Record do
 end
 ```
 
-- [ ] **Step 6: Create `lib/moth/game/player.ex`**
+- [ ] **Step 6: Create `lib/mocha/game/player.ex`**
 
 ```elixir
-defmodule Moth.Game.Player do
+defmodule Mocha.Game.Player do
   @moduledoc "Ecto schema for the game_players table."
   use Ecto.Schema
   import Ecto.Changeset
@@ -751,8 +751,8 @@ defmodule Moth.Game.Player do
     field :prizes_won, {:array, :string}, default: []
     field :bogeys, :integer, default: 0
 
-    belongs_to :game, Moth.Game.Record
-    belongs_to :user, Moth.Auth.User
+    belongs_to :game, Mocha.Game.Record
+    belongs_to :user, Mocha.Auth.User
 
     timestamps(updated_at: false)
   end
@@ -777,7 +777,7 @@ Expected: Clean compilation. If there are warnings about unused imports in `User
 - [ ] **Step 8: Commit**
 
 ```bash
-git add lib/moth/auth/ lib/moth/game/status_enum.ex lib/moth/game/record.ex lib/moth/game/player.ex
+git add lib/mocha/auth/ lib/mocha/game/status_enum.ex lib/mocha/game/record.ex lib/mocha/game/player.ex
 git commit -m "Add Ecto schemas: User, UserIdentity, UserToken, Game Record, Player, StatusEnum"
 ```
 
@@ -786,19 +786,19 @@ git commit -m "Add Ecto schemas: User, UserIdentity, UserToken, Game Record, Pla
 ## Task 4: Board Module (Pure Functions, TDD)
 
 **Files:**
-- Create: `test/moth/game/board_test.exs`
-- Create: `lib/moth/game/board.ex`
+- Create: `test/mocha/game/board_test.exs`
+- Create: `lib/mocha/game/board.ex`
 
 - [ ] **Step 1: Write failing tests for Board**
 
-Create `test/moth/game/board_test.exs`:
+Create `test/mocha/game/board_test.exs`:
 
 ```elixir
-defmodule Moth.Game.BoardTest do
+defmodule Mocha.Game.BoardTest do
   use ExUnit.Case, async: true
   use ExUnitProperties
 
-  alias Moth.Game.Board
+  alias Mocha.Game.Board
 
   describe "new/0" do
     test "creates a board with 90 numbers in the bag" do
@@ -888,15 +888,15 @@ end
 - [ ] **Step 2: Run tests to verify they fail**
 
 ```bash
-mix test test/moth/game/board_test.exs
+mix test test/mocha/game/board_test.exs
 ```
 
-Expected: FAIL — `Moth.Game.Board` module not found.
+Expected: FAIL — `Mocha.Game.Board` module not found.
 
-- [ ] **Step 3: Implement `lib/moth/game/board.ex`**
+- [ ] **Step 3: Implement `lib/mocha/game/board.ex`**
 
 ```elixir
-defmodule Moth.Game.Board do
+defmodule Mocha.Game.Board do
   @moduledoc "Pure functions for the Tambola number board (1-90)."
 
   defstruct bag: [], picks: [], count: 0
@@ -941,7 +941,7 @@ end
 - [ ] **Step 4: Run tests to verify they pass**
 
 ```bash
-mix test test/moth/game/board_test.exs
+mix test test/mocha/game/board_test.exs
 ```
 
 Expected: All tests PASS.
@@ -949,7 +949,7 @@ Expected: All tests PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add test/moth/game/board_test.exs lib/moth/game/board.ex
+git add test/mocha/game/board_test.exs lib/mocha/game/board.ex
 git commit -m "Add Board module with pure pick logic and property tests"
 ```
 
@@ -958,19 +958,19 @@ git commit -m "Add Board module with pure pick logic and property tests"
 ## Task 5: Ticket Module (Pure Functions, TDD)
 
 **Files:**
-- Create: `test/moth/game/ticket_test.exs`
-- Create: `lib/moth/game/ticket.ex`
+- Create: `test/mocha/game/ticket_test.exs`
+- Create: `lib/mocha/game/ticket.ex`
 
 - [ ] **Step 1: Write failing tests for Ticket**
 
-Create `test/moth/game/ticket_test.exs`:
+Create `test/mocha/game/ticket_test.exs`:
 
 ```elixir
-defmodule Moth.Game.TicketTest do
+defmodule Mocha.Game.TicketTest do
   use ExUnit.Case, async: true
   use ExUnitProperties
 
-  alias Moth.Game.Ticket
+  alias Mocha.Game.Ticket
 
   describe "generate/0" do
     test "returns a ticket with 3 rows" do
@@ -1085,15 +1085,15 @@ end
 - [ ] **Step 2: Run tests to verify they fail**
 
 ```bash
-mix test test/moth/game/ticket_test.exs
+mix test test/mocha/game/ticket_test.exs
 ```
 
 Expected: FAIL — module not found.
 
-- [ ] **Step 3: Implement `lib/moth/game/ticket.ex`**
+- [ ] **Step 3: Implement `lib/mocha/game/ticket.ex`**
 
 ```elixir
-defmodule Moth.Game.Ticket do
+defmodule Mocha.Game.Ticket do
   @moduledoc """
   Pure functions for generating valid Tambola tickets.
 
@@ -1230,7 +1230,7 @@ end
 - [ ] **Step 4: Run tests to verify they pass**
 
 ```bash
-mix test test/moth/game/ticket_test.exs
+mix test test/mocha/game/ticket_test.exs
 ```
 
 Expected: All tests PASS.
@@ -1238,7 +1238,7 @@ Expected: All tests PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add test/moth/game/ticket_test.exs lib/moth/game/ticket.ex
+git add test/mocha/game/ticket_test.exs lib/mocha/game/ticket.ex
 git commit -m "Add Ticket module with Tambola ticket generation and property tests"
 ```
 
@@ -1247,18 +1247,18 @@ git commit -m "Add Ticket module with Tambola ticket generation and property tes
 ## Task 6: Prize Module (Pure Functions, TDD)
 
 **Files:**
-- Create: `test/moth/game/prize_test.exs`
-- Create: `lib/moth/game/prize.ex`
+- Create: `test/mocha/game/prize_test.exs`
+- Create: `lib/mocha/game/prize.ex`
 
 - [ ] **Step 1: Write failing tests for Prize**
 
-Create `test/moth/game/prize_test.exs`:
+Create `test/mocha/game/prize_test.exs`:
 
 ```elixir
-defmodule Moth.Game.PrizeTest do
+defmodule Mocha.Game.PrizeTest do
   use ExUnit.Case, async: true
 
-  alias Moth.Game.{Prize, Ticket}
+  alias Mocha.Game.{Prize, Ticket}
 
   # Helper to create a ticket with known rows
   defp make_ticket(rows) do
@@ -1338,18 +1338,18 @@ end
 - [ ] **Step 2: Run tests to verify they fail**
 
 ```bash
-mix test test/moth/game/prize_test.exs
+mix test test/mocha/game/prize_test.exs
 ```
 
 Expected: FAIL — module not found.
 
-- [ ] **Step 3: Implement `lib/moth/game/prize.ex`**
+- [ ] **Step 3: Implement `lib/mocha/game/prize.ex`**
 
 ```elixir
-defmodule Moth.Game.Prize do
+defmodule Mocha.Game.Prize do
   @moduledoc "Pure functions for validating Tambola prize claims."
 
-  alias Moth.Game.Ticket
+  alias Mocha.Game.Ticket
 
   @prizes [:early_five, :top_line, :middle_line, :bottom_line, :full_house]
 
@@ -1394,7 +1394,7 @@ end
 - [ ] **Step 4: Run tests to verify they pass**
 
 ```bash
-mix test test/moth/game/prize_test.exs
+mix test test/mocha/game/prize_test.exs
 ```
 
 Expected: All tests PASS.
@@ -1402,7 +1402,7 @@ Expected: All tests PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add test/moth/game/prize_test.exs lib/moth/game/prize.ex
+git add test/mocha/game/prize_test.exs lib/mocha/game/prize.ex
 git commit -m "Add Prize module with claim validation for all 5 Tambola prizes"
 ```
 
@@ -1411,19 +1411,19 @@ git commit -m "Add Prize module with claim validation for all 5 Tambola prizes"
 ## Task 7: Room Code Module (Pure Functions, TDD)
 
 **Files:**
-- Create: `test/moth/game/code_test.exs`
-- Create: `lib/moth/game/code.ex`
+- Create: `test/mocha/game/code_test.exs`
+- Create: `lib/mocha/game/code.ex`
 
 - [ ] **Step 1: Write failing tests for Code**
 
-Create `test/moth/game/code_test.exs`:
+Create `test/mocha/game/code_test.exs`:
 
 ```elixir
-defmodule Moth.Game.CodeTest do
+defmodule Mocha.Game.CodeTest do
   use ExUnit.Case, async: true
   use ExUnitProperties
 
-  alias Moth.Game.Code
+  alias Mocha.Game.Code
 
   describe "generate/0" do
     test "returns a string matching WORD-NN format" do
@@ -1463,15 +1463,15 @@ end
 - [ ] **Step 2: Run tests to verify they fail**
 
 ```bash
-mix test test/moth/game/code_test.exs
+mix test test/mocha/game/code_test.exs
 ```
 
 Expected: FAIL — module not found.
 
-- [ ] **Step 3: Implement `lib/moth/game/code.ex`**
+- [ ] **Step 3: Implement `lib/mocha/game/code.ex`**
 
 ```elixir
-defmodule Moth.Game.Code do
+defmodule Mocha.Game.Code do
   @moduledoc """
   Generates human-friendly room codes in WORD-NN format.
   Word list: ~2000 common English words. Code space: ~200,000.
@@ -1544,7 +1544,7 @@ end
 - [ ] **Step 4: Run tests to verify they pass**
 
 ```bash
-mix test test/moth/game/code_test.exs
+mix test test/mocha/game/code_test.exs
 ```
 
 Expected: All tests PASS.
@@ -1552,7 +1552,7 @@ Expected: All tests PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add test/moth/game/code_test.exs lib/moth/game/code.ex
+git add test/mocha/game/code_test.exs lib/mocha/game/code.ex
 git commit -m "Add Code module with WORD-NN room code generation"
 ```
 
@@ -1561,8 +1561,8 @@ git commit -m "Add Code module with WORD-NN room code generation"
 ## Task 8: Auth Context — Core (Users, Tokens, Sessions)
 
 **Files:**
-- Create: `lib/moth/auth/auth.ex`
-- Create: `test/moth/auth/auth_test.exs`
+- Create: `lib/mocha/auth/auth.ex`
+- Create: `test/mocha/auth/auth_test.exs`
 - Update: `test/support/fixtures/auth_fixtures.ex`
 
 - [ ] **Step 1: Update auth fixtures**
@@ -1570,10 +1570,10 @@ git commit -m "Add Code module with WORD-NN room code generation"
 Replace `test/support/fixtures/auth_fixtures.ex`:
 
 ```elixir
-defmodule Moth.AuthFixtures do
+defmodule Mocha.AuthFixtures do
   @moduledoc "Test helpers for creating auth entities."
 
-  alias Moth.Auth
+  alias Mocha.Auth
 
   def unique_user_email, do: "user#{System.unique_integer([:positive])}@example.com"
 
@@ -1598,16 +1598,16 @@ end
 
 - [ ] **Step 2: Write failing tests for Auth context**
 
-Create `test/moth/auth/auth_test.exs`:
+Create `test/mocha/auth/auth_test.exs`:
 
 ```elixir
-defmodule Moth.AuthTest do
-  use Moth.DataCase, async: true
+defmodule Mocha.AuthTest do
+  use Mocha.DataCase, async: true
 
-  alias Moth.Auth
-  alias Moth.Auth.{User, UserToken}
+  alias Mocha.Auth
+  alias Mocha.Auth.{User, UserToken}
 
-  import Moth.AuthFixtures
+  import Mocha.AuthFixtures
 
   describe "register/1" do
     test "creates a user with valid attrs" do
@@ -1647,7 +1647,7 @@ defmodule Moth.AuthTest do
       token = Auth.generate_user_session_token(user)
 
       # Manually expire the token
-      Moth.Repo.update_all(
+      Mocha.Repo.update_all(
         from(t in UserToken, where: t.user_id == ^user.id and t.context == "session"),
         set: [expires_at: DateTime.add(DateTime.utc_now(), -1)]
       )
@@ -1704,20 +1704,20 @@ end
 - [ ] **Step 3: Run tests to verify they fail**
 
 ```bash
-mix test test/moth/auth/auth_test.exs
+mix test test/mocha/auth/auth_test.exs
 ```
 
-Expected: FAIL — `Moth.Auth` module not found.
+Expected: FAIL — `Mocha.Auth` module not found.
 
-- [ ] **Step 4: Implement `lib/moth/auth/auth.ex`**
+- [ ] **Step 4: Implement `lib/mocha/auth/auth.ex`**
 
 ```elixir
-defmodule Moth.Auth do
+defmodule Mocha.Auth do
   @moduledoc "The Auth context. Manages users, tokens, and authentication."
 
   import Ecto.Query
-  alias Moth.Repo
-  alias Moth.Auth.{User, UserIdentity, UserToken}
+  alias Mocha.Repo
+  alias Mocha.Auth.{User, UserIdentity, UserToken}
 
   ## User management
 
@@ -1872,7 +1872,7 @@ end
 - [ ] **Step 5: Run tests to verify they pass**
 
 ```bash
-mix test test/moth/auth/auth_test.exs
+mix test test/mocha/auth/auth_test.exs
 ```
 
 Expected: All tests PASS.
@@ -1880,7 +1880,7 @@ Expected: All tests PASS.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add lib/moth/auth/auth.ex test/moth/auth/auth_test.exs test/support/fixtures/auth_fixtures.ex
+git add lib/mocha/auth/auth.ex test/mocha/auth/auth_test.exs test/support/fixtures/auth_fixtures.ex
 git commit -m "Add Auth context with users, session tokens, API tokens, and magic links"
 ```
 
@@ -1889,18 +1889,18 @@ git commit -m "Add Auth context with users, session tokens, API tokens, and magi
 ## Task 9: Auth — Email Notifier
 
 **Files:**
-- Create: `lib/moth/auth/user_notifier.ex`
-- Create: `test/moth/auth/user_notifier_test.exs`
+- Create: `lib/mocha/auth/user_notifier.ex`
+- Create: `test/mocha/auth/user_notifier_test.exs`
 
 - [ ] **Step 1: Write failing test**
 
-Create `test/moth/auth/user_notifier_test.exs`:
+Create `test/mocha/auth/user_notifier_test.exs`:
 
 ```elixir
-defmodule Moth.Auth.UserNotifierTest do
-  use Moth.DataCase, async: true
+defmodule Mocha.Auth.UserNotifierTest do
+  use Mocha.DataCase, async: true
 
-  alias Moth.Auth.UserNotifier
+  alias Mocha.Auth.UserNotifier
 
   test "deliver_magic_link/2 returns a Swoosh email" do
     email = "test@example.com"
@@ -1908,7 +1908,7 @@ defmodule Moth.Auth.UserNotifierTest do
 
     assert {:ok, %Swoosh.Email{} = sent} = UserNotifier.deliver_magic_link(email, url)
     assert sent.to == [{"", email}]
-    assert sent.subject =~ "Sign in to Moth"
+    assert sent.subject =~ "Sign in to Mocha"
     assert sent.text_body =~ url
   end
 end
@@ -1917,22 +1917,22 @@ end
 - [ ] **Step 2: Run test to verify it fails**
 
 ```bash
-mix test test/moth/auth/user_notifier_test.exs
+mix test test/mocha/auth/user_notifier_test.exs
 ```
 
-- [ ] **Step 3: Implement `lib/moth/auth/user_notifier.ex`**
+- [ ] **Step 3: Implement `lib/mocha/auth/user_notifier.ex`**
 
 ```elixir
-defmodule Moth.Auth.UserNotifier do
+defmodule Mocha.Auth.UserNotifier do
   import Swoosh.Email
 
-  alias Moth.Mailer
+  alias Mocha.Mailer
 
   defp deliver(recipient, subject, body) do
     email =
       new()
       |> to(recipient)
-      |> from({"Moth", "noreply@moth.game"})
+      |> from({"Mocha", "noreply@mocha.game"})
       |> subject(subject)
       |> text_body(body)
 
@@ -1942,10 +1942,10 @@ defmodule Moth.Auth.UserNotifier do
   end
 
   def deliver_magic_link(email, url) do
-    deliver(email, "Sign in to Moth", """
+    deliver(email, "Sign in to Mocha", """
     Hi,
 
-    You can sign in to Moth by clicking the link below:
+    You can sign in to Mocha by clicking the link below:
 
     #{url}
 
@@ -1960,13 +1960,13 @@ end
 - [ ] **Step 4: Run test to verify it passes**
 
 ```bash
-mix test test/moth/auth/user_notifier_test.exs
+mix test test/mocha/auth/user_notifier_test.exs
 ```
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add lib/moth/auth/user_notifier.ex test/moth/auth/user_notifier_test.exs
+git add lib/mocha/auth/user_notifier.ex test/mocha/auth/user_notifier_test.exs
 git commit -m "Add UserNotifier for magic link emails via Swoosh"
 ```
 
@@ -1975,14 +1975,14 @@ git commit -m "Add UserNotifier for magic link emails via Swoosh"
 ## Task 10: Game Supervision Tree
 
 **Files:**
-- Create: `lib/moth/game/supervisor.ex`
-- Create: `lib/moth/game/monitor.ex`
-- Modify: `lib/moth/application.ex`
+- Create: `lib/mocha/game/supervisor.ex`
+- Create: `lib/mocha/game/monitor.ex`
+- Modify: `lib/mocha/application.ex`
 
-- [ ] **Step 1: Create `lib/moth/game/supervisor.ex`**
+- [ ] **Step 1: Create `lib/mocha/game/supervisor.ex`**
 
 ```elixir
-defmodule Moth.Game.Supervisor do
+defmodule Mocha.Game.Supervisor do
   @moduledoc """
   Top-level supervisor for the game engine subsystem.
   Uses rest_for_one: if Registry or DynSup restart, Monitor restarts too.
@@ -1996,9 +1996,9 @@ defmodule Moth.Game.Supervisor do
   @impl true
   def init(_init_arg) do
     children = [
-      {Registry, keys: :unique, name: Moth.Game.Registry},
-      {DynamicSupervisor, name: Moth.Game.DynSup, strategy: :one_for_one},
-      Moth.Game.Monitor
+      {Registry, keys: :unique, name: Mocha.Game.Registry},
+      {DynamicSupervisor, name: Mocha.Game.DynSup, strategy: :one_for_one},
+      Mocha.Game.Monitor
     ]
 
     Supervisor.init(children, strategy: :rest_for_one)
@@ -2006,10 +2006,10 @@ defmodule Moth.Game.Supervisor do
 end
 ```
 
-- [ ] **Step 2: Create `lib/moth/game/monitor.ex`**
+- [ ] **Step 2: Create `lib/mocha/game/monitor.ex`**
 
 ```elixir
-defmodule Moth.Game.Monitor do
+defmodule Mocha.Game.Monitor do
   @moduledoc """
   Tracks active games, publishes telemetry metrics, reaps stale games.
 
@@ -2047,7 +2047,7 @@ defmodule Moth.Game.Monitor do
 
   defp rebuild_state do
     games =
-      Registry.select(Moth.Game.Registry, [{{:"$1", :"$2", :"$3"}, [], [{{:"$1", :"$2", :"$3"}}]}])
+      Registry.select(Mocha.Game.Registry, [{{:"$1", :"$2", :"$3"}, [], [{{:"$1", :"$2", :"$3"}}]}])
 
     %{game_count: length(games), games: games}
   end
@@ -2061,11 +2061,11 @@ defmodule Moth.Game.Monitor do
         cond do
           state.status == :lobby and stale?(meta, now, @lobby_timeout) ->
             Logger.info("Reaping stale lobby game: #{code}")
-            DynamicSupervisor.terminate_child(Moth.Game.DynSup, pid)
+            DynamicSupervisor.terminate_child(Mocha.Game.DynSup, pid)
 
           state.status == :finished and stale?(meta, now, @finished_cooldown) ->
             Logger.info("Reaping finished game: #{code}")
-            DynamicSupervisor.terminate_child(Moth.Game.DynSup, pid)
+            DynamicSupervisor.terminate_child(Mocha.Game.DynSup, pid)
 
           true ->
             :ok
@@ -2083,7 +2083,7 @@ defmodule Moth.Game.Monitor do
   defp stale?(_, _, _), do: false
 
   defp emit_telemetry(%{game_count: count}) do
-    :telemetry.execute([:moth, :game, :active_count], %{count: count}, %{})
+    :telemetry.execute([:mocha, :game, :active_count], %{count: count}, %{})
   end
 
   defp schedule_check do
@@ -2092,10 +2092,10 @@ defmodule Moth.Game.Monitor do
 end
 ```
 
-- [ ] **Step 3: Update `lib/moth/application.ex`**
+- [ ] **Step 3: Update `lib/mocha/application.ex`**
 
 ```elixir
-defmodule Moth.Application do
+defmodule Mocha.Application do
   @moduledoc false
 
   use Application
@@ -2103,33 +2103,33 @@ defmodule Moth.Application do
   @impl true
   def start(_type, _args) do
     children = [
-      Moth.Repo,
-      {Phoenix.PubSub, name: Moth.PubSub},
-      MothWeb.Telemetry,
-      Moth.Game.Supervisor,
-      MothWeb.Presence,
-      MothWeb.Endpoint
+      Mocha.Repo,
+      {Phoenix.PubSub, name: Mocha.PubSub},
+      MochaWeb.Telemetry,
+      Mocha.Game.Supervisor,
+      MochaWeb.Presence,
+      MochaWeb.Endpoint
     ]
 
-    opts = [strategy: :rest_for_one, name: Moth.Supervisor]
+    opts = [strategy: :rest_for_one, name: Mocha.Supervisor]
     Supervisor.start_link(children, opts)
   end
 
   @impl true
   def config_change(changed, _new, removed) do
-    MothWeb.Endpoint.config_change(changed, removed)
+    MochaWeb.Endpoint.config_change(changed, removed)
     :ok
   end
 end
 ```
 
-- [ ] **Step 4: Update `lib/moth_web/presence.ex`** (if it doesn't exist, create it)
+- [ ] **Step 4: Update `lib/mocha_web/presence.ex`** (if it doesn't exist, create it)
 
 ```elixir
-defmodule MothWeb.Presence do
+defmodule MochaWeb.Presence do
   use Phoenix.Presence,
-    otp_app: :moth,
-    pubsub_server: Moth.PubSub
+    otp_app: :mocha,
+    pubsub_server: Mocha.PubSub
 end
 ```
 
@@ -2144,7 +2144,7 @@ Expected: Compiles cleanly. The supervision tree starts correctly.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add lib/moth/game/supervisor.ex lib/moth/game/monitor.ex lib/moth/application.ex lib/moth_web/presence.ex
+git add lib/mocha/game/supervisor.ex lib/mocha/game/monitor.ex lib/mocha/application.ex lib/mocha_web/presence.ex
 git commit -m "Add game supervision tree: DynamicSupervisor, Registry, Monitor"
 ```
 
@@ -2153,20 +2153,20 @@ git commit -m "Add game supervision tree: DynamicSupervisor, Registry, Monitor"
 ## Task 11: Game Server — Core Lifecycle
 
 **Files:**
-- Create: `lib/moth/game/server.ex`
-- Create: `test/moth/game/server_test.exs`
+- Create: `lib/mocha/game/server.ex`
+- Create: `test/mocha/game/server_test.exs`
 
 - [ ] **Step 1: Write failing tests for the game lifecycle**
 
-Create `test/moth/game/server_test.exs`:
+Create `test/mocha/game/server_test.exs`:
 
 ```elixir
-defmodule Moth.Game.ServerTest do
-  use Moth.DataCase, async: false
+defmodule Mocha.Game.ServerTest do
+  use Mocha.DataCase, async: false
 
-  alias Moth.Game.{Server, Board, Ticket}
+  alias Mocha.Game.{Server, Board, Ticket}
 
-  import Moth.AuthFixtures
+  import Mocha.AuthFixtures
 
   @default_settings %{interval: 10, bogey_limit: 3, enabled_prizes: [:early_five, :top_line, :middle_line, :bottom_line, :full_house]}
 
@@ -2196,7 +2196,7 @@ defmodule Moth.Game.ServerTest do
 
     test "registers in the game registry" do
       %{code: code} = start_server()
-      assert [{_pid, _}] = Registry.lookup(Moth.Game.Registry, code)
+      assert [{_pid, _}] = Registry.lookup(Mocha.Game.Registry, code)
     end
   end
 
@@ -2370,23 +2370,23 @@ end
 - [ ] **Step 2: Run tests to verify they fail**
 
 ```bash
-mix test test/moth/game/server_test.exs
+mix test test/mocha/game/server_test.exs
 ```
 
-Expected: FAIL — `Moth.Game.Server` not found.
+Expected: FAIL — `Mocha.Game.Server` not found.
 
-- [ ] **Step 3: Implement `lib/moth/game/server.ex`**
+- [ ] **Step 3: Implement `lib/mocha/game/server.ex`**
 
 ```elixir
-defmodule Moth.Game.Server do
+defmodule Mocha.Game.Server do
   @moduledoc """
   GenServer managing a single Tambola game.
-  One process per game, under Moth.Game.DynSup.
+  One process per game, under Mocha.Game.DynSup.
   """
   use GenServer
   require Logger
 
-  alias Moth.Game.{Board, Ticket, Prize, Code}
+  alias Mocha.Game.{Board, Ticket, Prize, Code}
 
   defstruct [
     :id, :code, :host_id, :timer_ref, :next_pick_at,
@@ -2429,7 +2429,7 @@ defmodule Moth.Game.Server do
 
   @impl true
   def init(%{code: code, name: name, host_id: host_id, settings: settings, game_record_id: record_id}) do
-    Registry.register(Moth.Game.Registry, code, %{
+    Registry.register(Mocha.Game.Registry, code, %{
       name: name,
       started_at: System.monotonic_time(:millisecond)
     })
@@ -2710,7 +2710,7 @@ defmodule Moth.Game.Server do
   end
 
   defp broadcast(code, event, payload) do
-    Phoenix.PubSub.broadcast(Moth.PubSub, "game:#{code}", {event, payload})
+    Phoenix.PubSub.broadcast(Mocha.PubSub, "game:#{code}", {event, payload})
   end
 
   defp snapshot(state) do
@@ -2728,7 +2728,7 @@ end
 - [ ] **Step 4: Run tests to verify they pass**
 
 ```bash
-mix test test/moth/game/server_test.exs
+mix test test/mocha/game/server_test.exs
 ```
 
 Expected: All tests PASS.
@@ -2736,7 +2736,7 @@ Expected: All tests PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add lib/moth/game/server.ex test/moth/game/server_test.exs
+git add lib/mocha/game/server.ex test/mocha/game/server_test.exs
 git commit -m "Add GameServer GenServer with full lifecycle, claims, and concurrency tests"
 ```
 
@@ -2745,21 +2745,21 @@ git commit -m "Add GameServer GenServer with full lifecycle, claims, and concurr
 ## Task 12: Game Server — Crash Recovery & Snapshots
 
 **Files:**
-- Modify: `lib/moth/game/server.ex`
-- Create: `test/moth/game/server_recovery_test.exs`
+- Modify: `lib/mocha/game/server.ex`
+- Create: `test/mocha/game/server_recovery_test.exs`
 
 - [ ] **Step 1: Write failing recovery test**
 
-Create `test/moth/game/server_recovery_test.exs`:
+Create `test/mocha/game/server_recovery_test.exs`:
 
 ```elixir
-defmodule Moth.Game.ServerRecoveryTest do
-  use Moth.DataCase, async: false
+defmodule Mocha.Game.ServerRecoveryTest do
+  use Mocha.DataCase, async: false
 
-  alias Moth.Game.{Server, Record, Player}
-  alias Moth.Repo
+  alias Mocha.Game.{Server, Record, Player}
+  alias Mocha.Repo
 
-  import Moth.AuthFixtures
+  import Mocha.AuthFixtures
 
   @default_settings %{interval: 10, bogey_limit: 3, enabled_prizes: [:early_five, :top_line, :middle_line, :bottom_line, :full_house]}
 
@@ -2814,10 +2814,10 @@ end
 - [ ] **Step 2: Run test to verify it fails**
 
 ```bash
-mix test test/moth/game/server_recovery_test.exs
+mix test test/mocha/game/server_recovery_test.exs
 ```
 
-- [ ] **Step 3: Update `lib/moth/game/server.ex` — add DB write-through**
+- [ ] **Step 3: Update `lib/mocha/game/server.ex` — add DB write-through**
 
 Update the `snapshot/1` function and add write-through to join and claim:
 
@@ -2826,8 +2826,8 @@ In the `handle_call({:join, ...})` clause, after assigning the ticket for a runn
 ```elixir
 # In the join handler, after ticket assignment:
 if state.id do
-  Moth.Repo.insert!(
-    %Moth.Game.Player{game_id: state.id, user_id: user_id, ticket: Ticket.to_map(ticket)},
+  Mocha.Repo.insert!(
+    %Mocha.Game.Player{game_id: state.id, user_id: user_id, ticket: Ticket.to_map(ticket)},
     on_conflict: :nothing
   )
 end
@@ -2838,8 +2838,8 @@ In the claim success branch:
 ```elixir
 # After awarding prize in state:
 if state.id do
-  Moth.Repo.update_all(
-    from(p in Moth.Game.Player, where: p.game_id == ^state.id and p.user_id == ^user_id),
+  Mocha.Repo.update_all(
+    from(p in Mocha.Game.Player, where: p.game_id == ^state.id and p.user_id == ^user_id),
     push: [prizes_won: to_string(prize_type)]
   )
 end
@@ -2851,8 +2851,8 @@ Update `snapshot/1`:
 defp snapshot(%{id: nil}), do: :ok
 defp snapshot(%{id: id, board: board, status: status}) do
   import Ecto.Query
-  Moth.Repo.update_all(
-    from(g in Moth.Game.Record, where: g.id == ^id),
+  Mocha.Repo.update_all(
+    from(g in Mocha.Game.Record, where: g.id == ^id),
     set: [snapshot: Board.to_map(board), status: to_string(status), updated_at: DateTime.utc_now()]
   )
   :ok
@@ -2862,13 +2862,13 @@ end
 - [ ] **Step 4: Run tests to verify they pass**
 
 ```bash
-mix test test/moth/game/server_recovery_test.exs
+mix test test/mocha/game/server_recovery_test.exs
 ```
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add lib/moth/game/server.ex test/moth/game/server_recovery_test.exs
+git add lib/mocha/game/server.ex test/mocha/game/server_recovery_test.exs
 git commit -m "Add DB write-through for player joins, prize claims, and board snapshots"
 ```
 
@@ -2877,19 +2877,19 @@ git commit -m "Add DB write-through for player joins, prize claims, and board sn
 ## Task 13: Game Context Public API
 
 **Files:**
-- Create: `lib/moth/game/game.ex`
-- Create: `test/moth/game/game_test.exs`
+- Create: `lib/mocha/game/game.ex`
+- Create: `test/mocha/game/game_test.exs`
 - Update: `test/support/fixtures/game_fixtures.ex`
 
 - [ ] **Step 1: Update game fixtures**
 
 ```elixir
-defmodule Moth.GameFixtures do
+defmodule Mocha.GameFixtures do
   @moduledoc "Test helpers for creating game entities."
 
-  alias Moth.Game
+  alias Mocha.Game
 
-  import Moth.AuthFixtures
+  import Mocha.AuthFixtures
 
   @default_settings %{interval: 10, bogey_limit: 3, enabled_prizes: [:early_five, :top_line, :middle_line, :bottom_line, :full_house]}
 
@@ -2909,16 +2909,16 @@ end
 
 - [ ] **Step 2: Write failing tests**
 
-Create `test/moth/game/game_test.exs`:
+Create `test/mocha/game/game_test.exs`:
 
 ```elixir
-defmodule Moth.Game.GameTest do
-  use Moth.DataCase, async: false
+defmodule Mocha.Game.GameTest do
+  use Mocha.DataCase, async: false
 
-  alias Moth.Game
+  alias Mocha.Game
 
-  import Moth.AuthFixtures
-  import Moth.GameFixtures
+  import Mocha.AuthFixtures
+  import Mocha.GameFixtures
 
   describe "create_game/2" do
     test "creates a game and starts a server" do
@@ -2968,17 +2968,17 @@ end
 - [ ] **Step 3: Run tests to verify they fail**
 
 ```bash
-mix test test/moth/game/game_test.exs
+mix test test/mocha/game/game_test.exs
 ```
 
-- [ ] **Step 4: Implement `lib/moth/game/game.ex`**
+- [ ] **Step 4: Implement `lib/mocha/game/game.ex`**
 
 ```elixir
-defmodule Moth.Game do
+defmodule Mocha.Game do
   @moduledoc "The Game context. Public API for game management."
 
-  alias Moth.Game.{Server, Record, Code}
-  alias Moth.Repo
+  alias Mocha.Game.{Server, Record, Code}
+  alias Mocha.Repo
 
   @default_settings %{
     interval: 30,
@@ -2991,7 +2991,7 @@ defmodule Moth.Game do
     settings = validate_settings(settings)
 
     existing_codes =
-      Registry.select(Moth.Game.Registry, [{{:"$1", :_, :_}, [], [:"$1"]}])
+      Registry.select(Mocha.Game.Registry, [{{:"$1", :_, :_}, [], [:"$1"]}])
       |> MapSet.new()
 
     code = Code.generate(existing_codes)
@@ -3007,7 +3007,7 @@ defmodule Moth.Game do
       |> Repo.insert()
 
     {:ok, _pid} =
-      DynamicSupervisor.start_child(Moth.Game.DynSup, {
+      DynamicSupervisor.start_child(Mocha.Game.DynSup, {
         Server,
         %{
           code: code,
@@ -3070,7 +3070,7 @@ defmodule Moth.Game do
   end
 
   defp lookup(code) do
-    case Registry.lookup(Moth.Game.Registry, code) do
+    case Registry.lookup(Mocha.Game.Registry, code) do
       [{pid, _}] -> {:ok, pid}
       [] -> :error
     end
@@ -3089,13 +3089,13 @@ end
 - [ ] **Step 5: Run tests to verify they pass**
 
 ```bash
-mix test test/moth/game/game_test.exs
+mix test test/mocha/game/game_test.exs
 ```
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add lib/moth/game/game.ex test/moth/game/game_test.exs test/support/fixtures/game_fixtures.ex
+git add lib/mocha/game/game.ex test/mocha/game/game_test.exs test/support/fixtures/game_fixtures.ex
 git commit -m "Add Game context public API wrapping GenServer calls"
 ```
 
@@ -3104,24 +3104,24 @@ git commit -m "Add Game context public API wrapping GenServer calls"
 ## Task 14: Router, Layouts, Plugs, and Error Handlers
 
 **Files:**
-- Modify: `lib/moth_web/router.ex`
-- Modify: `lib/moth_web/endpoint.ex`
-- Create: `lib/moth_web/plugs/auth.ex`
-- Create: `lib/moth_web/plugs/api_auth.ex`
-- Create: `lib/moth_web/plugs/rate_limit.ex`
-- Modify: `lib/moth_web/components/layouts.ex`
-- Create: `lib/moth_web/components/layouts/root.html.heex`
-- Create: `lib/moth_web/components/layouts/app.html.heex`
+- Modify: `lib/mocha_web/router.ex`
+- Modify: `lib/mocha_web/endpoint.ex`
+- Create: `lib/mocha_web/plugs/auth.ex`
+- Create: `lib/mocha_web/plugs/api_auth.ex`
+- Create: `lib/mocha_web/plugs/rate_limit.ex`
+- Modify: `lib/mocha_web/components/layouts.ex`
+- Create: `lib/mocha_web/components/layouts/root.html.heex`
+- Create: `lib/mocha_web/components/layouts/app.html.heex`
 
-- [ ] **Step 1: Create `lib/moth_web/plugs/auth.ex`**
+- [ ] **Step 1: Create `lib/mocha_web/plugs/auth.ex`**
 
 ```elixir
-defmodule MothWeb.Plugs.Auth do
+defmodule MochaWeb.Plugs.Auth do
   @moduledoc "Session-based auth plug for web routes."
   import Plug.Conn
   import Phoenix.Controller
 
-  alias Moth.Auth
+  alias Mocha.Auth
 
   def init(opts), do: opts
 
@@ -3189,15 +3189,15 @@ defmodule MothWeb.Plugs.Auth do
 end
 ```
 
-- [ ] **Step 2: Create `lib/moth_web/plugs/api_auth.ex`**
+- [ ] **Step 2: Create `lib/mocha_web/plugs/api_auth.ex`**
 
 ```elixir
-defmodule MothWeb.Plugs.APIAuth do
+defmodule MochaWeb.Plugs.APIAuth do
   @moduledoc "Bearer token auth plug for API routes."
   import Plug.Conn
   import Phoenix.Controller
 
-  alias Moth.Auth
+  alias Mocha.Auth
 
   def init(opts), do: opts
 
@@ -3223,10 +3223,10 @@ defmodule MothWeb.Plugs.APIAuth do
 end
 ```
 
-- [ ] **Step 3: Create `lib/moth_web/plugs/rate_limit.ex`**
+- [ ] **Step 3: Create `lib/mocha_web/plugs/rate_limit.ex`**
 
 ```elixir
-defmodule MothWeb.Plugs.RateLimit do
+defmodule MochaWeb.Plugs.RateLimit do
   @moduledoc "ETS-based token bucket rate limiter."
   import Plug.Conn
   import Phoenix.Controller
@@ -3288,26 +3288,26 @@ defmodule MothWeb.Plugs.RateLimit do
 end
 ```
 
-- [ ] **Step 4: Create `lib/moth_web/router.ex`**
+- [ ] **Step 4: Create `lib/mocha_web/router.ex`**
 
 ```elixir
-defmodule MothWeb.Router do
-  use MothWeb, :router
+defmodule MochaWeb.Router do
+  use MochaWeb, :router
 
   pipeline :browser do
     plug :accepts, ["html"]
     plug :fetch_session
     plug :fetch_live_flash
-    plug :put_root_layout, html: {MothWeb.Layouts, :root}
+    plug :put_root_layout, html: {MochaWeb.Layouts, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
-    plug MothWeb.Plugs.Auth
+    plug MochaWeb.Plugs.Auth
   end
 
   pipeline :api do
     plug :accepts, ["json"]
     plug CORSPlug
-    plug MothWeb.Plugs.APIAuth
+    plug MochaWeb.Plugs.APIAuth
   end
 
   pipeline :require_auth do
@@ -3315,11 +3315,11 @@ defmodule MothWeb.Router do
   end
 
   pipeline :require_api_auth do
-    plug MothWeb.Plugs.APIAuth, :require_api_auth
+    plug MochaWeb.Plugs.APIAuth, :require_api_auth
   end
 
   # Web routes (LiveView)
-  scope "/", MothWeb do
+  scope "/", MochaWeb do
     pipe_through :browser
 
     live "/", HomeLive
@@ -3333,7 +3333,7 @@ defmodule MothWeb.Router do
   end
 
   # Authenticated web routes
-  scope "/", MothWeb do
+  scope "/", MochaWeb do
     pipe_through [:browser, :require_auth]
 
     live "/game/new", Game.NewLive
@@ -3342,7 +3342,7 @@ defmodule MothWeb.Router do
   end
 
   # Mobile API
-  scope "/api", MothWeb.API do
+  scope "/api", MochaWeb.API do
     pipe_through :api
 
     post "/auth/magic", AuthController, :request_magic_link
@@ -3352,7 +3352,7 @@ defmodule MothWeb.Router do
     delete "/auth/session", AuthController, :logout
   end
 
-  scope "/api", MothWeb.API do
+  scope "/api", MochaWeb.API do
     pipe_through [:api, :require_api_auth]
 
     get "/user/me", UserController, :show
@@ -3369,37 +3369,37 @@ defmodule MothWeb.Router do
   end
 
   # Health check
-  scope "/health", MothWeb do
+  scope "/health", MochaWeb do
     pipe_through :api
     get "/", HealthController, :check
   end
 
   # LiveDashboard (dev only)
-  if Application.compile_env(:moth, :dev_routes) do
+  if Application.compile_env(:mocha, :dev_routes) do
     import Phoenix.LiveDashboard.Router
 
     scope "/dev" do
       pipe_through :browser
-      live_dashboard "/dashboard", metrics: MothWeb.Telemetry
+      live_dashboard "/dashboard", metrics: MochaWeb.Telemetry
       forward "/mailbox", Plug.Swoosh.MailboxPreview
     end
   end
 
   defp require_authenticated_user(conn, _opts) do
-    MothWeb.Plugs.Auth.require_authenticated_user(conn, [])
+    MochaWeb.Plugs.Auth.require_authenticated_user(conn, [])
   end
 end
 ```
 
-- [ ] **Step 5: Update `lib/moth_web/endpoint.ex`**
+- [ ] **Step 5: Update `lib/mocha_web/endpoint.ex`**
 
 ```elixir
-defmodule MothWeb.Endpoint do
-  use Phoenix.Endpoint, otp_app: :moth
+defmodule MochaWeb.Endpoint do
+  use Phoenix.Endpoint, otp_app: :mocha
 
   @session_options [
     store: :cookie,
-    key: "_moth_key",
+    key: "_mocha_key",
     signing_salt: "tambola_session",
     same_site: "Lax"
   ]
@@ -3408,15 +3408,15 @@ defmodule MothWeb.Endpoint do
     websocket: [connect_info: [session: @session_options]],
     longpoll: false
 
-  socket "/api/socket", MothWeb.GameSocket,
+  socket "/api/socket", MochaWeb.GameSocket,
     websocket: true,
     longpoll: false
 
   plug Plug.Static,
     at: "/",
-    from: :moth,
+    from: :mocha,
     gzip: false,
-    only: MothWeb.static_paths()
+    only: MochaWeb.static_paths()
 
   if code_reloading? do
     socket "/phoenix/live_reload/socket", Phoenix.LiveReloader.Socket
@@ -3435,13 +3435,13 @@ defmodule MothWeb.Endpoint do
   plug Plug.MethodOverride
   plug Plug.Head
   plug Plug.Session, @session_options
-  plug MothWeb.Router
+  plug MochaWeb.Router
 end
 ```
 
 - [ ] **Step 6: Create layout files**
 
-Create `lib/moth_web/components/layouts/root.html.heex`:
+Create `lib/mocha_web/components/layouts/root.html.heex`:
 
 ```heex
 <!DOCTYPE html>
@@ -3450,7 +3450,7 @@ Create `lib/moth_web/components/layouts/root.html.heex`:
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
     <meta name="csrf-token" content={get_csrf_token()} />
-    <.live_title><%= assigns[:page_title] || "Moth" %></.live_title>
+    <.live_title><%= assigns[:page_title] || "Mocha" %></.live_title>
     <link phx-track-static rel="stylesheet" href={~p"/assets/app.css"} />
     <script defer phx-track-static type="text/javascript" src={~p"/assets/app.js"}></script>
   </head>
@@ -3460,7 +3460,7 @@ Create `lib/moth_web/components/layouts/root.html.heex`:
 </html>
 ```
 
-Create `lib/moth_web/components/layouts/app.html.heex`:
+Create `lib/mocha_web/components/layouts/app.html.heex`:
 
 ```heex
 <main class="mx-auto max-w-lg px-4 py-6 sm:px-6 lg:px-8">
@@ -3469,11 +3469,11 @@ Create `lib/moth_web/components/layouts/app.html.heex`:
 </main>
 ```
 
-- [ ] **Step 7: Update `lib/moth_web/components/layouts.ex`**
+- [ ] **Step 7: Update `lib/mocha_web/components/layouts.ex`**
 
 ```elixir
-defmodule MothWeb.Layouts do
-  use MothWeb, :html
+defmodule MochaWeb.Layouts do
+  use MochaWeb, :html
 
   embed_templates "layouts/*"
 end
@@ -3490,7 +3490,7 @@ Expected: Compiles with warnings about missing LiveViews/Controllers (referenced
 - [ ] **Step 9: Commit**
 
 ```bash
-git add lib/moth_web/
+git add lib/mocha_web/
 git commit -m "Add router, endpoint, auth plugs, rate limiter, and layouts"
 ```
 
@@ -3499,16 +3499,16 @@ git commit -m "Add router, endpoint, auth plugs, rate limiter, and layouts"
 ## Task 15: Auth LiveViews & OAuth Controller
 
 **Files:**
-- Create: `lib/moth_web/live/home_live.ex`
-- Create: `lib/moth_web/live/magic_link_live.ex`
-- Create: `lib/moth_web/live/profile_live.ex`
-- Create: `lib/moth_web/controllers/auth_controller.ex`
+- Create: `lib/mocha_web/live/home_live.ex`
+- Create: `lib/mocha_web/live/magic_link_live.ex`
+- Create: `lib/mocha_web/live/profile_live.ex`
+- Create: `lib/mocha_web/controllers/auth_controller.ex`
 
-- [ ] **Step 1: Create `lib/moth_web/live/home_live.ex`**
+- [ ] **Step 1: Create `lib/mocha_web/live/home_live.ex`**
 
 ```elixir
-defmodule MothWeb.HomeLive do
-  use MothWeb, :live_view
+defmodule MochaWeb.HomeLive do
+  use MochaWeb, :live_view
 
   def mount(_params, _session, socket) do
     {:ok, socket}
@@ -3517,7 +3517,7 @@ defmodule MothWeb.HomeLive do
   def render(assigns) do
     ~H"""
     <div class="flex flex-col items-center justify-center min-h-[60vh] space-y-8">
-      <h1 class="text-4xl font-bold text-gray-900">Moth</h1>
+      <h1 class="text-4xl font-bold text-gray-900">Mocha</h1>
       <p class="text-lg text-gray-600">Real-time Tambola / Housie</p>
 
       <%= if @current_user do %>
@@ -3561,14 +3561,14 @@ defmodule MothWeb.HomeLive do
 end
 ```
 
-- [ ] **Step 2: Create `lib/moth_web/live/magic_link_live.ex`**
+- [ ] **Step 2: Create `lib/mocha_web/live/magic_link_live.ex`**
 
 ```elixir
-defmodule MothWeb.MagicLinkLive do
-  use MothWeb, :live_view
+defmodule MochaWeb.MagicLinkLive do
+  use MochaWeb, :live_view
 
-  alias Moth.Auth
-  alias Moth.Auth.UserNotifier
+  alias Mocha.Auth
+  alias Mocha.Auth.UserNotifier
 
   def mount(_params, _session, socket) do
     {:ok, assign(socket, sent: false, email: nil)}
@@ -3618,14 +3618,14 @@ defmodule MothWeb.MagicLinkLive do
 end
 ```
 
-- [ ] **Step 3: Create `lib/moth_web/controllers/auth_controller.ex`**
+- [ ] **Step 3: Create `lib/mocha_web/controllers/auth_controller.ex`**
 
 ```elixir
-defmodule MothWeb.AuthController do
-  use MothWeb, :controller
+defmodule MochaWeb.AuthController do
+  use MochaWeb, :controller
 
-  alias Moth.Auth
-  alias MothWeb.Plugs.Auth, as: AuthPlug
+  alias Mocha.Auth
+  alias MochaWeb.Plugs.Auth, as: AuthPlug
 
   plug Ueberauth
 
@@ -3665,13 +3665,13 @@ end
 
 - [ ] **Step 4: Add magic link verification route and handler**
 
-Add to `lib/moth_web/router.ex` in the browser scope:
+Add to `lib/mocha_web/router.ex` in the browser scope:
 
 ```elixir
 get "/auth/magic/verify", AuthController, :verify_magic_link
 ```
 
-Add to `lib/moth_web/controllers/auth_controller.ex`:
+Add to `lib/mocha_web/controllers/auth_controller.ex`:
 
 ```elixir
 def verify_magic_link(conn, %{"token" => token}) do
@@ -3693,8 +3693,8 @@ end
 - [ ] **Step 5: Create a stub `ProfileLive`**
 
 ```elixir
-defmodule MothWeb.ProfileLive do
-  use MothWeb, :live_view
+defmodule MochaWeb.ProfileLive do
+  use MochaWeb, :live_view
 
   def mount(_params, _session, socket) do
     {:ok, socket}
@@ -3713,28 +3713,28 @@ end
 
 - [ ] **Step 6: Add `on_mount` hook for LiveView auth**
 
-Add to `lib/moth_web.ex` in the `live_view` function or create a separate module. Add this to `MothWeb`:
+Add to `lib/mocha_web.ex` in the `live_view` function or create a separate module. Add this to `MochaWeb`:
 
 ```elixir
 def live_view do
   quote do
     use Phoenix.LiveView,
-      layout: {MothWeb.Layouts, :app}
+      layout: {MochaWeb.Layouts, :app}
 
-    on_mount MothWeb.LiveAuth
+    on_mount MochaWeb.LiveAuth
     unquote(html_helpers())
   end
 end
 ```
 
-Create `lib/moth_web/live_auth.ex`:
+Create `lib/mocha_web/live_auth.ex`:
 
 ```elixir
-defmodule MothWeb.LiveAuth do
+defmodule MochaWeb.LiveAuth do
   import Phoenix.LiveView
   import Phoenix.Component
 
-  alias Moth.Auth
+  alias Mocha.Auth
 
   def on_mount(:default, _params, session, socket) do
     user =
@@ -3770,7 +3770,7 @@ mix compile
 - [ ] **Step 8: Commit**
 
 ```bash
-git add lib/moth_web/
+git add lib/mocha_web/
 git commit -m "Add auth LiveViews (home, magic link, profile), OAuth controller, LiveAuth hook"
 ```
 
@@ -3779,15 +3779,15 @@ git commit -m "Add auth LiveViews (home, magic link, profile), OAuth controller,
 ## Task 16: Game LiveViews (NewLive, PlayLive, HostLive)
 
 **Files:**
-- Create: `lib/moth_web/live/game/new_live.ex`
-- Create: `lib/moth_web/live/game/play_live.ex`
-- Create: `lib/moth_web/live/game/host_live.ex`
-- Create: `lib/moth_web/components/game_components.ex`
+- Create: `lib/mocha_web/live/game/new_live.ex`
+- Create: `lib/mocha_web/live/game/play_live.ex`
+- Create: `lib/mocha_web/live/game/host_live.ex`
+- Create: `lib/mocha_web/components/game_components.ex`
 
-- [ ] **Step 1: Create `lib/moth_web/components/game_components.ex`**
+- [ ] **Step 1: Create `lib/mocha_web/components/game_components.ex`**
 
 ```elixir
-defmodule MothWeb.GameComponents do
+defmodule MochaWeb.GameComponents do
   use Phoenix.Component
 
   attr :ticket, :map, required: true
@@ -3851,13 +3851,13 @@ defmodule MothWeb.GameComponents do
 end
 ```
 
-- [ ] **Step 2: Create `lib/moth_web/live/game/new_live.ex`**
+- [ ] **Step 2: Create `lib/mocha_web/live/game/new_live.ex`**
 
 ```elixir
-defmodule MothWeb.Game.NewLive do
-  use MothWeb, :live_view
+defmodule MochaWeb.Game.NewLive do
+  use MochaWeb, :live_view
 
-  alias Moth.Game
+  alias Mocha.Game
 
   def mount(_params, _session, socket) do
     {:ok, assign(socket, form: to_form(%{"name" => "", "interval" => "30", "bogey_limit" => "3"}))}
@@ -3910,14 +3910,14 @@ defmodule MothWeb.Game.NewLive do
 end
 ```
 
-- [ ] **Step 3: Create `lib/moth_web/live/game/play_live.ex`**
+- [ ] **Step 3: Create `lib/mocha_web/live/game/play_live.ex`**
 
 ```elixir
-defmodule MothWeb.Game.PlayLive do
-  use MothWeb, :live_view
+defmodule MochaWeb.Game.PlayLive do
+  use MochaWeb, :live_view
 
-  import MothWeb.GameComponents
-  alias Moth.Game
+  import MochaWeb.GameComponents
+  alias Mocha.Game
 
   def mount(%{"code" => code}, _session, socket) do
     code = String.upcase(code)
@@ -3925,7 +3925,7 @@ defmodule MothWeb.Game.PlayLive do
     case Game.game_state(code) do
       {:ok, state} ->
         if connected?(socket) do
-          Phoenix.PubSub.subscribe(Moth.PubSub, "game:#{code}")
+          Phoenix.PubSub.subscribe(Mocha.PubSub, "game:#{code}")
           # Join the game
           Game.join_game(code, socket.assigns.current_user.id)
         end
@@ -4066,14 +4066,14 @@ defmodule MothWeb.Game.PlayLive do
 end
 ```
 
-- [ ] **Step 4: Create `lib/moth_web/live/game/host_live.ex`**
+- [ ] **Step 4: Create `lib/mocha_web/live/game/host_live.ex`**
 
 ```elixir
-defmodule MothWeb.Game.HostLive do
-  use MothWeb, :live_view
+defmodule MochaWeb.Game.HostLive do
+  use MochaWeb, :live_view
 
-  import MothWeb.GameComponents
-  alias Moth.Game
+  import MochaWeb.GameComponents
+  alias Mocha.Game
 
   def mount(%{"code" => code}, _session, socket) do
     code = String.upcase(code)
@@ -4084,7 +4084,7 @@ defmodule MothWeb.Game.HostLive do
           {:ok, socket |> put_flash(:error, "You are not the host.") |> redirect(to: ~p"/game/#{code}")}
         else
           if connected?(socket) do
-            Phoenix.PubSub.subscribe(Moth.PubSub, "game:#{code}")
+            Phoenix.PubSub.subscribe(Mocha.PubSub, "game:#{code}")
           end
 
           socket =
@@ -4216,7 +4216,7 @@ mix compile
 - [ ] **Step 6: Commit**
 
 ```bash
-git add lib/moth_web/live/game/ lib/moth_web/components/game_components.ex
+git add lib/mocha_web/live/game/ lib/mocha_web/components/game_components.ex
 git commit -m "Add game LiveViews: NewLive, PlayLive, HostLive, and GameComponents"
 ```
 
@@ -4225,19 +4225,19 @@ git commit -m "Add game LiveViews: NewLive, PlayLive, HostLive, and GameComponen
 ## Task 17: Mobile API Controllers
 
 **Files:**
-- Create: `lib/moth_web/controllers/api/auth_controller.ex`
-- Create: `lib/moth_web/controllers/api/game_controller.ex`
-- Create: `lib/moth_web/controllers/api/user_controller.ex`
-- Create: `lib/moth_web/controllers/health_controller.ex`
+- Create: `lib/mocha_web/controllers/api/auth_controller.ex`
+- Create: `lib/mocha_web/controllers/api/game_controller.ex`
+- Create: `lib/mocha_web/controllers/api/user_controller.ex`
+- Create: `lib/mocha_web/controllers/health_controller.ex`
 
-- [ ] **Step 1: Create `lib/moth_web/controllers/api/auth_controller.ex`**
+- [ ] **Step 1: Create `lib/mocha_web/controllers/api/auth_controller.ex`**
 
 ```elixir
-defmodule MothWeb.API.AuthController do
-  use MothWeb, :controller
+defmodule MochaWeb.API.AuthController do
+  use MochaWeb, :controller
 
-  alias Moth.Auth
-  alias Moth.Auth.UserNotifier
+  alias Mocha.Auth
+  alias Mocha.Auth.UserNotifier
 
   def request_magic_link(conn, %{"email" => email}) do
     email = String.downcase(String.trim(email))
@@ -4277,13 +4277,13 @@ defmodule MothWeb.API.AuthController do
 end
 ```
 
-- [ ] **Step 2: Create `lib/moth_web/controllers/api/game_controller.ex`**
+- [ ] **Step 2: Create `lib/mocha_web/controllers/api/game_controller.ex`**
 
 ```elixir
-defmodule MothWeb.API.GameController do
-  use MothWeb, :controller
+defmodule MochaWeb.API.GameController do
+  use MochaWeb, :controller
 
-  alias Moth.Game
+  alias Mocha.Game
 
   def create(conn, params) do
     user = conn.assigns.current_user
@@ -4356,13 +4356,13 @@ defmodule MothWeb.API.GameController do
 end
 ```
 
-- [ ] **Step 3: Create `lib/moth_web/controllers/api/user_controller.ex`**
+- [ ] **Step 3: Create `lib/mocha_web/controllers/api/user_controller.ex`**
 
 ```elixir
-defmodule MothWeb.API.UserController do
-  use MothWeb, :controller
+defmodule MochaWeb.API.UserController do
+  use MochaWeb, :controller
 
-  alias Moth.Auth
+  alias Mocha.Auth
 
   def show(conn, _params) do
     json(conn, %{user: conn.assigns.current_user})
@@ -4388,15 +4388,15 @@ defmodule MothWeb.API.UserController do
 end
 ```
 
-- [ ] **Step 4: Create `lib/moth_web/controllers/health_controller.ex`**
+- [ ] **Step 4: Create `lib/mocha_web/controllers/health_controller.ex`**
 
 ```elixir
-defmodule MothWeb.HealthController do
-  use MothWeb, :controller
+defmodule MochaWeb.HealthController do
+  use MochaWeb, :controller
 
   def check(conn, _params) do
     # Check Repo is alive
-    Moth.Repo.query!("SELECT 1")
+    Mocha.Repo.query!("SELECT 1")
     json(conn, %{status: "ok"})
   rescue
     _ -> conn |> put_status(503) |> json(%{status: "unhealthy"})
@@ -4413,7 +4413,7 @@ mix compile
 - [ ] **Step 6: Commit**
 
 ```bash
-git add lib/moth_web/controllers/
+git add lib/mocha_web/controllers/
 git commit -m "Add API controllers: auth, game, user, health check"
 ```
 
@@ -4422,18 +4422,18 @@ git commit -m "Add API controllers: auth, game, user, health check"
 ## Task 18: Game Socket & Channel
 
 **Files:**
-- Create: `lib/moth_web/channels/game_socket.ex`
-- Create: `lib/moth_web/channels/game_channel.ex`
+- Create: `lib/mocha_web/channels/game_socket.ex`
+- Create: `lib/mocha_web/channels/game_channel.ex`
 
-- [ ] **Step 1: Create `lib/moth_web/channels/game_socket.ex`**
+- [ ] **Step 1: Create `lib/mocha_web/channels/game_socket.ex`**
 
 ```elixir
-defmodule MothWeb.GameSocket do
+defmodule MochaWeb.GameSocket do
   use Phoenix.Socket
 
-  alias Moth.Auth
+  alias Mocha.Auth
 
-  channel "game:*", MothWeb.GameChannel
+  channel "game:*", MochaWeb.GameChannel
 
   @impl true
   def connect(%{"token" => token}, socket, _connect_info) do
@@ -4450,13 +4450,13 @@ defmodule MothWeb.GameSocket do
 end
 ```
 
-- [ ] **Step 2: Create `lib/moth_web/channels/game_channel.ex`**
+- [ ] **Step 2: Create `lib/mocha_web/channels/game_channel.ex`**
 
 ```elixir
-defmodule MothWeb.GameChannel do
+defmodule MochaWeb.GameChannel do
   use Phoenix.Channel
 
-  alias Moth.Game
+  alias Mocha.Game
 
   def join("game:" <> code, _params, socket) do
     code = String.upcase(code)
@@ -4465,7 +4465,7 @@ defmodule MothWeb.GameChannel do
     case Game.join_game(code, user_id) do
       {:ok, ticket} ->
         # Subscribe to PubSub for this game
-        Phoenix.PubSub.subscribe(Moth.PubSub, "game:#{code}")
+        Phoenix.PubSub.subscribe(Mocha.PubSub, "game:#{code}")
 
         case Game.game_state(code) do
           {:ok, state} ->
@@ -4514,23 +4514,23 @@ mix compile
 - [ ] **Step 4: Commit**
 
 ```bash
-git add lib/moth_web/channels/
+git add lib/mocha_web/channels/
 git commit -m "Add authenticated GameSocket and GameChannel for mobile real-time"
 ```
 
 ---
 
-## Task 19: MothWeb Module Update & Final Wiring
+## Task 19: MochaWeb Module Update & Final Wiring
 
 **Files:**
-- Modify: `lib/moth_web.ex`
-- Modify: `lib/moth_web/telemetry.ex`
-- Update: `lib/moth_web/components/core_components.ex` (if needed)
+- Modify: `lib/mocha_web.ex`
+- Modify: `lib/mocha_web/telemetry.ex`
+- Update: `lib/mocha_web/components/core_components.ex` (if needed)
 
-- [ ] **Step 1: Update `lib/moth_web.ex`**
+- [ ] **Step 1: Update `lib/mocha_web.ex`**
 
 ```elixir
-defmodule MothWeb do
+defmodule MochaWeb do
   def static_paths, do: ~w(assets fonts images favicon.ico robots.txt)
 
   def router do
@@ -4553,10 +4553,10 @@ defmodule MothWeb do
     quote do
       use Phoenix.Controller,
         formats: [:html, :json],
-        layouts: [html: MothWeb.Layouts]
+        layouts: [html: MochaWeb.Layouts]
 
       import Plug.Conn
-      use Gettext, backend: MothWeb.Gettext
+      use Gettext, backend: MochaWeb.Gettext
 
       unquote(verified_routes())
     end
@@ -4565,9 +4565,9 @@ defmodule MothWeb do
   def live_view do
     quote do
       use Phoenix.LiveView,
-        layout: {MothWeb.Layouts, :app}
+        layout: {MochaWeb.Layouts, :app}
 
-      on_mount MothWeb.LiveAuth
+      on_mount MochaWeb.LiveAuth
       unquote(html_helpers())
     end
   end
@@ -4598,9 +4598,9 @@ defmodule MothWeb do
   def verified_routes do
     quote do
       use Phoenix.VerifiedRoutes,
-        endpoint: MothWeb.Endpoint,
-        router: MothWeb.Router,
-        statics: MothWeb.static_paths()
+        endpoint: MochaWeb.Endpoint,
+        router: MochaWeb.Router,
+        statics: MochaWeb.static_paths()
     end
   end
 
@@ -4628,8 +4628,8 @@ Verify the server starts without errors. Visit `http://localhost:4000` and confi
 - [ ] **Step 3: Commit**
 
 ```bash
-git add lib/moth_web.ex lib/moth_web/telemetry.ex lib/moth_web/live_auth.ex
-git commit -m "Update MothWeb module, add LiveAuth on_mount, final wiring"
+git add lib/mocha_web.ex lib/mocha_web/telemetry.ex lib/mocha_web/live_auth.ex
+git commit -m "Update MochaWeb module, add LiveAuth on_mount, final wiring"
 ```
 
 ---
@@ -4637,23 +4637,23 @@ git commit -m "Update MothWeb module, add LiveAuth on_mount, final wiring"
 ## Task 20: Integration Tests
 
 **Files:**
-- Create: `test/moth_web/live/game/play_live_test.exs`
-- Create: `test/moth_web/controllers/api/game_controller_test.exs`
-- Create: `test/moth_web/controllers/api/auth_controller_test.exs`
+- Create: `test/mocha_web/live/game/play_live_test.exs`
+- Create: `test/mocha_web/controllers/api/game_controller_test.exs`
+- Create: `test/mocha_web/controllers/api/auth_controller_test.exs`
 
 - [ ] **Step 1: Create API game controller test**
 
-Create `test/moth_web/controllers/api/game_controller_test.exs`:
+Create `test/mocha_web/controllers/api/game_controller_test.exs`:
 
 ```elixir
-defmodule MothWeb.API.GameControllerTest do
-  use MothWeb.ConnCase, async: false
+defmodule MochaWeb.API.GameControllerTest do
+  use MochaWeb.ConnCase, async: false
 
-  import Moth.AuthFixtures
+  import Mocha.AuthFixtures
 
   setup %{conn: conn} do
     user = user_fixture()
-    {token, _} = Moth.Auth.generate_api_token(user)
+    {token, _} = Mocha.Auth.generate_api_token(user)
     conn = put_req_header(conn, "authorization", "Bearer #{token}")
     %{conn: conn, user: user}
   end
@@ -4668,7 +4668,7 @@ defmodule MothWeb.API.GameControllerTest do
 
   describe "GET /api/games/:code" do
     test "returns game state", %{conn: conn, user: user} do
-      {:ok, code} = Moth.Game.create_game(user.id, %{name: "Test"})
+      {:ok, code} = Mocha.Game.create_game(user.id, %{name: "Test"})
       conn = get(conn, ~p"/api/games/#{code}")
       assert %{"game" => game} = json_response(conn, 200)
       assert game["status"] == :lobby
@@ -4682,9 +4682,9 @@ defmodule MothWeb.API.GameControllerTest do
 
   describe "POST /api/games/:code/join" do
     test "joins the game", %{conn: conn, user: user} do
-      {:ok, code} = Moth.Game.create_game(user.id, %{name: "Test"})
+      {:ok, code} = Mocha.Game.create_game(user.id, %{name: "Test"})
       other = user_fixture()
-      {other_token, _} = Moth.Auth.generate_api_token(other)
+      {other_token, _} = Mocha.Auth.generate_api_token(other)
       conn = put_req_header(build_conn(), "authorization", "Bearer #{other_token}")
       conn = post(conn, ~p"/api/games/#{code}/join")
       assert json_response(conn, 200)
@@ -4695,13 +4695,13 @@ end
 
 - [ ] **Step 2: Create API auth controller test**
 
-Create `test/moth_web/controllers/api/auth_controller_test.exs`:
+Create `test/mocha_web/controllers/api/auth_controller_test.exs`:
 
 ```elixir
-defmodule MothWeb.API.AuthControllerTest do
-  use MothWeb.ConnCase, async: false
+defmodule MochaWeb.API.AuthControllerTest do
+  use MochaWeb.ConnCase, async: false
 
-  import Moth.AuthFixtures
+  import Mocha.AuthFixtures
 
   describe "POST /api/auth/magic" do
     test "sends magic link", %{conn: conn} do
@@ -4713,7 +4713,7 @@ defmodule MothWeb.API.AuthControllerTest do
   describe "POST /api/auth/verify" do
     test "verifies magic link and returns token", %{conn: conn} do
       user = user_fixture()
-      {token, _} = Moth.Auth.build_magic_link_token(user.email)
+      {token, _} = Mocha.Auth.build_magic_link_token(user.email)
 
       conn = post(conn, ~p"/api/auth/verify", %{token: token})
       assert %{"token" => api_token, "user" => _} = json_response(conn, 200)

@@ -1,9 +1,9 @@
-defmodule Moth.MixProject do
+defmodule Mocha.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :moth,
+      app: :mocha,
       version: "0.0.1",
       elixir: "~> 1.14",
       elixirc_paths: elixirc_paths(Mix.env()),
@@ -18,7 +18,7 @@ defmodule Moth.MixProject do
   # Type `mix help compile.app` for more information.
   def application do
     [
-      mod: {Moth.Application, []},
+      mod: {Mocha.Application, []},
       extra_applications: [:logger, :runtime_tools]
     ]
   end

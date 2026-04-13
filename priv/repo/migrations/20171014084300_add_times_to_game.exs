@@ -1,4 +1,4 @@
-defmodule Moth.Repo.Migrations.AddTimesToGame do
+defmodule Mocha.Repo.Migrations.AddTimesToGame do
   use Ecto.Migration
 
   def change do

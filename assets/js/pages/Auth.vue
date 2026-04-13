@@ -178,7 +178,7 @@ function maskedPhone() {
 <template>
   <div class="flex min-h-screen items-center justify-center p-4">
     <div class="w-full max-w-sm">
-      <h1 class="mb-8 text-center text-3xl font-bold">Moth</h1>
+      <h1 class="mb-8 text-center text-3xl font-bold">Mocha</h1>
 
       <SegmentedControl v-model="tab" :options="tabOptions" class="mb-6" />
 

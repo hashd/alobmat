@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this project is
 
-**Moth** is a real-time multiplayer Tambola (Indian bingo/housie) game server. One GenServer process per active game, capable of hosting 100k+ concurrent games on a single machine. The backend is Elixir/Phoenix; the frontend is a Vue 3 + TypeScript + Pinia + Vite SPA communicating via Phoenix Channels.
+**Mocha** is a real-time multiplayer Tambola (Indian bingo/housie) game server. One GenServer process per active game, capable of hosting 100k+ concurrent games on a single machine. The backend is Elixir/Phoenix; the frontend is a Vue 3 + TypeScript + Pinia + Vite SPA communicating via Phoenix Channels.
 
 ## Commands
 
@@ -22,8 +22,8 @@ mix ecto.reset                     # drop + recreate + seed
 
 # Backend tests
 mix test                           # all tests (also runs ecto.create + migrate)
-mix test test/moth/game/server_test.exs                    # single file
-mix test test/moth/game/server_test.exs:42                 # single test by line
+mix test test/mocha/game/server_test.exs                    # single file
+mix test test/mocha/game/server_test.exs:42                 # single test by line
 mix test --only game                                        # by tag
 
 # Frontend tests
@@ -39,7 +39,7 @@ cd assets && npm run build         # production build → priv/static/
 
 ### Game engine (pure Elixir, no web)
 
-`lib/moth/game/` contains the entire game engine:
+`lib/mocha/game/` contains the entire game engine:
 
 - **`game.ex`** — public context API. All callers go through here, never directly to `Server`.
 - **`server.ex`** — one `GenServer` per active game. Holds all in-memory game state (board, tickets, struck numbers, prizes, bogeys, chat rate-limits). Broadcasts state changes via `Phoenix.PubSub` as `{event_atom, payload_map}` tuples on topic `"game:#{code}"`.
@@ -47,28 +47,28 @@ cd assets && npm run build         # production build → priv/static/
 - **`monitor.ex`** — watches Server PIDs via `Process.monitor`; cleans up Registry + DB record on crash.
 - **`board.ex`**, **`ticket.ex`**, **`prize.ex`** — pure data modules. `Board.to_map/1` and `Ticket.to_map/1` produce JSON-serializable maps.
 
-Game lookup: `Registry.lookup(Moth.Game.Registry, code)` → PID. `Game.with_server/2` wraps this and returns `{:error, :game_not_found}` if the process isn't alive.
+Game lookup: `Registry.lookup(Mocha.Game.Registry, code)` → PID. `Game.with_server/2` wraps this and returns `{:error, :game_not_found}` if the process isn't alive.
 
 ### Auth
 
-`lib/moth/auth/` — three token contexts in `UserToken`:
+`lib/mocha/auth/` — three token contexts in `UserToken`:
 - `"session"` — cookie-based, used by the browser `AuthController`
-- `"api"` — bearer token (30-day validity), used by `MothWeb.Plugs.APIAuth` and all `/api/*` routes, and by `UserSocket` for channel auth
+- `"api"` — bearer token (30-day validity), used by `MochaWeb.Plugs.APIAuth` and all `/api/*` routes, and by `UserSocket` for channel auth
 - `"magic_link"` — 15-minute single-use token for passwordless login
 
-`Moth.Auth` is the context module wrapping all token ops. `MothWeb.Plugs.Auth` reads session cookies; `MothWeb.Plugs.APIAuth` reads `Authorization: Bearer <token>` headers.
+`Mocha.Auth` is the context module wrapping all token ops. `MochaWeb.Plugs.Auth` reads session cookies; `MochaWeb.Plugs.APIAuth` reads `Authorization: Bearer <token>` headers.
 
-In dev, `MothWeb.Plugs.DevAuth` provides passwordless local login (enabled via `:dev_routes` compile env).
+In dev, `MochaWeb.Plugs.DevAuth` provides passwordless local login (enabled via `:dev_routes` compile env).
 
 ### Real-time layer (Phoenix Channels)
 
-- **`user_socket.ex`** — authenticates via bearer token (`Moth.Auth.get_user_by_api_token/1`). Routes `"game:*"` to `GameChannel`.
+- **`user_socket.ex`** — authenticates via bearer token (`Mocha.Auth.get_user_by_api_token/1`). Routes `"game:*"` to `GameChannel`.
 - **`channels/game_channel.ex`** — one channel process per player per game. On join: calls `Game.join_game` (idempotent), subscribes to PubSub topic `"game:#{code}"` and presence topic `"game:#{code}:presence"`, enriches player data with names/prizes/bogeys. Translates 8 PubSub events to JSON channel pushes. Handles 4 inbound messages (strike, claim, chat, reaction). `terminate/2` calls `Game.player_left/2` on disconnect.
 - **`presence.ex`** — wraps `Phoenix.Presence` on topic `"game:#{code}:presence"`. Channel subscribes to this topic and forwards `presence_diff` events to clients.
 
 ### Web layer
 
-`lib/moth_web/` — standard Phoenix structure:
+`lib/mocha_web/` — standard Phoenix structure:
 - `router.ex` — three scopes: `/api` (unauthenticated), `/api` + `:require_api_auth` (authenticated REST), `:browser` (OAuth callbacks + SPA catch-all)
 - `controllers/api/` — JSON controllers for auth, user, game actions
 - `controllers/page_controller.ex` — `spa` action serves `priv/static/index.html`

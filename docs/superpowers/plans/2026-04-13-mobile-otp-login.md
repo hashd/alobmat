@@ -4,7 +4,7 @@
 
 **Goal:** Allow users to sign up and log in using just their Indian mobile number + 6-digit SMS OTP.
 
-**Architecture:** A dedicated `phone_otp_codes` table stores hashed OTPs pre-authentication. Phone normalization is a pure function in `Moth.Auth.Phone`. SMS delivery uses a behaviour (`SMSProvider`) with swappable adapters (MSG91 for prod, Log for dev, Test for tests). The existing `users` table gains an optional `phone` column; `email` becomes optional. The Vue frontend adds a phone/OTP tab to the existing Auth page.
+**Architecture:** A dedicated `phone_otp_codes` table stores hashed OTPs pre-authentication. Phone normalization is a pure function in `Mocha.Auth.Phone`. SMS delivery uses a behaviour (`SMSProvider`) with swappable adapters (MSG91 for prod, Log for dev, Test for tests). The existing `users` table gains an optional `phone` column; `email` becomes optional. The Vue frontend adds a phone/OTP tab to the existing Auth page.
 
 **Tech Stack:** Elixir/Phoenix (backend), Ecto + Postgres (data), Finch (HTTP to MSG91), Vue 3 + TypeScript + Pinia (frontend), Vitest (frontend tests)
 
@@ -16,31 +16,31 @@
 
 **New backend files:**
 - `priv/repo/migrations/<ts>_add_phone_otp.exs` — migration
-- `lib/moth/auth/phone.ex` — phone normalization pure function
-- `lib/moth/auth/phone_otp_code.ex` — Ecto schema for `phone_otp_codes`
-- `lib/moth/auth/sms_provider.ex` — behaviour definition
-- `lib/moth/auth/sms_provider/msg91.ex` — production SMS adapter
-- `lib/moth/auth/sms_provider/log.ex` — dev SMS adapter
-- `lib/moth/auth/sms_provider/test.ex` — test SMS adapter
+- `lib/mocha/auth/phone.ex` — phone normalization pure function
+- `lib/mocha/auth/phone_otp_code.ex` — Ecto schema for `phone_otp_codes`
+- `lib/mocha/auth/sms_provider.ex` — behaviour definition
+- `lib/mocha/auth/sms_provider/msg91.ex` — production SMS adapter
+- `lib/mocha/auth/sms_provider/log.ex` — dev SMS adapter
+- `lib/mocha/auth/sms_provider/test.ex` — test SMS adapter
 
 **Modified backend files:**
-- `lib/moth/auth/user.ex` — add phone field, update changesets, update Jason.Encoder
-- `lib/moth/auth/auth.ex` — add `request_phone_otp/1`, `verify_phone_otp/2`, `get_user_by_phone/1`
-- `lib/moth_web/controllers/api/auth_controller.ex` — add `request_otp/2`, `verify_otp/2`
-- `lib/moth_web/router.ex` — add two OTP routes
+- `lib/mocha/auth/user.ex` — add phone field, update changesets, update Jason.Encoder
+- `lib/mocha/auth/auth.ex` — add `request_phone_otp/1`, `verify_phone_otp/2`, `get_user_by_phone/1`
+- `lib/mocha_web/controllers/api/auth_controller.ex` — add `request_otp/2`, `verify_otp/2`
+- `lib/mocha_web/router.ex` — add two OTP routes
 - `config/dev.exs` — SMS provider config
 - `config/test.exs` — SMS provider config
 - `config/runtime.exs` — production SMS provider + MSG91 keys
 
 **New test files:**
-- `test/moth/auth/phone_test.exs`
-- `test/moth/auth/phone_otp_code_test.exs`
-- `test/moth/auth/user_test.exs`
+- `test/mocha/auth/phone_test.exs`
+- `test/mocha/auth/phone_otp_code_test.exs`
+- `test/mocha/auth/user_test.exs`
 
 **Modified test files:**
 - `test/support/fixtures/auth_fixtures.ex` — add `phone_user_fixture/1`, `unique_user_phone/0`
-- `test/moth/auth/auth_test.exs` — add OTP context tests
-- `test/moth_web/controllers/api/auth_controller_test.exs` — add OTP endpoint tests
+- `test/mocha/auth/auth_test.exs` — add OTP context tests
+- `test/mocha_web/controllers/api/auth_controller_test.exs` — add OTP endpoint tests
 
 **Modified frontend files:**
 - `assets/js/types/domain.ts` — add `phone` to `User`
@@ -63,7 +63,7 @@ Run: `cd /Users/kiran/hashd/dev/alobmat && mix ecto.gen.migration add_phone_otp`
 Replace the generated migration contents with:
 
 ```elixir
-defmodule Moth.Repo.Migrations.AddPhoneOtp do
+defmodule Mocha.Repo.Migrations.AddPhoneOtp do
   use Ecto.Migration
 
   def change do
@@ -109,18 +109,18 @@ git commit -m "feat: add phone column to users and phone_otp_codes table"
 ### Task 2: Phone Normalization Module
 
 **Files:**
-- Create: `lib/moth/auth/phone.ex`
-- Create: `test/moth/auth/phone_test.exs`
+- Create: `lib/mocha/auth/phone.ex`
+- Create: `test/mocha/auth/phone_test.exs`
 
 - [ ] **Step 1: Write failing tests**
 
-Create `test/moth/auth/phone_test.exs`:
+Create `test/mocha/auth/phone_test.exs`:
 
 ```elixir
-defmodule Moth.Auth.PhoneTest do
+defmodule Mocha.Auth.PhoneTest do
   use ExUnit.Case, async: true
 
-  alias Moth.Auth.Phone
+  alias Mocha.Auth.Phone
 
   describe "normalize/1" do
     test "bare 10-digit Indian number gets +91 prefix" do
@@ -177,16 +177,16 @@ end
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `cd /Users/kiran/hashd/dev/alobmat && mix test test/moth/auth/phone_test.exs`
+Run: `cd /Users/kiran/hashd/dev/alobmat && mix test test/mocha/auth/phone_test.exs`
 
-Expected: compilation error — `Moth.Auth.Phone` module not found.
+Expected: compilation error — `Mocha.Auth.Phone` module not found.
 
 - [ ] **Step 3: Implement the module**
 
-Create `lib/moth/auth/phone.ex`:
+Create `lib/mocha/auth/phone.ex`:
 
 ```elixir
-defmodule Moth.Auth.Phone do
+defmodule Mocha.Auth.Phone do
   @moduledoc "Phone number normalization and validation for Indian mobile numbers."
 
   @indian_mobile_regex ~r/^\+91[6-9]\d{9}$/
@@ -238,14 +238,14 @@ end
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `cd /Users/kiran/hashd/dev/alobmat && mix test test/moth/auth/phone_test.exs`
+Run: `cd /Users/kiran/hashd/dev/alobmat && mix test test/mocha/auth/phone_test.exs`
 
 Expected: all tests pass.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add lib/moth/auth/phone.ex test/moth/auth/phone_test.exs
+git add lib/mocha/auth/phone.ex test/mocha/auth/phone_test.exs
 git commit -m "feat: add phone number normalization module with tests"
 ```
 
@@ -254,18 +254,18 @@ git commit -m "feat: add phone number normalization module with tests"
 ### Task 3: PhoneOtpCode Ecto Schema
 
 **Files:**
-- Create: `lib/moth/auth/phone_otp_code.ex`
-- Create: `test/moth/auth/phone_otp_code_test.exs`
+- Create: `lib/mocha/auth/phone_otp_code.ex`
+- Create: `test/mocha/auth/phone_otp_code_test.exs`
 
 - [ ] **Step 1: Write failing tests**
 
-Create `test/moth/auth/phone_otp_code_test.exs`:
+Create `test/mocha/auth/phone_otp_code_test.exs`:
 
 ```elixir
-defmodule Moth.Auth.PhoneOtpCodeTest do
-  use Moth.DataCase, async: true
+defmodule Mocha.Auth.PhoneOtpCodeTest do
+  use Mocha.DataCase, async: true
 
-  alias Moth.Auth.PhoneOtpCode
+  alias Mocha.Auth.PhoneOtpCode
 
   describe "changeset/2" do
     test "valid attrs produce valid changeset" do
@@ -317,16 +317,16 @@ end
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `cd /Users/kiran/hashd/dev/alobmat && mix test test/moth/auth/phone_otp_code_test.exs`
+Run: `cd /Users/kiran/hashd/dev/alobmat && mix test test/mocha/auth/phone_otp_code_test.exs`
 
-Expected: compilation error — `Moth.Auth.PhoneOtpCode` not found.
+Expected: compilation error — `Mocha.Auth.PhoneOtpCode` not found.
 
 - [ ] **Step 3: Implement the schema**
 
-Create `lib/moth/auth/phone_otp_code.ex`:
+Create `lib/mocha/auth/phone_otp_code.ex`:
 
 ```elixir
-defmodule Moth.Auth.PhoneOtpCode do
+defmodule Mocha.Auth.PhoneOtpCode do
   use Ecto.Schema
   import Ecto.Changeset
 
@@ -350,14 +350,14 @@ end
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `cd /Users/kiran/hashd/dev/alobmat && mix test test/moth/auth/phone_otp_code_test.exs`
+Run: `cd /Users/kiran/hashd/dev/alobmat && mix test test/mocha/auth/phone_otp_code_test.exs`
 
 Expected: all tests pass.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add lib/moth/auth/phone_otp_code.ex test/moth/auth/phone_otp_code_test.exs
+git add lib/mocha/auth/phone_otp_code.ex test/mocha/auth/phone_otp_code_test.exs
 git commit -m "feat: add PhoneOtpCode Ecto schema with tests"
 ```
 
@@ -366,19 +366,19 @@ git commit -m "feat: add PhoneOtpCode Ecto schema with tests"
 ### Task 4: User Schema Changes
 
 **Files:**
-- Modify: `lib/moth/auth/user.ex`
-- Create: `test/moth/auth/user_test.exs`
+- Modify: `lib/mocha/auth/user.ex`
+- Create: `test/mocha/auth/user_test.exs`
 - Modify: `test/support/fixtures/auth_fixtures.ex`
 
 - [ ] **Step 1: Write failing tests**
 
-Create `test/moth/auth/user_test.exs`:
+Create `test/mocha/auth/user_test.exs`:
 
 ```elixir
-defmodule Moth.Auth.UserTest do
-  use Moth.DataCase, async: true
+defmodule Mocha.Auth.UserTest do
+  use Mocha.DataCase, async: true
 
-  alias Moth.Auth.User
+  alias Mocha.Auth.User
 
   describe "changeset/2" do
     test "accepts email-only user (regression)" do
@@ -438,16 +438,16 @@ end
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `cd /Users/kiran/hashd/dev/alobmat && mix test test/moth/auth/user_test.exs`
+Run: `cd /Users/kiran/hashd/dev/alobmat && mix test test/mocha/auth/user_test.exs`
 
 Expected: failures — `phone_registration_changeset` not defined, `changeset` still requires email.
 
 - [ ] **Step 3: Update User schema**
 
-Modify `lib/moth/auth/user.ex` to:
+Modify `lib/mocha/auth/user.ex` to:
 
 ```elixir
-defmodule Moth.Auth.User do
+defmodule Mocha.Auth.User do
   use Ecto.Schema
   import Ecto.Changeset
 
@@ -458,8 +458,8 @@ defmodule Moth.Auth.User do
     field :avatar_url, :string
     field :phone, :string
 
-    has_many :identities, Moth.Auth.UserIdentity
-    has_many :tokens, Moth.Auth.UserToken
+    has_many :identities, Mocha.Auth.UserIdentity
+    has_many :tokens, Mocha.Auth.UserToken
 
     timestamps()
   end
@@ -504,13 +504,13 @@ end
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `cd /Users/kiran/hashd/dev/alobmat && mix test test/moth/auth/user_test.exs`
+Run: `cd /Users/kiran/hashd/dev/alobmat && mix test test/mocha/auth/user_test.exs`
 
 Expected: all tests pass.
 
 - [ ] **Step 5: Verify no regressions in existing tests**
 
-Run: `cd /Users/kiran/hashd/dev/alobmat && mix test test/moth/auth/auth_test.exs`
+Run: `cd /Users/kiran/hashd/dev/alobmat && mix test test/mocha/auth/auth_test.exs`
 
 Expected: all existing auth tests still pass.
 
@@ -519,10 +519,10 @@ Expected: all existing auth tests still pass.
 Modify `test/support/fixtures/auth_fixtures.ex`:
 
 ```elixir
-defmodule Moth.AuthFixtures do
+defmodule Mocha.AuthFixtures do
   @moduledoc "Test helpers for creating auth entities."
 
-  alias Moth.Auth
+  alias Mocha.Auth
 
   def unique_user_email, do: "user#{System.unique_integer([:positive])}@example.com"
   def unique_user_phone, do: "+91#{Enum.random(6..9)}#{:rand.uniform(999_999_999) |> Integer.to_string() |> String.pad_leading(9, "0")}"
@@ -548,9 +548,9 @@ defmodule Moth.AuthFixtures do
     phone = attrs[:phone] || unique_user_phone()
 
     {:ok, user} =
-      %Moth.Auth.User{}
-      |> Moth.Auth.User.phone_registration_changeset(%{phone: phone, name: phone})
-      |> Moth.Repo.insert()
+      %Mocha.Auth.User{}
+      |> Mocha.Auth.User.phone_registration_changeset(%{phone: phone, name: phone})
+      |> Mocha.Repo.insert()
 
     user
   end
@@ -566,7 +566,7 @@ Expected: all tests pass (no regressions).
 - [ ] **Step 8: Commit**
 
 ```bash
-git add lib/moth/auth/user.ex test/moth/auth/user_test.exs test/support/fixtures/auth_fixtures.ex
+git add lib/mocha/auth/user.ex test/mocha/auth/user_test.exs test/support/fixtures/auth_fixtures.ex
 git commit -m "feat: make email optional on User, add phone field and phone_registration_changeset"
 ```
 
@@ -575,20 +575,20 @@ git commit -m "feat: make email optional on User, add phone field and phone_regi
 ### Task 5: SMS Provider Behaviour + Adapters
 
 **Files:**
-- Create: `lib/moth/auth/sms_provider.ex`
-- Create: `lib/moth/auth/sms_provider/msg91.ex`
-- Create: `lib/moth/auth/sms_provider/log.ex`
-- Create: `lib/moth/auth/sms_provider/test.ex`
+- Create: `lib/mocha/auth/sms_provider.ex`
+- Create: `lib/mocha/auth/sms_provider/msg91.ex`
+- Create: `lib/mocha/auth/sms_provider/log.ex`
+- Create: `lib/mocha/auth/sms_provider/test.ex`
 - Modify: `config/dev.exs`
 - Modify: `config/test.exs`
 - Modify: `config/runtime.exs`
 
 - [ ] **Step 1: Create the behaviour**
 
-Create `lib/moth/auth/sms_provider.ex`:
+Create `lib/mocha/auth/sms_provider.ex`:
 
 ```elixir
-defmodule Moth.Auth.SMSProvider do
+defmodule Mocha.Auth.SMSProvider do
   @moduledoc "Behaviour for SMS delivery. Swapped per environment."
 
   @callback deliver_otp(phone :: String.t(), code :: String.t()) :: :ok | {:error, term()}
@@ -598,19 +598,19 @@ defmodule Moth.Auth.SMSProvider do
   end
 
   defp impl do
-    Application.get_env(:moth, :sms_provider, Moth.Auth.SMSProvider.Log)
+    Application.get_env(:mocha, :sms_provider, Mocha.Auth.SMSProvider.Log)
   end
 end
 ```
 
 - [ ] **Step 2: Create the Log adapter (dev)**
 
-Create `lib/moth/auth/sms_provider/log.ex`:
+Create `lib/mocha/auth/sms_provider/log.ex`:
 
 ```elixir
-defmodule Moth.Auth.SMSProvider.Log do
+defmodule Mocha.Auth.SMSProvider.Log do
   @moduledoc "Dev adapter — logs OTP to console."
-  @behaviour Moth.Auth.SMSProvider
+  @behaviour Mocha.Auth.SMSProvider
 
   require Logger
 
@@ -624,12 +624,12 @@ end
 
 - [ ] **Step 3: Create the Test adapter**
 
-Create `lib/moth/auth/sms_provider/test.ex`:
+Create `lib/mocha/auth/sms_provider/test.ex`:
 
 ```elixir
-defmodule Moth.Auth.SMSProvider.Test do
+defmodule Mocha.Auth.SMSProvider.Test do
   @moduledoc "Test adapter — sends message to calling process."
-  @behaviour Moth.Auth.SMSProvider
+  @behaviour Mocha.Auth.SMSProvider
 
   @impl true
   def deliver_otp(phone, code) do
@@ -641,12 +641,12 @@ end
 
 - [ ] **Step 4: Create the MSG91 adapter (production)**
 
-Create `lib/moth/auth/sms_provider/msg91.ex`:
+Create `lib/mocha/auth/sms_provider/msg91.ex`:
 
 ```elixir
-defmodule Moth.Auth.SMSProvider.MSG91 do
+defmodule Mocha.Auth.SMSProvider.MSG91 do
   @moduledoc "Production adapter — sends OTP via MSG91 HTTP API."
-  @behaviour Moth.Auth.SMSProvider
+  @behaviour Mocha.Auth.SMSProvider
 
   require Logger
 
@@ -654,7 +654,7 @@ defmodule Moth.Auth.SMSProvider.MSG91 do
 
   @impl true
   def deliver_otp(phone, code) do
-    config = Application.get_env(:moth, :msg91)
+    config = Application.get_env(:mocha, :msg91)
     auth_key = Keyword.fetch!(config, :auth_key)
     template_id = Keyword.fetch!(config, :template_id)
 
@@ -672,7 +672,7 @@ defmodule Moth.Auth.SMSProvider.MSG91 do
     request =
       Finch.build(:post, @url, [{"Content-Type", "application/json"}], body)
 
-    case Finch.request(request, Moth.Finch) do
+    case Finch.request(request, Mocha.Finch) do
       {:ok, %Finch.Response{status: status}} when status in 200..299 ->
         :ok
 
@@ -690,11 +690,11 @@ end
 
 - [ ] **Step 5: Add Finch to application supervisor (if not already present)**
 
-Check `lib/moth/application.ex` for `{Finch, name: Moth.Finch}` in the children list. If missing, add it:
+Check `lib/mocha/application.ex` for `{Finch, name: Mocha.Finch}` in the children list. If missing, add it:
 
 ```elixir
-# In the children list of lib/moth/application.ex:
-{Finch, name: Moth.Finch}
+# In the children list of lib/mocha/application.ex:
+{Finch, name: Mocha.Finch}
 ```
 
 - [ ] **Step 6: Update config files**
@@ -702,20 +702,20 @@ Check `lib/moth/application.ex` for `{Finch, name: Moth.Finch}` in the children 
 Append to `config/dev.exs`:
 
 ```elixir
-config :moth, :sms_provider, Moth.Auth.SMSProvider.Log
+config :mocha, :sms_provider, Mocha.Auth.SMSProvider.Log
 ```
 
 Append to `config/test.exs`:
 
 ```elixir
-config :moth, :sms_provider, Moth.Auth.SMSProvider.Test
+config :mocha, :sms_provider, Mocha.Auth.SMSProvider.Test
 ```
 
 Add to `config/runtime.exs` inside the `if config_env() == :prod do` block, after the Ueberauth config:
 
 ```elixir
-  config :moth, :sms_provider, Moth.Auth.SMSProvider.MSG91
-  config :moth, :msg91,
+  config :mocha, :sms_provider, Mocha.Auth.SMSProvider.MSG91
+  config :mocha, :msg91,
     auth_key: System.get_env("MSG91_AUTH_KEY") || raise("MSG91_AUTH_KEY not set"),
     template_id: System.get_env("MSG91_TEMPLATE_ID") || raise("MSG91_TEMPLATE_ID not set")
 ```
@@ -729,7 +729,7 @@ Expected: compiles with no errors.
 - [ ] **Step 8: Commit**
 
 ```bash
-git add lib/moth/auth/sms_provider.ex lib/moth/auth/sms_provider/ config/dev.exs config/test.exs config/runtime.exs lib/moth/application.ex
+git add lib/mocha/auth/sms_provider.ex lib/mocha/auth/sms_provider/ config/dev.exs config/test.exs config/runtime.exs lib/mocha/application.ex
 git commit -m "feat: add SMSProvider behaviour with MSG91, Log, and Test adapters"
 ```
 
@@ -738,21 +738,21 @@ git commit -m "feat: add SMSProvider behaviour with MSG91, Log, and Test adapter
 ### Task 6: Auth Context — OTP Functions
 
 **Files:**
-- Modify: `lib/moth/auth/auth.ex`
-- Modify: `test/moth/auth/auth_test.exs`
+- Modify: `lib/mocha/auth/auth.ex`
+- Modify: `test/mocha/auth/auth_test.exs`
 
 - [ ] **Step 1: Write failing tests for request_phone_otp**
 
-Append to `test/moth/auth/auth_test.exs`, inside the module but after existing describes. First, update the alias line at the top of the module from:
+Append to `test/mocha/auth/auth_test.exs`, inside the module but after existing describes. First, update the alias line at the top of the module from:
 
 ```elixir
-alias Moth.Auth.{User, UserToken}
+alias Mocha.Auth.{User, UserToken}
 ```
 
 to:
 
 ```elixir
-alias Moth.Auth.{User, UserToken, PhoneOtpCode}
+alias Mocha.Auth.{User, UserToken, PhoneOtpCode}
 ```
 
 Then add these test blocks:
@@ -773,7 +773,7 @@ Then add these test blocks:
       # Only one active (unused) OTP should exist
       active =
         Repo.all(
-          from o in Moth.Auth.PhoneOtpCode,
+          from o in Mocha.Auth.PhoneOtpCode,
             where: o.phone == "+919876543210" and is_nil(o.used_at)
         )
 
@@ -796,18 +796,18 @@ Then add these test blocks:
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `cd /Users/kiran/hashd/dev/alobmat && mix test test/moth/auth/auth_test.exs --only describe:"request_phone_otp/1"`
+Run: `cd /Users/kiran/hashd/dev/alobmat && mix test test/mocha/auth/auth_test.exs --only describe:"request_phone_otp/1"`
 
 Expected: failures — `request_phone_otp/1` not defined.
 
 - [ ] **Step 3: Implement request_phone_otp/1**
 
-Add to `lib/moth/auth/auth.ex`, after the existing `## Helpers` section at the bottom (before the final `end`):
+Add to `lib/mocha/auth/auth.ex`, after the existing `## Helpers` section at the bottom (before the final `end`):
 
 ```elixir
   ## Phone OTP
 
-  alias Moth.Auth.{Phone, PhoneOtpCode}
+  alias Mocha.Auth.{Phone, PhoneOtpCode}
 
   @otp_expiry_seconds 600
   @otp_rate_limit 3
@@ -847,7 +847,7 @@ Add to `lib/moth/auth/auth.ex`, after the existing `## Helpers` section at the b
         })
         |> Repo.insert!()
 
-        case Moth.Auth.SMSProvider.deliver_otp(normalized, code) do
+        case Mocha.Auth.SMSProvider.deliver_otp(normalized, code) do
           :ok -> :ok
           {:error, _reason} -> {:error, :sms_delivery_failed}
         end
@@ -866,13 +866,13 @@ Add to `lib/moth/auth/auth.ex`, after the existing `## Helpers` section at the b
 
 - [ ] **Step 4: Run request tests to verify they pass**
 
-Run: `cd /Users/kiran/hashd/dev/alobmat && mix test test/moth/auth/auth_test.exs --only describe:"request_phone_otp/1"`
+Run: `cd /Users/kiran/hashd/dev/alobmat && mix test test/mocha/auth/auth_test.exs --only describe:"request_phone_otp/1"`
 
 Expected: all pass.
 
 - [ ] **Step 5: Write failing tests for verify_phone_otp**
 
-Append to `test/moth/auth/auth_test.exs`:
+Append to `test/mocha/auth/auth_test.exs`:
 
 ```elixir
   describe "verify_phone_otp/2" do
@@ -957,13 +957,13 @@ Append to `test/moth/auth/auth_test.exs`:
 
 - [ ] **Step 6: Run verify tests to verify they fail**
 
-Run: `cd /Users/kiran/hashd/dev/alobmat && mix test test/moth/auth/auth_test.exs --only describe:"verify_phone_otp/2"`
+Run: `cd /Users/kiran/hashd/dev/alobmat && mix test test/mocha/auth/auth_test.exs --only describe:"verify_phone_otp/2"`
 
 Expected: failures — `verify_phone_otp/2` not defined.
 
 - [ ] **Step 7: Implement verify_phone_otp/2**
 
-Add to `lib/moth/auth/auth.ex`, after `request_phone_otp/1`:
+Add to `lib/mocha/auth/auth.ex`, after `request_phone_otp/1`:
 
 ```elixir
   def verify_phone_otp(phone, code) do
@@ -1042,20 +1042,20 @@ Add to `lib/moth/auth/auth.ex`, after `request_phone_otp/1`:
 
 - [ ] **Step 8: Run verify tests to verify they pass**
 
-Run: `cd /Users/kiran/hashd/dev/alobmat && mix test test/moth/auth/auth_test.exs --only describe:"verify_phone_otp/2"`
+Run: `cd /Users/kiran/hashd/dev/alobmat && mix test test/mocha/auth/auth_test.exs --only describe:"verify_phone_otp/2"`
 
 Expected: all pass.
 
 - [ ] **Step 9: Run full auth test suite**
 
-Run: `cd /Users/kiran/hashd/dev/alobmat && mix test test/moth/auth/auth_test.exs`
+Run: `cd /Users/kiran/hashd/dev/alobmat && mix test test/mocha/auth/auth_test.exs`
 
 Expected: all tests pass (old + new).
 
 - [ ] **Step 10: Commit**
 
 ```bash
-git add lib/moth/auth/auth.ex test/moth/auth/auth_test.exs
+git add lib/mocha/auth/auth.ex test/mocha/auth/auth_test.exs
 git commit -m "feat: add request_phone_otp and verify_phone_otp to Auth context"
 ```
 
@@ -1064,13 +1064,13 @@ git commit -m "feat: add request_phone_otp and verify_phone_otp to Auth context"
 ### Task 7: Auth Controller — OTP Endpoints
 
 **Files:**
-- Modify: `lib/moth_web/controllers/api/auth_controller.ex`
-- Modify: `lib/moth_web/router.ex`
-- Modify: `test/moth_web/controllers/api/auth_controller_test.exs`
+- Modify: `lib/mocha_web/controllers/api/auth_controller.ex`
+- Modify: `lib/mocha_web/router.ex`
+- Modify: `test/mocha_web/controllers/api/auth_controller_test.exs`
 
 - [ ] **Step 1: Add routes**
 
-In `lib/moth_web/router.ex`, inside the first `scope "/api", MothWeb.API` block (unauthenticated, around line 34), add after the existing auth routes:
+In `lib/mocha_web/router.ex`, inside the first `scope "/api", MochaWeb.API` block (unauthenticated, around line 34), add after the existing auth routes:
 
 ```elixir
     post "/auth/otp/request", AuthController, :request_otp
@@ -1079,7 +1079,7 @@ In `lib/moth_web/router.ex`, inside the first `scope "/api", MothWeb.API` block 
 
 - [ ] **Step 2: Write failing controller tests**
 
-Add these imports at the top of `test/moth_web/controllers/api/auth_controller_test.exs` (inside the module, after the existing `import`):
+Add these imports at the top of `test/mocha_web/controllers/api/auth_controller_test.exs` (inside the module, after the existing `import`):
 
 ```elixir
   import Ecto.Query
@@ -1165,8 +1165,8 @@ Then append these test blocks inside the module:
       assert_received {:otp_sent, ^phone, code}
 
       # Expire the OTP
-      Moth.Repo.update_all(
-        from(o in Moth.Auth.PhoneOtpCode, where: o.phone == ^phone),
+      Mocha.Repo.update_all(
+        from(o in Mocha.Auth.PhoneOtpCode, where: o.phone == ^phone),
         set: [expires_at: DateTime.add(DateTime.utc_now(), -1)]
       )
 
@@ -1195,13 +1195,13 @@ Then append these test blocks inside the module:
 
 - [ ] **Step 3: Run tests to verify they fail**
 
-Run: `cd /Users/kiran/hashd/dev/alobmat && mix test test/moth_web/controllers/api/auth_controller_test.exs`
+Run: `cd /Users/kiran/hashd/dev/alobmat && mix test test/mocha_web/controllers/api/auth_controller_test.exs`
 
 Expected: failures — `request_otp` and `verify_otp` actions not defined.
 
 - [ ] **Step 4: Implement controller actions**
 
-Add to `lib/moth_web/controllers/api/auth_controller.ex`, before the `if Application.compile_env` block:
+Add to `lib/mocha_web/controllers/api/auth_controller.ex`, before the `if Application.compile_env` block:
 
 ```elixir
   def request_otp(conn, %{"phone" => phone}) do
@@ -1256,7 +1256,7 @@ Add to `lib/moth_web/controllers/api/auth_controller.ex`, before the `if Applica
 
 - [ ] **Step 5: Run controller tests to verify they pass**
 
-Run: `cd /Users/kiran/hashd/dev/alobmat && mix test test/moth_web/controllers/api/auth_controller_test.exs`
+Run: `cd /Users/kiran/hashd/dev/alobmat && mix test test/mocha_web/controllers/api/auth_controller_test.exs`
 
 Expected: all tests pass.
 
@@ -1269,7 +1269,7 @@ Expected: all tests pass.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add lib/moth_web/controllers/api/auth_controller.ex lib/moth_web/router.ex test/moth_web/controllers/api/auth_controller_test.exs
+git add lib/mocha_web/controllers/api/auth_controller.ex lib/mocha_web/router.ex test/mocha_web/controllers/api/auth_controller_test.exs
 git commit -m "feat: add OTP request/verify API endpoints with integration tests"
 ```
 
@@ -1504,7 +1504,7 @@ function maskedPhone() {
 <template>
   <div class="flex min-h-screen items-center justify-center p-4">
     <div class="w-full max-w-sm">
-      <h1 class="mb-8 text-center text-3xl font-bold">Moth</h1>
+      <h1 class="mb-8 text-center text-3xl font-bold">Mocha</h1>
 
       <SegmentedControl v-model="tab" :options="tabOptions" class="mb-6" />
 

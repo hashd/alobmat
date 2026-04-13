@@ -1,14 +1,14 @@
-# Moth Frontend Redesign Implementation Plan
+# Mocha Frontend Redesign Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Rebuild every screen of Moth (Tambola/Housie game) with an ultra-modern design system, micro-animations, social features (presence, reactions), and a rich host command center — all within Phoenix LiveView + Tailwind CSS.
+**Goal:** Rebuild every screen of Mocha (Tambola/Housie game) with an ultra-modern design system, micro-animations, social features (presence, reactions), and a rich host command center — all within Phoenix LiveView + Tailwind CSS.
 
 **Architecture:** Design system foundation (CSS tokens + Tailwind config + component library) first, then backend additions, then screens rebuilt bottom-up. LiveComponents for high-frequency sections (activity feed, picked numbers). Targeted JS hooks for interactions LiveView can't handle (countdown timer, optimistic strike, confetti, floating reactions). No framework changes — pure LiveView + HEEx + Tailwind.
 
 **Tech Stack:** Elixir/Phoenix 1.7, LiveView 0.20, Tailwind CSS 3.4, Inter font, canvas-confetti (~6KB), Phoenix Presence
 
-**Spec:** `docs/superpowers/specs/2026-04-10-moth-frontend-redesign-design.md`
+**Spec:** `docs/superpowers/specs/2026-04-10-mocha-frontend-redesign-design.md`
 
 ---
 
@@ -27,42 +27,42 @@ assets/js/hooks/floating_reaction.js            — Emoji float-up animation
 assets/js/hooks/ticket_strike.js                — Optimistic strike UI
 assets/js/hooks/board_sheet.js                  — Mobile board bottom sheet
 assets/js/hooks/presence.js                     — Visibility change tracking
-lib/moth_web/components/ui.ex                   — General UI primitives (button, card, badge, avatar, input, modal, toast, skeleton, etc.)
-lib/moth_web/components/game.ex                 — Game-specific components (ticket_grid, ticket_cell, prize_chip, number_pill, board, countdown)
-lib/moth_web/live/game/activity_feed.ex         — LiveComponent for activity feed (stream-based)
-lib/moth_web/live/game/picked_numbers.ex        — LiveComponent for picked numbers display
+lib/mocha_web/components/ui.ex                   — General UI primitives (button, card, badge, avatar, input, modal, toast, skeleton, etc.)
+lib/mocha_web/components/game.ex                 — Game-specific components (ticket_grid, ticket_cell, prize_chip, number_pill, board, countdown)
+lib/mocha_web/live/game/activity_feed.ex         — LiveComponent for activity feed (stream-based)
+lib/mocha_web/live/game/picked_numbers.ex        — LiveComponent for picked numbers display
 ```
 
 ### Modified Files
 ```
 assets/tailwind.config.js                       — darkMode: 'class', Inter font, custom colors
 assets/js/app.js                                — Import hooks, register with LiveSocket
-lib/moth_web/components/layouts/root.html.heex  — Theme script, Inter font, viewport fix, connection status
-lib/moth_web/components/layouts/app.html.heex   — Responsive container, toast container
-lib/moth_web/components/layouts.ex              — Import new component modules
-lib/moth_web.ex                                 — Import UI + Game components in live_view/0
-lib/moth_web/router.ex                          — Return-to redirect after auth
-lib/moth_web/plugs/auth.ex                      — Store return_to in session
-lib/moth_web/live_auth.ex                       — Pass return_to on redirect
-lib/moth_web/live/home_live.ex                  — Full redesign
-lib/moth_web/live/magic_link_live.ex            — Redesign with new components
-lib/moth_web/live/profile_live.ex               — Expand with theme toggle, game history
-lib/moth_web/live/game/new_live.ex              — Redesign with segmented controls
-lib/moth_web/live/game/play_live.ex             — Full redesign (lobby + running + game over)
-lib/moth_web/live/game/host_live.ex             — Full redesign (lobby + running + game over)
-lib/moth_web/presence.ex                        — Add game-specific presence tracking
-lib/moth/game/server.ex                         — Reactions handler, server_now in pick, prize_progress in sanitize_state, auto-strike cast handler
-lib/moth/game/game.ex                           — recent_games/2, clone_game/2, send_reaction/3
-lib/moth_web/components/game_components.ex      — Deprecated (replaced by components/game.ex)
+lib/mocha_web/components/layouts/root.html.heex  — Theme script, Inter font, viewport fix, connection status
+lib/mocha_web/components/layouts/app.html.heex   — Responsive container, toast container
+lib/mocha_web/components/layouts.ex              — Import new component modules
+lib/mocha_web.ex                                 — Import UI + Game components in live_view/0
+lib/mocha_web/router.ex                          — Return-to redirect after auth
+lib/mocha_web/plugs/auth.ex                      — Store return_to in session
+lib/mocha_web/live_auth.ex                       — Pass return_to on redirect
+lib/mocha_web/live/home_live.ex                  — Full redesign
+lib/mocha_web/live/magic_link_live.ex            — Redesign with new components
+lib/mocha_web/live/profile_live.ex               — Expand with theme toggle, game history
+lib/mocha_web/live/game/new_live.ex              — Redesign with segmented controls
+lib/mocha_web/live/game/play_live.ex             — Full redesign (lobby + running + game over)
+lib/mocha_web/live/game/host_live.ex             — Full redesign (lobby + running + game over)
+lib/mocha_web/presence.ex                        — Add game-specific presence tracking
+lib/mocha/game/server.ex                         — Reactions handler, server_now in pick, prize_progress in sanitize_state, auto-strike cast handler
+lib/mocha/game/game.ex                           — recent_games/2, clone_game/2, send_reaction/3
+lib/mocha_web/components/game_components.ex      — Deprecated (replaced by components/game.ex)
 ```
 
 ### Test Files
 ```
-test/moth/game/server_test.exs                  — Add tests for reactions, prize_progress, auto-strike cast
-test/moth/game/game_test.exs                    — Add tests for recent_games, clone_game
-test/moth_web/live/home_live_test.exs           — New: home screen LiveView tests
-test/moth_web/live/game/play_live_test.exs      — New: player view LiveView tests
-test/moth_web/live/game/host_live_test.exs      — New: host dashboard LiveView tests
+test/mocha/game/server_test.exs                  — Add tests for reactions, prize_progress, auto-strike cast
+test/mocha/game/game_test.exs                    — Add tests for recent_games, clone_game
+test/mocha_web/live/home_live_test.exs           — New: home screen LiveView tests
+test/mocha_web/live/game/play_live_test.exs      — New: player view LiveView tests
+test/mocha_web/live/game/host_live_test.exs      — New: host dashboard LiveView tests
 ```
 
 ---
@@ -72,7 +72,7 @@ test/moth_web/live/game/host_live_test.exs      — New: host dashboard LiveView
 **Files:**
 - Modify: `assets/tailwind.config.js`
 - Modify: `assets/css/app.css`
-- Modify: `lib/moth_web/components/layouts/root.html.heex`
+- Modify: `lib/mocha_web/components/layouts/root.html.heex`
 
 **Spec ref:** Sections 2.1, 2.2, 2.3, 2.5 (color palette, typography, spacing, animations)
 
@@ -86,7 +86,7 @@ const plugin = require("tailwindcss/plugin")
 
 module.exports = {
   darkMode: 'class',
-  content: ["./js/**/*.js", "../lib/moth_web.ex", "../lib/moth_web/**/*.*ex"],
+  content: ["./js/**/*.js", "../lib/mocha_web.ex", "../lib/mocha_web/**/*.*ex"],
   theme: {
     extend: {
       fontFamily: {
@@ -264,7 +264,7 @@ Replace the current `root.html.heex` with the redesigned version including the b
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="csrf-token" content={get_csrf_token()} />
-    <.live_title><%= assigns[:page_title] || "Moth" %></.live_title>
+    <.live_title><%= assigns[:page_title] || "Mocha" %></.live_title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -272,7 +272,7 @@ Replace the current `root.html.heex` with the redesigned version including the b
     <script>
       // Blocking: apply theme before first paint to prevent FOUC
       (function() {
-        var theme = localStorage.getItem('moth-theme');
+        var theme = localStorage.getItem('mocha-theme');
         if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
           document.documentElement.classList.add('dark');
         }
@@ -299,7 +299,7 @@ Expected: App loads with Inter font, light mode by default, no errors. Adding `d
 - [ ] **Step 5: Commit**
 
 ```bash
-git add assets/tailwind.config.js assets/css/app.css lib/moth_web/components/layouts/root.html.heex
+git add assets/tailwind.config.js assets/css/app.css lib/mocha_web/components/layouts/root.html.heex
 git commit -m "feat: design system foundation — tokens, theme, animations, Tailwind config"
 ```
 
@@ -308,14 +308,14 @@ git commit -m "feat: design system foundation — tokens, theme, animations, Tai
 ## Task 2: UI Component Library
 
 **Files:**
-- Create: `lib/moth_web/components/ui.ex`
-- Modify: `lib/moth_web.ex`
-- Modify: `lib/moth_web/components/layouts.ex`
-- Modify: `lib/moth_web/components/layouts/app.html.heex`
+- Create: `lib/mocha_web/components/ui.ex`
+- Modify: `lib/mocha_web.ex`
+- Modify: `lib/mocha_web/components/layouts.ex`
+- Modify: `lib/mocha_web/components/layouts/app.html.heex`
 
 **Spec ref:** Section 2.4 (component primitives)
 
-- [ ] **Step 1: Create `MothWeb.Components.UI` module**
+- [ ] **Step 1: Create `MochaWeb.Components.UI` module**
 
 Build all general-purpose function components: `button`, `card`, `badge`, `avatar`, `input_field`, `modal`, `toast`, `skeleton`, `segmented_control`, `bottom_sheet`, `connection_status`. Each component uses the CSS custom properties and Tailwind classes from Task 1.
 
@@ -327,16 +327,16 @@ Key implementation details:
 - `segmented_control/1`: Accept `options` (list of `%{value, label}`), `selected`, `name`. Renders pill group with indigo fill on selected.
 - `toast/1`: Accept `variant` (success/error/info), `message`. Positioned fixed top-right. Auto-dismiss via `phx-remove` after 4s.
 
-- [ ] **Step 2: Update `moth_web.ex` to import UI components**
+- [ ] **Step 2: Update `mocha_web.ex` to import UI components**
 
-In the `html_helpers/0` function, add `import MothWeb.Components.UI` so all LiveViews and components can use `<.button>`, `<.card>`, etc.
+In the `html_helpers/0` function, add `import MochaWeb.Components.UI` so all LiveViews and components can use `<.button>`, `<.card>`, etc.
 
 - [ ] **Step 3: Update app layout**
 
 Replace the app layout with a responsive container that matches the spec's spacing/max-width:
 
 ```heex
-<%# lib/moth_web/components/layouts/app.html.heex %>
+<%# lib/mocha_web/components/layouts/app.html.heex %>
 <main class="mx-auto max-w-md px-4 py-6 md:max-w-4xl md:px-6">
   <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2" aria-live="polite"></div>
   <.flash_group flash={@flash} />
@@ -352,7 +352,7 @@ Expected: Clean compile with no errors. Components are importable in any LiveVie
 - [ ] **Step 5: Commit**
 
 ```bash
-git add lib/moth_web/components/ui.ex lib/moth_web.ex lib/moth_web/components/layouts.ex lib/moth_web/components/layouts/app.html.heex
+git add lib/mocha_web/components/ui.ex lib/mocha_web.ex lib/mocha_web/components/layouts.ex lib/mocha_web/components/layouts/app.html.heex
 git commit -m "feat: UI component library — button, card, badge, avatar, input, toast, skeleton, etc."
 ```
 
@@ -460,16 +460,16 @@ git commit -m "feat: JS hooks — countdown, strike, confetti, reactions, copy, 
 ## Task 4: Backend — Small Additions
 
 **Files:**
-- Modify: `lib/moth/game/server.ex`
-- Modify: `lib/moth/game/game.ex`
-- Modify: `test/moth/game/server_test.exs`
-- Modify: `test/moth/game/game_test.exs`
+- Modify: `lib/mocha/game/server.ex`
+- Modify: `lib/mocha/game/game.ex`
+- Modify: `test/mocha/game/server_test.exs`
+- Modify: `test/mocha/game/game_test.exs`
 
 **Spec ref:** Section 6 (backend additions)
 
 - [ ] **Step 1: Write test for `prize_progress` in `sanitize_state`**
 
-In `test/moth/game/server_test.exs`, add a test that starts a game, joins a player, starts the game (so tickets are assigned), strikes some numbers, and asserts that `Game.game_state(code)` includes a `prize_progress` map with the correct counts for each prize.
+In `test/mocha/game/server_test.exs`, add a test that starts a game, joins a player, starts the game (so tickets are assigned), strikes some numbers, and asserts that `Game.game_state(code)` includes a `prize_progress` map with the correct counts for each prize.
 
 ```elixir
 test "game_state includes prize_progress per player", %{code: code, host_id: host_id} do
@@ -521,7 +521,7 @@ Call `compute_prize_progress` inside `sanitize_state` and include in the returne
 
 - [ ] **Step 3: Run test**
 
-Run: `mix test test/moth/game/server_test.exs --trace`
+Run: `mix test test/mocha/game/server_test.exs --trace`
 Expected: New test passes.
 
 - [ ] **Step 4: Add `server_now` to pick broadcast payload**
@@ -542,7 +542,7 @@ In `game.ex`, add: `def send_reaction(code, user_id, emoji)`.
 
 - [ ] **Step 7: Write test for `recent_games`**
 
-In `test/moth/game/game_test.exs`:
+In `test/mocha/game/game_test.exs`:
 
 ```elixir
 test "recent_games returns games user participated in" do
@@ -602,7 +602,7 @@ Expected: All tests pass including new ones.
 - [ ] **Step 11: Commit**
 
 ```bash
-git add lib/moth/game/server.ex lib/moth/game/game.ex test/moth/game/server_test.exs test/moth/game/game_test.exs
+git add lib/mocha/game/server.ex lib/mocha/game/game.ex test/mocha/game/server_test.exs test/mocha/game/game_test.exs
 git commit -m "feat: backend additions — prize progress, reactions, recent games, clone, auto-strike cast"
 ```
 
@@ -611,15 +611,15 @@ git commit -m "feat: backend additions — prize progress, reactions, recent gam
 ## Task 5: Backend — Auth Return-To Redirect
 
 **Files:**
-- Modify: `lib/moth_web/plugs/auth.ex`
-- Modify: `lib/moth_web/live_auth.ex`
-- Modify: `lib/moth_web/controllers/auth_controller.ex`
+- Modify: `lib/mocha_web/plugs/auth.ex`
+- Modify: `lib/mocha_web/live_auth.ex`
+- Modify: `lib/mocha_web/controllers/auth_controller.ex`
 
 **Spec ref:** Section 6 (unauthenticated join redirect)
 
 - [ ] **Step 1: Store `return_to` in session on auth redirect**
 
-In `lib/moth_web/plugs/auth.ex`, update `require_authenticated_user` to store the current path:
+In `lib/mocha_web/plugs/auth.ex`, update `require_authenticated_user` to store the current path:
 
 ```elixir
 def require_authenticated_user(conn, _opts) do
@@ -637,7 +637,7 @@ end
 
 - [ ] **Step 2: Update LiveAuth redirect to store return_to**
 
-In `lib/moth_web/live_auth.ex`, update the `:require_auth` clause to store the current URI:
+In `lib/mocha_web/live_auth.ex`, update the `:require_auth` clause to store the current URI:
 
 ```elixir
 def on_mount(:require_auth, _params, session, socket) do
@@ -675,7 +675,7 @@ Navigate to `/game/TEST-CODE` while logged out → should redirect to "/" with f
 - [ ] **Step 5: Commit**
 
 ```bash
-git add lib/moth_web/plugs/auth.ex lib/moth_web/live_auth.ex lib/moth_web/controllers/auth_controller.ex
+git add lib/mocha_web/plugs/auth.ex lib/mocha_web/live_auth.ex lib/mocha_web/controllers/auth_controller.ex
 git commit -m "feat: store return_to path in session for post-login redirect"
 ```
 
@@ -684,12 +684,12 @@ git commit -m "feat: store return_to path in session for post-login redirect"
 ## Task 6: Game Components
 
 **Files:**
-- Create: `lib/moth_web/components/game.ex`
-- Modify: `lib/moth_web.ex`
+- Create: `lib/mocha_web/components/game.ex`
+- Modify: `lib/mocha_web.ex`
 
 **Spec ref:** Sections 2.4, 3.6 (ticket_grid, ticket_cell, prize_chip, number_pill, board, countdown)
 
-- [ ] **Step 1: Create `MothWeb.Components.Game` module**
+- [ ] **Step 1: Create `MochaWeb.Components.Game` module**
 
 Build game-specific function components:
 
@@ -711,9 +711,9 @@ Interactive cells have `phx-hook="TicketStrike"` and `phx-click="strike_out"` wi
 
 **`countdown_ring/1`**: SVG circle element with `phx-hook="Countdown"`. Accepts `next_pick_at`, `server_now`, `status` as data attributes. Renders as `<div>` with the hook managing the SVG animation.
 
-- [ ] **Step 2: Import Game components in `moth_web.ex`**
+- [ ] **Step 2: Import Game components in `mocha_web.ex`**
 
-Add `import MothWeb.Components.Game` to `html_helpers/0`.
+Add `import MochaWeb.Components.Game` to `html_helpers/0`.
 
 - [ ] **Step 3: Verify compile**
 
@@ -723,7 +723,7 @@ Expected: Clean compile.
 - [ ] **Step 4: Commit**
 
 ```bash
-git add lib/moth_web/components/game.ex lib/moth_web.ex
+git add lib/mocha_web/components/game.ex lib/mocha_web.ex
 git commit -m "feat: game components — ticket grid, prize chips, board, number pills, countdown"
 ```
 
@@ -732,7 +732,7 @@ git commit -m "feat: game components — ticket grid, prize chips, board, number
 ## Task 7: Activity Feed LiveComponent
 
 **Files:**
-- Create: `lib/moth_web/live/game/activity_feed.ex`
+- Create: `lib/mocha_web/live/game/activity_feed.ex`
 
 **Spec ref:** Section 3.6 (live activity feed)
 
@@ -741,8 +741,8 @@ git commit -m "feat: game components — ticket grid, prize chips, board, number
 Uses `Phoenix.LiveView.stream/3` for efficient DOM updates.
 
 ```elixir
-defmodule MothWeb.Game.ActivityFeed do
-  use MothWeb, :live_component
+defmodule MochaWeb.Game.ActivityFeed do
+  use MochaWeb, :live_component
 
   def mount(socket) do
     {:ok, socket |> stream(:entries, []) |> assign(:filter, :all)}
@@ -786,7 +786,7 @@ Run: `mix compile`
 - [ ] **Step 3: Commit**
 
 ```bash
-git add lib/moth_web/live/game/activity_feed.ex
+git add lib/mocha_web/live/game/activity_feed.ex
 git commit -m "feat: ActivityFeed LiveComponent with stream-based rendering"
 ```
 
@@ -795,7 +795,7 @@ git commit -m "feat: ActivityFeed LiveComponent with stream-based rendering"
 ## Task 8: Home Screen Redesign
 
 **Files:**
-- Modify: `lib/moth_web/live/home_live.ex`
+- Modify: `lib/mocha_web/live/home_live.ex`
 
 **Spec ref:** Section 3.1
 
@@ -804,7 +804,7 @@ git commit -m "feat: ActivityFeed LiveComponent with stream-based rendering"
 Replace entirely. Mount loads `@recent_games` via `Game.recent_games(user.id)` if authenticated. Assigns: `@current_user`, `@recent_games` (list or nil), `@code` (form input).
 
 Template structure:
-- Logo wordmark "moth" at top center
+- Logo wordmark "mocha" at top center
 - Game code input: large, monospace, auto-uppercase via `phx-hook` or CSS `uppercase`, `phx-submit="join_game"`
 - Unauthenticated: auth buttons below (outlined pills for Google + Email)
 - Authenticated: avatar dropdown top-right, "Create Game" primary button, recent games list with `<.card>` and `<.badge>` for status
@@ -823,7 +823,7 @@ Expected: Home page renders with new design. Join form works. Auth buttons link 
 - [ ] **Step 3: Commit**
 
 ```bash
-git add lib/moth_web/live/home_live.ex
+git add lib/mocha_web/live/home_live.ex
 git commit -m "feat: redesign home screen — join-first, recent games, auth buttons"
 ```
 
@@ -832,8 +832,8 @@ git commit -m "feat: redesign home screen — join-first, recent games, auth but
 ## Task 9: Auth & Profile Screens
 
 **Files:**
-- Modify: `lib/moth_web/live/magic_link_live.ex`
-- Modify: `lib/moth_web/live/profile_live.ex`
+- Modify: `lib/mocha_web/live/magic_link_live.ex`
+- Modify: `lib/mocha_web/live/profile_live.ex`
 
 **Spec ref:** Sections 3.2, 3.3
 
@@ -863,7 +863,7 @@ Both screens render correctly with new design. Magic link flow works. Profile sa
 - [ ] **Step 4: Commit**
 
 ```bash
-git add lib/moth_web/live/magic_link_live.ex lib/moth_web/live/profile_live.ex
+git add lib/mocha_web/live/magic_link_live.ex lib/mocha_web/live/profile_live.ex
 git commit -m "feat: redesign auth and profile screens"
 ```
 
@@ -872,7 +872,7 @@ git commit -m "feat: redesign auth and profile screens"
 ## Task 10: Game Creation Screen
 
 **Files:**
-- Modify: `lib/moth_web/live/game/new_live.ex`
+- Modify: `lib/mocha_web/live/game/new_live.ex`
 
 **Spec ref:** Section 3.4
 
@@ -903,7 +903,7 @@ Create game flow works. Segmented controls select correctly. Prize toggles work.
 - [ ] **Step 3: Commit**
 
 ```bash
-git add lib/moth_web/live/game/new_live.ex
+git add lib/mocha_web/live/game/new_live.ex
 git commit -m "feat: redesign game creation with segmented controls and prize toggles"
 ```
 
@@ -912,7 +912,7 @@ git commit -m "feat: redesign game creation with segmented controls and prize to
 ## Task 11: Player View — Full Redesign
 
 **Files:**
-- Modify: `lib/moth_web/live/game/play_live.ex`
+- Modify: `lib/mocha_web/live/game/play_live.ex`
 
 **Spec ref:** Sections 3.5 (lobby), 3.6 (gameplay), 3.8 (game over), 3.9 (error/loading)
 
@@ -923,7 +923,7 @@ This is the largest task. PlayLive renders three states based on `@status`: `:lo
 On mount:
 - Subscribe to PubSub `"game:#{code}"`
 - Join game via `Game.join_game(code, user_id)`
-- Track presence via `MothWeb.Presence.track/3`
+- Track presence via `MochaWeb.Presence.track/3`
 - Assign all state: `@code`, `@status`, `@ticket`, `@picks`, `@struck`, `@prizes`, `@prize_progress`, `@auto_strike`, `@game_state`
 - Initialize activity feed stream: `stream(:feed, [])`
 - Handle `:game_not_found` → error redirect with flash
@@ -982,7 +982,7 @@ Run through: join game → lobby → host starts → ticket appears → strike n
 - [ ] **Step 7: Commit**
 
 ```bash
-git add lib/moth_web/live/game/play_live.ex
+git add lib/mocha_web/live/game/play_live.ex
 git commit -m "feat: redesign player view — lobby, gameplay, game over with activity feed + reactions"
 ```
 
@@ -991,7 +991,7 @@ git commit -m "feat: redesign player view — lobby, gameplay, game over with ac
 ## Task 12: Host Dashboard — Full Redesign
 
 **Files:**
-- Modify: `lib/moth_web/live/game/host_live.ex`
+- Modify: `lib/mocha_web/live/game/host_live.ex`
 
 **Spec ref:** Sections 3.5 (lobby), 3.7 (command center), 3.8 (game over)
 
@@ -1044,7 +1044,7 @@ Create game → lobby → players join (visible in list) → start → board upd
 - [ ] **Step 7: Commit**
 
 ```bash
-git add lib/moth_web/live/game/host_live.ex
+git add lib/mocha_web/live/game/host_live.ex
 git commit -m "feat: redesign host dashboard — command center with leaderboard, board, activity log"
 ```
 
@@ -1053,19 +1053,19 @@ git commit -m "feat: redesign host dashboard — command center with leaderboard
 ## Task 13: Presence Integration
 
 **Files:**
-- Modify: `lib/moth_web/presence.ex`
-- Modify: `lib/moth_web/live/game/play_live.ex`
-- Modify: `lib/moth_web/live/game/host_live.ex`
+- Modify: `lib/mocha_web/presence.ex`
+- Modify: `lib/mocha_web/live/game/play_live.ex`
+- Modify: `lib/mocha_web/live/game/host_live.ex`
 
 **Spec ref:** Section 4 (presence system)
 
-- [ ] **Step 1: Expand `MothWeb.Presence` module**
+- [ ] **Step 1: Expand `MochaWeb.Presence` module**
 
 ```elixir
-defmodule MothWeb.Presence do
+defmodule MochaWeb.Presence do
   use Phoenix.Presence,
-    otp_app: :moth,
-    pubsub_server: Moth.PubSub
+    otp_app: :mocha,
+    pubsub_server: Mocha.PubSub
 
   def track_player(socket, code, user) do
     track(socket, "game:#{code}:presence", user.id, %{
@@ -1092,8 +1092,8 @@ end
 In both LiveViews, after mount:
 ```elixir
 if connected?(socket) do
-  MothWeb.Presence.track_player(socket, code, socket.assigns.current_user)
-  Phoenix.PubSub.subscribe(Moth.PubSub, "game:#{code}:presence")
+  MochaWeb.Presence.track_player(socket, code, socket.assigns.current_user)
+  Phoenix.PubSub.subscribe(Mocha.PubSub, "game:#{code}:presence")
 end
 ```
 
@@ -1108,12 +1108,12 @@ Pass `@presences` to avatar components. Each `<.avatar>` receives a `status` pro
 The `Presence` JS hook pushes `"away"` and `"online"` events. Handle in LiveView:
 ```elixir
 def handle_event("away", _, socket) do
-  MothWeb.Presence.update_status(socket, socket.assigns.code, socket.assigns.current_user.id, :away)
+  MochaWeb.Presence.update_status(socket, socket.assigns.code, socket.assigns.current_user.id, :away)
   {:noreply, socket}
 end
 
 def handle_event("online", _, socket) do
-  MothWeb.Presence.update_status(socket, socket.assigns.code, socket.assigns.current_user.id, :online)
+  MochaWeb.Presence.update_status(socket, socket.assigns.code, socket.assigns.current_user.id, :online)
   {:noreply, socket}
 end
 ```
@@ -1125,7 +1125,7 @@ Open two browser tabs as different users. Both should see each other's presence 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add lib/moth_web/presence.ex lib/moth_web/live/game/play_live.ex lib/moth_web/live/game/host_live.ex
+git add lib/mocha_web/presence.ex lib/mocha_web/live/game/play_live.ex lib/mocha_web/live/game/host_live.ex
 git commit -m "feat: presence system — online/away/offline status with avatar dots"
 ```
 
@@ -1134,8 +1134,8 @@ git commit -m "feat: presence system — online/away/offline status with avatar 
 ## Task 14: Reactions Frontend
 
 **Files:**
-- Modify: `lib/moth_web/live/game/play_live.ex`
-- Modify: `lib/moth_web/live/game/host_live.ex`
+- Modify: `lib/mocha_web/live/game/play_live.ex`
+- Modify: `lib/mocha_web/live/game/host_live.ex`
 
 **Spec ref:** Section 5 (floating reactions)
 
@@ -1176,7 +1176,7 @@ Open two browser windows. Send a reaction in one → floating emoji appears in b
 - [ ] **Step 4: Commit**
 
 ```bash
-git add lib/moth_web/live/game/play_live.ex lib/moth_web/live/game/host_live.ex
+git add lib/mocha_web/live/game/play_live.ex lib/mocha_web/live/game/host_live.ex
 git commit -m "feat: floating reactions — emoji bar with float-up animation"
 ```
 
@@ -1185,16 +1185,16 @@ git commit -m "feat: floating reactions — emoji bar with float-up animation"
 ## Task 15: Cleanup & Accessibility Pass
 
 **Files:**
-- Modify: `lib/moth_web/components/game_components.ex` (deprecate / remove)
-- Modify: `lib/moth_web/components/game.ex` (add ARIA attributes)
-- Modify: `lib/moth_web/components/ui.ex` (add ARIA attributes)
+- Modify: `lib/mocha_web/components/game_components.ex` (deprecate / remove)
+- Modify: `lib/mocha_web/components/game.ex` (add ARIA attributes)
+- Modify: `lib/mocha_web/components/ui.ex` (add ARIA attributes)
 - Modify: `assets/css/app.css` (verify reduced-motion)
 
 **Spec ref:** Section 8 (accessibility)
 
 - [ ] **Step 1: Remove old `game_components.ex`**
 
-Delete `lib/moth_web/components/game_components.ex`. Remove `import MothWeb.GameComponents` from any file that still uses it (grep for it). All references should now point to `MothWeb.Components.Game`.
+Delete `lib/mocha_web/components/game_components.ex`. Remove `import MochaWeb.GameComponents` from any file that still uses it (grep for it). All references should now point to `MochaWeb.Components.Game`.
 
 - [ ] **Step 2: ARIA pass on game components**
 

@@ -6,7 +6,7 @@
 
 ## Background
 
-The current Moth app uses Phoenix LiveView for server-side rendering. This has caused significant developer experience friction and bugs when using AI tooling to implement UI changes — HEEX templates and LiveView's state model are not well-supported by AI coding tools. The decision was made to replace the entire frontend with a Vue 3 SPA.
+The current Mocha app uses Phoenix LiveView for server-side rendering. This has caused significant developer experience friction and bugs when using AI tooling to implement UI changes — HEEX templates and LiveView's state model are not well-supported by AI coding tools. The decision was made to replace the entire frontend with a Vue 3 SPA.
 
 ## Goal
 
@@ -204,13 +204,13 @@ interface GameSettings {
   enabled_prizes: string[]
 }
 
-// Matches Ticket.to_map/1 in lib/moth/game/ticket.ex
+// Matches Ticket.to_map/1 in lib/mocha/game/ticket.ex
 interface Ticket {
   rows: (number | null)[][]  // 3×9 grid, null = blank cell
   numbers: number[]           // flat list of numbers on this ticket
 }
 
-// Matches Board.to_map/1 in lib/moth/game/board.ex
+// Matches Board.to_map/1 in lib/mocha/game/board.ex
 interface Board {
   picks: number[]
   count: number
@@ -375,16 +375,16 @@ On unmount: leaves channel, disconnects socket.
 
 ## Phoenix Changes
 
-### New: lib/moth_web/user_socket.ex
+### New: lib/mocha_web/user_socket.ex
 ```elixir
-defmodule MothWeb.UserSocket do
+defmodule MochaWeb.UserSocket do
   use Phoenix.Socket
 
-  channel "game:*", MothWeb.GameChannel
+  channel "game:*", MochaWeb.GameChannel
 
   @impl true
   def connect(%{"token" => token}, socket, _connect_info) do
-    case Moth.Auth.verify_api_token(token) do
+    case Mocha.Auth.verify_api_token(token) do
       {:ok, user} -> {:ok, assign(socket, :current_user, user)}
       {:error, _} -> :error
     end
@@ -394,13 +394,13 @@ defmodule MothWeb.UserSocket do
 end
 ```
 
-### New: lib/moth_web/channels/game_channel.ex
+### New: lib/mocha_web/channels/game_channel.ex
 
 Handles all real-time game communication.
 
 **On join (`"game:<code>"`):**
 - Verifies game exists and user has access
-- Calls `MothWeb.Presence.track(self(), ...)` to register presence
+- Calls `MochaWeb.Presence.track(self(), ...)` to register presence
 - Subscribes to PubSub topic `"game:<code>"` to receive Game.Server broadcasts
 - Replies with full `GameJoinReply` payload (code, board, ticket, struck, prizes, prize_progress, players, status, settings)
 
@@ -425,27 +425,27 @@ The Game.Server broadcasts raw Elixir tuples via `Phoenix.PubSub.broadcast`. The
 | `{:chat, payload}` | `"chat"` | Broadcast to all |
 | `{:reaction, payload}` | `"reaction"` | Broadcast to all |
 
-**Presence:** Uses `MothWeb.Presence.track(socket, ...)` — existing `Presence` module must be adapted to accept a channel socket instead of a LiveView PID. The topic `"game:<code>:presence"` stays the same.
+**Presence:** Uses `MochaWeb.Presence.track(socket, ...)` — existing `Presence` module must be adapted to accept a channel socket instead of a LiveView PID. The topic `"game:<code>:presence"` stays the same.
 
-### Modified: lib/moth_web/endpoint.ex
+### Modified: lib/mocha_web/endpoint.ex
 Add UserSocket before the LiveView socket:
 ```elixir
-socket "/socket", MothWeb.UserSocket,
+socket "/socket", MochaWeb.UserSocket,
   websocket: true,
   longpoll: false
 ```
 
-### Modified: lib/moth_web/controllers/auth_controller.ex (OAuth callback)
+### Modified: lib/mocha_web/controllers/auth_controller.ex (OAuth callback)
 The `callback/2` action must be changed to support SPA clients:
 ```elixir
 def callback(%{assigns: %{ueberauth_auth: auth}} = conn, _params) do
   user = # ... find or create user from auth
-  {:ok, token, expires_at} = Moth.Auth.generate_api_token(user)
+  {:ok, token, expires_at} = Mocha.Auth.generate_api_token(user)
   redirect(conn, to: "/#/auth/callback?token=#{token}&expires_at=#{expires_at}")
 end
 ```
 
-### Modified: lib/moth_web/router.ex
+### Modified: lib/mocha_web/router.ex
 - Remove all `live` routes
 - Keep all `/api/*` routes unchanged
 - Add new API endpoints (see below)
@@ -464,7 +464,7 @@ Response: { code: <new_game_code> }
 ```
 Calls existing `Game.clone_game/2` internally.
 
-### Modified: lib/moth_web/controllers/page_controller.ex
+### Modified: lib/mocha_web/controllers/page_controller.ex
 ```elixir
 def spa(conn, _params) do
   conn
@@ -473,8 +473,8 @@ def spa(conn, _params) do
 end
 ```
 
-### Modified: lib/moth_web/endpoint.ex — static paths
-Update `MothWeb.static_paths/0` in `lib/moth_web.ex` to include Vite output:
+### Modified: lib/mocha_web/endpoint.ex — static paths
+Update `MochaWeb.static_paths/0` in `lib/mocha_web.ex` to include Vite output:
 ```elixir
 def static_paths, do: ~w(assets fonts images favicon.ico robots.txt)
 # Add: Vite outputs to priv/static/assets/ which is already covered.
@@ -567,17 +567,17 @@ The current `ticket_strike.js` hook implements: optimistic local strike on click
 
 ## What Gets Removed
 
-- `lib/moth_web/live/` — all LiveView modules
-- `lib/moth_web/components/ui.ex` — HEEX component macros
-- `lib/moth_web/components/game.ex` — HEEX game components
-- `lib/moth_web/components/layouts/` — HEEX layouts (replaced by `index.html` + Vue layouts)
+- `lib/mocha_web/live/` — all LiveView modules
+- `lib/mocha_web/components/ui.ex` — HEEX component macros
+- `lib/mocha_web/components/game.ex` — HEEX game components
+- `lib/mocha_web/components/layouts/` — HEEX layouts (replaced by `index.html` + Vue layouts)
 - `assets/js/hooks/` — all JS hooks (replaced by Vue composables/components)
 - `assets/js/app.js` — replaced by `app.ts`
 - `:esbuild` from `mix.exs`
 
 ## What Stays Unchanged
 
-- All Elixir game engine logic (`lib/moth/game/server.ex`, `lib/moth/game/board.ex`, etc.)
+- All Elixir game engine logic (`lib/mocha/game/server.ex`, `lib/mocha/game/board.ex`, etc.)
 - All existing `/api/*` REST endpoints and controllers (except OAuth callback)
 - All database schemas and migrations
 - `assets/css/app.css` — CSS variables and Tailwind theme
@@ -587,7 +587,7 @@ The current `ticket_strike.js` hook implements: optimistic local strike on click
 
 ### Backend (extend existing ExUnit suite)
 
-**`test/moth_web/channels/game_channel_test.exs`** (new):
+**`test/mocha_web/channels/game_channel_test.exs`** (new):
 - Join with valid token → receives `GameJoinReply` with correct shape
 - Join with invalid/expired token → connection rejected
 - `"strike"` → `StrikeResultEvent` returned to socket
@@ -598,7 +598,7 @@ The current `ticket_strike.js` hook implements: optimistic local strike on click
 - `"reaction"` → `ReactionEvent` broadcast to all
 - Presence diff on join/leave → all subscribers receive `PresenceDiff`
 
-**`test/moth_web/controllers/auth_controller_test.exs`** (update):
+**`test/mocha_web/controllers/auth_controller_test.exs`** (update):
 - OAuth callback redirects to `/#/auth/callback?token=…` not `/`
 
 ### Frontend (Vitest + Vue Test Utils)
