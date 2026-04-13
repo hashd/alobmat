@@ -1,7 +1,7 @@
 defmodule Mocha.Game.Code do
   @moduledoc """
-  Generates human-friendly room codes in WORD-NN format.
-  Word list: ~2000 common English words. Code space: ~200,000.
+  Generates human-friendly room codes in WORD-NNN format.
+  Word list: ~250 words × 1000 numbers = ~250,000 codes.
   """
 
   @words ~w(
@@ -55,8 +55,8 @@ defmodule Mocha.Game.Code do
 
   defp generate_with_retries(excluded, retries) do
     word = Enum.random(@words)
-    number = :rand.uniform(100) - 1
-    code = "#{word}-#{String.pad_leading(Integer.to_string(number), 2, "0")}"
+    number = :rand.uniform(1000) - 1
+    code = "#{word}-#{String.pad_leading(Integer.to_string(number), 3, "0")}"
 
     if MapSet.member?(excluded, code) do
       generate_with_retries(excluded, retries - 1)

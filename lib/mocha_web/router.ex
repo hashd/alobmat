@@ -11,7 +11,7 @@ defmodule MochaWeb.Router do
 
   pipeline :api do
     plug :accepts, ["json"]
-    plug CORSPlug
+    plug CORSPlug, origin: Application.compile_env(:mocha, :cors_origins, ["http://localhost:4000", "http://localhost:5173"])
     plug MochaWeb.Plugs.APIAuth
   end
 
